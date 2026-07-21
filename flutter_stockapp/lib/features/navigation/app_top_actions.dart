@@ -10,7 +10,7 @@ class AppTopActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: const [
-        _RoundIconButton(icon: Icons.notifications_none_rounded),
+        _RoundIconButton(icon: Icons.search_rounded),
         SizedBox(width: 12),
         _ProfileAvatar(),
       ],

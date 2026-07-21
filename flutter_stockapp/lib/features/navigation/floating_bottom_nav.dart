@@ -20,9 +20,9 @@ class FloatingBottomNav extends StatelessWidget {
   final bool addActive;
 
   static const _items = [
-    _NavItem(icon: Icons.search_rounded, label: 'Search'),
+    _NavItem(icon: Icons.support_agent_rounded, label: 'Agent'),
     _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.auto_awesome_outlined, label: 'Explore'),
+    _NavItem(icon: Icons.auto_awesome_outlined, label: 'Quant'),
   ];
 
   @override
