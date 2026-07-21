@@ -1,14 +1,17 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../auth/login_page.dart';
-import '../auth/register_page.dart';
 import '../home/home_page.dart';
+import 'app_top_actions.dart';
 import 'floating_bottom_nav.dart';
 import 'idea_builder_sheet.dart';
 
 class RootShell extends StatefulWidget {
-  const RootShell({super.key});
+  const RootShell({this.username, super.key});
+
+  final String? username;
 
   @override
   State<RootShell> createState() => _RootShellState();
@@ -16,17 +19,12 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> {
   var _selectedIndex = 1;
+  var _isIdeaOverlayOpen = false;
 
-  static const _pages = [LoginPage(), HomePage(), RegisterPage()];
+  static const _pages = [_EmptyShellPage(), HomePage(), _EmptyShellPage()];
 
-  void _showIdeaSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: AppColors.textPrimary.withValues(alpha: 0.34),
-      builder: (_) => const IdeaBuilderSheet(),
-    );
+  void _toggleIdeaOverlay() {
+    setState(() => _isIdeaOverlayOpen = !_isIdeaOverlayOpen);
   }
 
   @override
@@ -39,6 +37,27 @@ class _RootShellState extends State<RootShell> {
           Positioned.fill(
             child: IndexedStack(index: _selectedIndex, children: _pages),
           ),
+          if (_isIdeaOverlayOpen)
+            Positioned.fill(
+              child: _GlassPageOverlay(
+                onDismiss: () => setState(() => _isIdeaOverlayOpen = false),
+              ),
+            ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  child: const AppTopActions(),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             left: 0,
             right: 0,
@@ -46,11 +65,55 @@ class _RootShellState extends State<RootShell> {
             child: FloatingBottomNav(
               selectedIndex: _selectedIndex,
               onChanged: (index) => setState(() => _selectedIndex = index),
-              onAdd: _showIdeaSheet,
+              onAdd: _toggleIdeaOverlay,
+              addActive: _isIdeaOverlayOpen,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _GlassPageOverlay extends StatelessWidget {
+  const _GlassPageOverlay({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onDismiss,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ColoredBox(
+                color: AppColors.textPrimary.withValues(alpha: 0.08),
+              ),
+            ),
+            Center(
+              child: GestureDetector(
+                onTap: () {},
+                child: const IdeaBuilderSheet(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyShellPage extends StatelessWidget {
+  const _EmptyShellPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(color: AppColors.bgPrimary);
   }
 }

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   const AppColors._();
 
-  static const bgPrimary = Color(0xFFF7F7F9);
-  static const bgGradientLavenderStart = Color(0xFFF3F0FA);
-  static const bgGradientLavenderEnd = Color(0xFFFAFAFA);
+  static const bgPrimary = Color(0xFFF6F4F2);
+  static const bgGradientLavenderStart = Color(0xFFF6F4F2);
+  static const bgGradientLavenderEnd = Color(0xFFF6F4F2);
   static const surfaceCard = Color(0xFFFFFFFF);
   static const surfaceMuted = Color(0xFFF0F0F3);
   static const accentCyanCard = Color(0xFFB7F2F5);

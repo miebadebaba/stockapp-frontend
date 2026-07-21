@@ -14,6 +14,7 @@ class GlassContainer extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.width,
     this.height,
+    this.showShadow = true,
     super.key,
   });
 
@@ -24,6 +25,7 @@ class GlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final double? width;
   final double? height;
+  final bool showShadow;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +33,15 @@ class GlassContainer extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadowSoft,
-            blurRadius: 34,
-            offset: Offset(0, 16),
-          ),
-        ],
+        boxShadow: showShadow
+            ? [
+                BoxShadow(
+                  color: AppColors.textPrimary.withValues(alpha: 0.12),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -51,7 +55,7 @@ class GlassContainer extends StatelessWidget {
               color: AppColors.surfaceCard.withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: AppColors.surfaceCard.withValues(alpha: 0.46),
+                color: AppColors.surfaceCard.withValues(alpha: 0.50),
               ),
             ),
             child: child,
