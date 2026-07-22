@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'widgets/investing_chart_card.dart';
+import 'widgets/stock_list_section.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -17,6 +19,27 @@ class HomePage extends StatelessWidget {
     'ALL': [18, 18.5, 18.2, 19.0, 18.7, 19.6, 22.4, 28.6, 37.8, 52.4],
   };
 
+  static const List<StockListItemData> _mockStocks = [
+    StockListItemData(
+      id: 'acot-call',
+      title: 'ACOT \$20 Call',
+      subtitle: '7/14 Exp · 1 Buy',
+      changePercent: 3.00,
+    ),
+    StockListItemData(
+      id: 'tsla-common',
+      title: 'TSLA',
+      subtitle: 'Long stock · 4 Shares',
+      changePercent: -1.42,
+    ),
+    StockListItemData(
+      id: 'nvda-call',
+      title: 'NVDA \$160 Call',
+      subtitle: '8/02 Exp · 2 Buys',
+      changePercent: 6.85,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return AnimatedPageWrapper(
@@ -30,19 +53,36 @@ class HomePage extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(0, 96, 0, 140),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
-                child: InvestingChartCard(
-                  title: 'Investing',
-                  amountText: '\$8,153.31',
-                  changeText: '\$922.47 (12.76%)',
-                  changeLabel: 'All time',
-                  showBadge: true,
-                  badgeText: 'Gold perks',
-                  initialRange: 'ALL',
-                  mockData: _mockSeries,
-                  showEndMarker: false,
-                  onRangeChanged: (_) {},
-                  onBadgeTap: () {},
-                  onSettingsTap: () {},
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InvestingChartCard(
+                      title: 'Investing',
+                      amountText: '\$8,153.31',
+                      changeText: '\$922.47 (12.76%)',
+                      changeLabel: 'All time',
+                      showBadge: true,
+                      badgeText: 'Gold perks',
+                      initialRange: 'ALL',
+                      mockData: _mockSeries,
+                      showEndMarker: false,
+                      onRangeChanged: (_) {},
+                      onBadgeTap: () {},
+                      onSettingsTap: () {},
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: StockListSection(
+                        titleText: 'Stocks',
+                        stocks: _mockStocks,
+                        onTitleTap: () {},
+                        onStockTap: (_) {},
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

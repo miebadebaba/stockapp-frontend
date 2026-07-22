@@ -566,6 +566,8 @@ class _InvestingChartPainter extends CustomPainter {
       ..lineTo(points.first.dx, size.height)
       ..close();
 
+    _drawGrid(canvas, size);
+
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -611,6 +613,34 @@ class _InvestingChartPainter extends CustomPainter {
         coreRadius,
         Paint()..color = AppColors.orbBlueDeep,
       );
+    }
+  }
+
+  void _drawGrid(Canvas canvas, Size size) {
+    const rows = 3;
+    const columns = 4;
+    final paint = Paint()
+      ..strokeWidth = 1.1
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppColors.outlineSoft.withValues(alpha: 0.0),
+          AppColors.outlineSoft.withValues(alpha: 0.72),
+          AppColors.outlineSoft.withValues(alpha: 0.72),
+          AppColors.outlineSoft.withValues(alpha: 0.0),
+        ],
+        stops: const [0, 0.14, 0.86, 1],
+      ).createShader(Offset.zero & size);
+
+    for (var i = 1; i <= rows; i++) {
+      final y = size.height * i / (rows + 1);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+
+    for (var i = 1; i <= columns; i++) {
+      final x = size.width * i / (columns + 1);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
   }
 
