@@ -265,7 +265,7 @@ class _StockAppArtwork extends StatelessWidget {
           Container(
             width: 94,
             height: 94,
-            margin: const EdgeInsets.only(top: 24),
+            margin: const EdgeInsets.only(top: 54),
             decoration: BoxDecoration(
               color: const Color(0xFF2B2B2D),
               borderRadius: BorderRadius.circular(24),
