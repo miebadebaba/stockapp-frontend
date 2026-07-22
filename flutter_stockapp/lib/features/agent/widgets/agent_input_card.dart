@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme_palette.dart';
+
 typedef AgentSendCallback = void Function(String text);
 
 class AgentInputCard extends StatefulWidget {
@@ -162,6 +164,8 @@ class _AgentInputCardState extends State<AgentInputCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+    final isDark = theme.brightness == Brightness.dark;
     final headline = widget.headlineText.substring(
       0,
       _visibleHeadlineCharacters.clamp(0, widget.headlineText.length),
@@ -194,7 +198,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
                   fontSize: 38,
                   height: 1.14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF17171B),
+                  color: palette.primaryText,
                   letterSpacing: 0.2,
                 ),
                 children: [
@@ -202,10 +206,12 @@ class _AgentInputCardState extends State<AgentInputCard> {
                   TextSpan(
                     text:
                         _visibleHeadlineCharacters < widget.headlineText.length
-                            ? '|'
-                            : '',
-                    style: const TextStyle(
-                      color: Color(0x99304156),
+                        ? '|'
+                        : '',
+                    style: TextStyle(
+                      color: isDark
+                          ? palette.secondaryText
+                          : const Color(0x99304156),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -219,6 +225,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
           _GlassCardShell(
             hasFocus: _hasFocus,
             borderRadius: _cardRadius,
+            isDark: isDark,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
               child: LayoutBuilder(
@@ -230,11 +237,11 @@ class _AgentInputCardState extends State<AgentInputCard> {
                       TextField(
                         controller: _controller,
                         focusNode: _focusNode,
-                        cursorColor: const Color(0xFF17171B),
+                        cursorColor: palette.primaryText,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontSize: 17,
                           height: 1.45,
-                          color: const Color(0xFF18212E),
+                          color: palette.primaryText,
                           fontWeight: FontWeight.w500,
                         ),
                         minLines: 3,
@@ -246,7 +253,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
                         decoration: InputDecoration(
                           hintText: widget.placeholderText,
                           hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                            color: const Color(0x8A556070),
+                            color: palette.secondaryText,
                             fontWeight: FontWeight.w500,
                           ),
                           contentPadding: const EdgeInsets.fromLTRB(
@@ -283,19 +290,13 @@ class _AgentInputCardState extends State<AgentInputCard> {
 
   List<Widget> _buildTrailingActions() {
     return [
-      _FrostedLabelButton(
-        label: widget.modelLabel,
-        onTap: widget.onModelTap,
-      ),
+      _FrostedLabelButton(label: widget.modelLabel, onTap: widget.onModelTap),
       _FrostedIconButton(
         icon: Icons.add_rounded,
         tooltip: 'Attach',
         onTap: widget.onAttachTap,
       ),
-      _FrostedSendButton(
-        enabled: _hasInput,
-        onTap: _submitText,
-      ),
+      _FrostedSendButton(enabled: _hasInput, onTap: _submitText),
     ];
   }
 }
@@ -305,11 +306,13 @@ class _GlassCardShell extends StatelessWidget {
     required this.child,
     required this.borderRadius,
     required this.hasFocus,
+    required this.isDark,
   });
 
   final Widget child;
   final double borderRadius;
   final bool hasFocus;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +321,9 @@ class _GlassCardShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF111114).withValues(alpha: 0.10),
+            color: (isDark ? Colors.black : const Color(0xFF111114)).withValues(
+              alpha: isDark ? 0.32 : 0.10,
+            ),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -340,12 +345,20 @@ class _GlassCardShell extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: Colors.white.withValues(alpha: hasFocus ? 0.28 : 0.16),
+                color: Colors.white.withValues(
+                  alpha: hasFocus
+                      ? (isDark ? 0.22 : 0.28)
+                      : (isDark ? 0.12 : 0.16),
+                ),
                 width: hasFocus ? 1.2 : 0.85,
               ),
-              color: const Color(0xFFF1EEEA).withValues(
-                alpha: hasFocus ? 0.92 : 0.84,
-              ),
+              color:
+                  (isDark ? const Color(0xFF14171D) : const Color(0xFFF1EEEA))
+                      .withValues(
+                        alpha: hasFocus
+                            ? (isDark ? 0.94 : 0.92)
+                            : (isDark ? 0.88 : 0.84),
+                      ),
             ),
             child: child,
           ),
@@ -368,6 +381,8 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: BackdropFilter(
@@ -375,14 +390,19 @@ class _StatusPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.48),
+            color: (isDark ? palette.groupBackground : Colors.white).withValues(
+              alpha: isDark ? 0.82 : 0.48,
+            ),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: const Color(0x14111114),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : const Color(0x14111114),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF111114).withValues(alpha: 0.10),
+                color: (isDark ? Colors.black : const Color(0xFF111114))
+                    .withValues(alpha: isDark ? 0.18 : 0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -397,15 +417,12 @@ class _StatusPill extends StatelessWidget {
                 Text(
                   text!,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xCC556070),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: palette.secondaryText,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               if (actionLabel != null)
-                _InlineGlassLink(
-                  label: actionLabel!,
-                  onTap: onTap,
-                ),
+                _InlineGlassLink(label: actionLabel!, onTap: onTap),
             ],
           ),
         ),
@@ -430,9 +447,10 @@ class _InlineGlassLinkState extends State<_InlineGlassLink> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final accent = _hovering || _pressing
-        ? const Color(0xFF1E5FE0)
-        : const Color(0xFF2F6FED);
+        ? const Color(0xFF6FAFFF)
+        : (isDark ? const Color(0xFF8CCBFF) : const Color(0xFF2F6FED));
 
     return MouseRegion(
       cursor: widget.onTap == null
@@ -453,10 +471,8 @@ class _InlineGlassLinkState extends State<_InlineGlassLink> {
           scale: _pressing ? 0.96 : (_hovering ? 1.02 : 1),
           child: Text(
             widget.label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: accent, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -480,6 +496,8 @@ class _FrostedLabelButtonState extends State<_FrostedLabelButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final highlighted = _hovering || _pressing;
 
     return MouseRegion(
@@ -504,9 +522,18 @@ class _FrostedLabelButtonState extends State<_FrostedLabelButton> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: Colors.white.withValues(alpha: highlighted ? 0.28 : 0.18),
+              color: (isDark ? palette.groupBackground : Colors.white)
+                  .withValues(
+                    alpha: highlighted
+                        ? (isDark ? 0.88 : 0.28)
+                        : (isDark ? 0.78 : 0.18),
+                  ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: highlighted ? 0.34 : 0.18),
+                color: Colors.white.withValues(
+                  alpha: highlighted
+                      ? (isDark ? 0.18 : 0.34)
+                      : (isDark ? 0.10 : 0.18),
+                ),
               ),
             ),
             child: Row(
@@ -515,15 +542,15 @@ class _FrostedLabelButtonState extends State<_FrostedLabelButton> {
                 Text(
                   widget.label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF16202C),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 18,
-                  color: const Color(0xFF304156).withValues(
+                  color: palette.secondaryText.withValues(
                     alpha: highlighted ? 1 : 0.86,
                   ),
                 ),
@@ -557,6 +584,8 @@ class _FrostedIconButtonState extends State<_FrostedIconButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final highlighted = _hovering || _pressing;
 
     return MouseRegion(
@@ -584,25 +613,34 @@ class _FrostedIconButtonState extends State<_FrostedIconButton> {
               height: 46,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: highlighted ? 0.28 : 0.18),
+                color: (isDark ? palette.groupBackground : Colors.white)
+                    .withValues(
+                      alpha: highlighted
+                          ? (isDark ? 0.88 : 0.28)
+                          : (isDark ? 0.78 : 0.18),
+                    ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: highlighted ? 0.34 : 0.18),
+                  color: Colors.white.withValues(
+                    alpha: highlighted
+                        ? (isDark ? 0.18 : 0.34)
+                        : (isDark ? 0.10 : 0.18),
+                  ),
                 ),
                 boxShadow: highlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFBFD4FF).withValues(alpha: 0.16),
+                          color:
+                              (isDark
+                                      ? const Color(0xFF5DAEFF)
+                                      : const Color(0xFFBFD4FF))
+                                  .withValues(alpha: isDark ? 0.12 : 0.16),
                           blurRadius: 16,
                           spreadRadius: 1,
                         ),
                       ]
                     : null,
               ),
-              child: Icon(
-                widget.icon,
-                size: 21,
-                color: const Color(0xFF1A2330),
-              ),
+              child: Icon(widget.icon, size: 21, color: palette.primaryText),
             ),
           ),
         ),
@@ -612,10 +650,7 @@ class _FrostedIconButtonState extends State<_FrostedIconButton> {
 }
 
 class _FrostedSendButton extends StatefulWidget {
-  const _FrostedSendButton({
-    required this.enabled,
-    required this.onTap,
-  });
+  const _FrostedSendButton({required this.enabled, required this.onTap});
 
   final bool enabled;
   final VoidCallback onTap;
@@ -630,13 +665,12 @@ class _FrostedSendButtonState extends State<_FrostedSendButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final interactive = widget.enabled;
     final highlighted = interactive && (_hovering || _pressing);
 
     return MouseRegion(
-      cursor: interactive
-          ? SystemMouseCursors.click
-          : SystemMouseCursors.basic,
+      cursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() {
         _hovering = false;
@@ -646,9 +680,15 @@ class _FrostedSendButtonState extends State<_FrostedSendButton> {
         message: 'Send',
         child: GestureDetector(
           onTap: interactive ? widget.onTap : null,
-          onTapDown: interactive ? (_) => setState(() => _pressing = true) : null,
-          onTapCancel: interactive ? () => setState(() => _pressing = false) : null,
-          onTapUp: interactive ? (_) => setState(() => _pressing = false) : null,
+          onTapDown: interactive
+              ? (_) => setState(() => _pressing = true)
+              : null,
+          onTapCancel: interactive
+              ? () => setState(() => _pressing = false)
+              : null,
+          onTapUp: interactive
+              ? (_) => setState(() => _pressing = false)
+              : null,
           child: AnimatedScale(
             duration: const Duration(milliseconds: 150),
             scale: _pressing ? 0.94 : (_hovering && interactive ? 1.04 : 1),
@@ -663,18 +703,30 @@ class _FrostedSendButtonState extends State<_FrostedSendButton> {
                   end: Alignment.bottomRight,
                   colors: interactive
                       ? [
-                          const Color(0xFF1F2D40),
-                          const Color(0xFF111A28),
+                          isDark
+                              ? const Color(0xFF8CCBFF)
+                              : const Color(0xFF1F2D40),
+                          isDark
+                              ? const Color(0xFF3476C8)
+                              : const Color(0xFF111A28),
                         ]
                       : [
-                          const Color(0xFF566170),
-                          const Color(0xFF424B58),
+                          isDark
+                              ? const Color(0xFF3E4652)
+                              : const Color(0xFF566170),
+                          isDark
+                              ? const Color(0xFF2D333D)
+                              : const Color(0xFF424B58),
                         ],
                 ),
                 boxShadow: highlighted
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF172233).withValues(alpha: 0.24),
+                          color:
+                              (isDark
+                                      ? const Color(0xFF8CCBFF)
+                                      : const Color(0xFF172233))
+                                  .withValues(alpha: isDark ? 0.18 : 0.24),
                           blurRadius: 18,
                           spreadRadius: 1,
                         ),

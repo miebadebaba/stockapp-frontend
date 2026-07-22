@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/glass_container.dart';
 import '../../core/widgets/pressable_scale.dart';
 
@@ -27,6 +28,8 @@ class FloatingBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -60,27 +63,30 @@ class FloatingBottomNav extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           PressableScale(
-              onTap: onAdd,
-              child: Container(
+            onTap: onAdd,
+            child: Container(
               width: 76,
               height: 76,
               decoration: BoxDecoration(
-                color: AppColors.ctaBlack,
+                color: isDark ? palette.groupBackground : AppColors.ctaBlack,
                 shape: BoxShape.circle,
                 border: addActive
                     ? Border.all(
-                        color: Colors.white.withValues(alpha: 0.20),
+                        color: palette.primaryText.withValues(alpha: 0.20),
                         width: 1.5,
                       )
                     : null,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.ctaBlack.withValues(alpha: 0.24),
+                    color: (isDark ? Colors.black : AppColors.ctaBlack)
+                        .withValues(alpha: 0.24),
                     blurRadius: 30,
                     offset: const Offset(0, 14),
                   ),
                   BoxShadow(
-                    color: AppColors.surfaceCard.withValues(alpha: 0.7),
+                    color: palette.groupBackground.withValues(
+                      alpha: isDark ? 0.20 : 0.70,
+                    ),
                     blurRadius: 14,
                     offset: const Offset(-4, -5),
                   ),
@@ -88,7 +94,7 @@ class FloatingBottomNav extends StatelessWidget {
               ),
               child: Icon(
                 addActive ? Icons.close_rounded : Icons.add_rounded,
-                color: Colors.white,
+                color: isDark ? palette.primaryText : Colors.white,
                 size: 34,
               ),
             ),
@@ -112,6 +118,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
     return PressableScale(
       onTap: onTap,
       child: AnimatedScale(
@@ -123,7 +130,7 @@ class _NavButton extends StatelessWidget {
             Icon(
               item.icon,
               size: 27,
-              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: selected ? palette.primaryText : palette.secondaryText,
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -131,9 +138,7 @@ class _NavButton extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: selected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: selected ? palette.primaryText : palette.secondaryText,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
               ),
             ),

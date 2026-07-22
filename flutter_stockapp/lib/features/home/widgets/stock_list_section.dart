@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme_palette.dart';
 
 class StockListItemData {
   const StockListItemData({
@@ -34,6 +34,7 @@ class StockListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,10 +60,10 @@ class StockListSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
                     size: 22,
-                    color: AppColors.textPrimary,
+                    color: palette.primaryText,
                   ),
                 ],
               ),
@@ -85,7 +86,7 @@ class StockListSection extends StatelessWidget {
             return Container(
               height: 1,
               margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              color: AppColors.textPrimary.withValues(alpha: 0.08),
+              color: palette.divider,
             );
           },
         ),
@@ -103,6 +104,7 @@ class _StockListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
     final isPositive = stock.changePercent >= 0;
     final badgeColor = isPositive
         ? const Color(0xFFDE7557)
@@ -115,7 +117,7 @@ class _StockListTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
-        splashColor: AppColors.textPrimary.withValues(alpha: 0.03),
+        splashColor: palette.rowPressedOverlay,
         highlightColor: Colors.transparent,
         child: Ink(
           padding: const EdgeInsets.symmetric(
@@ -139,7 +141,7 @@ class _StockListTile extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: palette.primaryText,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -149,7 +151,7 @@ class _StockListTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: palette.secondaryText,
                       ),
                     ),
                   ],

@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme_palette.dart';
 
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
@@ -29,6 +29,8 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // True glass is reserved for floating controls, matching the product brief.
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -36,7 +38,9 @@ class GlassContainer extends StatelessWidget {
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.12),
+                  color: palette.primaryText.withValues(
+                    alpha: isDark ? 0.18 : 0.12,
+                  ),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -52,10 +56,12 @@ class GlassContainer extends StatelessWidget {
             height: height,
             padding: padding,
             decoration: BoxDecoration(
-              color: AppColors.surfaceCard.withValues(alpha: opacity),
+              color: palette.groupBackground.withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: AppColors.surfaceCard.withValues(alpha: 0.50),
+                color: palette.primaryText.withValues(
+                  alpha: isDark ? 0.12 : 0.08,
+                ),
               ),
             ),
             child: child,

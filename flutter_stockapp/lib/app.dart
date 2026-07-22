@@ -6,8 +6,19 @@ import 'features/auth/auth_session.dart';
 import 'features/auth/login_page.dart';
 import 'features/navigation/root_shell.dart';
 
-class AppNameDemo extends StatelessWidget {
+class AppNameDemo extends StatefulWidget {
   const AppNameDemo({super.key});
+
+  @override
+  State<AppNameDemo> createState() => _AppNameDemoState();
+}
+
+class _AppNameDemoState extends State<AppNameDemo> {
+  var _themeMode = ThemeMode.light;
+
+  void _handleThemeModeChanged(ThemeMode mode) {
+    setState(() => _themeMode = mode);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +26,21 @@ class AppNameDemo extends StatelessWidget {
       title: 'AppName',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const _AuthGate(),
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      home: _AuthGate(
+        themeMode: _themeMode,
+        onThemeModeChanged: _handleThemeModeChanged,
+      ),
     );
   }
 }
 
 class _AuthGate extends StatefulWidget {
-  const _AuthGate();
+  const _AuthGate({required this.themeMode, required this.onThemeModeChanged});
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<_AuthGate> createState() => _AuthGateState();
@@ -50,7 +69,11 @@ class _AuthGateState extends State<_AuthGate> {
           animation: session,
           builder: (context, _) {
             if (session.isLoggedIn) {
-              return RootShell(username: session.username);
+              return RootShell(
+                username: session.username,
+                themeMode: widget.themeMode,
+                onThemeModeChanged: widget.onThemeModeChanged,
+              );
             }
 
             return LoginPage(

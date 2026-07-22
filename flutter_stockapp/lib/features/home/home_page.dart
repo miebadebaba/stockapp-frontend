@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'widgets/investing_chart_card.dart';
 import 'widgets/stock_list_section.dart';
@@ -42,9 +42,10 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
     return AnimatedPageWrapper(
       child: ColoredBox(
-        color: AppColors.bgPrimary,
+        color: palette.pageBackground,
         child: SafeArea(
           bottom: false,
           child: Align(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_theme_palette.dart';
 
 class InvestingChartCard extends StatefulWidget {
   const InvestingChartCard({
@@ -206,13 +207,19 @@ class _InvestingChartCardState extends State<InvestingChartCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = theme.brightness == Brightness.dark;
     final changeColor = widget.isPositiveChange
         ? const Color(0xFFE3515A)
         : const Color(0xFF2C9D69);
+    final chartColor = isDark ? const Color(0xFF8CCBFF) : AppColors.orbBlueDeep;
+    final gridColor = isDark
+        ? Colors.white.withValues(alpha: 0.30)
+        : AppColors.outlineSoft;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        color: palette.pageBackground,
         borderRadius: BorderRadius.circular(32),
       ),
       padding: const EdgeInsets.symmetric(vertical: _cardVerticalPadding),
@@ -282,7 +289,7 @@ class _InvestingChartCardState extends State<InvestingChartCard>
                           Text(
                             widget.changeLabel,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: palette.secondaryText,
                               fontSize: 16,
                             ),
                           ),
@@ -315,6 +322,8 @@ class _InvestingChartCardState extends State<InvestingChartCard>
                         values: _interpolatedSeries(value),
                         showEndMarker: false,
                         markerPulseValue: 0,
+                        lineColor: chartColor,
+                        gridColor: gridColor,
                       ),
                     ),
                   );
@@ -329,6 +338,8 @@ class _InvestingChartCardState extends State<InvestingChartCard>
                           values: _interpolatedSeries(value),
                           showEndMarker: widget.showEndMarker,
                           markerPulseValue: _markerPulseController.value,
+                          lineColor: chartColor,
+                          gridColor: gridColor,
                         ),
                       ),
                     );
@@ -363,6 +374,13 @@ class _BadgePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final badgeBackground = isDark
+        ? const Color(0xFF4B3910)
+        : const Color(0xFFF7ECCE);
+    final badgeForeground = isDark
+        ? const Color(0xFFFFE08A)
+        : AppColors.textPrimary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -371,22 +389,18 @@ class _BadgePill extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7ECCE),
+            color: badgeBackground,
             borderRadius: BorderRadius.circular(AppRadius.pill),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.star_rounded,
-                size: 16,
-                color: AppColors.textPrimary,
-              ),
+              Icon(Icons.star_rounded, size: 16, color: badgeForeground),
               const SizedBox(width: 6),
               Text(
                 text,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
+                  color: badgeForeground,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -419,6 +433,8 @@ class _RangeSelector extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedIndex = ranges.contains(selectedRange)
         ? ranges.indexOf(selectedRange)
         : 0;
@@ -478,7 +494,7 @@ class _RangeSelector extends StatelessWidget {
                                           fontSize: 16,
                                           color: i == selectedIndex
                                               ? Colors.white
-                                              : AppColors.textSecondary,
+                                              : palette.secondaryText,
                                           fontWeight: i == selectedIndex
                                               ? FontWeight.w800
                                               : FontWeight.w600,
@@ -509,12 +525,14 @@ class _RangeSelector extends StatelessWidget {
               width: _selectorHeight,
               height: _selectorHeight,
               decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
+                color: isDark
+                    ? palette.groupBackground
+                    : AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.tune_rounded,
-                color: AppColors.textPrimary,
+                color: palette.primaryText,
                 size: 24,
               ),
             ),
@@ -530,11 +548,15 @@ class _InvestingChartPainter extends CustomPainter {
     required this.values,
     required this.showEndMarker,
     required this.markerPulseValue,
+    required this.lineColor,
+    required this.gridColor,
   });
 
   final List<double> values;
   final bool showEndMarker;
   final double markerPulseValue;
+  final Color lineColor;
+  final Color gridColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -572,9 +594,9 @@ class _InvestingChartPainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        AppColors.orbBlueDeep.withValues(alpha: 0.26),
-        AppColors.orbBlueDeep.withValues(alpha: 0.04),
-        AppColors.orbBlueDeep.withValues(alpha: 0.0),
+        lineColor.withValues(alpha: 0.26),
+        lineColor.withValues(alpha: 0.04),
+        lineColor.withValues(alpha: 0.0),
       ],
       stops: const [0, 0.58, 1],
     );
@@ -591,7 +613,7 @@ class _InvestingChartPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4
-        ..color = AppColors.orbBlueDeep
+        ..color = lineColor
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
@@ -605,14 +627,10 @@ class _InvestingChartPainter extends CustomPainter {
       canvas.drawCircle(
         endPoint,
         pulseRadius,
-        Paint()..color = AppColors.orbBlueDeep.withValues(alpha: pulseAlpha),
+        Paint()..color = lineColor.withValues(alpha: pulseAlpha),
       );
       canvas.drawCircle(endPoint, 7, Paint()..color = Colors.white);
-      canvas.drawCircle(
-        endPoint,
-        coreRadius,
-        Paint()..color = AppColors.orbBlueDeep,
-      );
+      canvas.drawCircle(endPoint, coreRadius, Paint()..color = lineColor);
     }
   }
 
@@ -625,10 +643,10 @@ class _InvestingChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AppColors.outlineSoft.withValues(alpha: 0.0),
-          AppColors.outlineSoft.withValues(alpha: 0.72),
-          AppColors.outlineSoft.withValues(alpha: 0.72),
-          AppColors.outlineSoft.withValues(alpha: 0.0),
+          gridColor.withValues(alpha: 0.0),
+          gridColor.withValues(alpha: 0.72),
+          gridColor.withValues(alpha: 0.72),
+          gridColor.withValues(alpha: 0.0),
         ],
         stops: const [0, 0.14, 0.86, 1],
       ).createShader(Offset.zero & size);
@@ -661,6 +679,10 @@ class _InvestingChartPainter extends CustomPainter {
       return true;
     }
     if (markerPulseValue != oldDelegate.markerPulseValue) {
+      return true;
+    }
+    if (lineColor != oldDelegate.lineColor ||
+        gridColor != oldDelegate.gridColor) {
       return true;
     }
     if (values.length != oldDelegate.values.length) {
