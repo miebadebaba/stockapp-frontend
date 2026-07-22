@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../agent/agent_page.dart';
 import '../home/home_page.dart';
 import 'app_top_actions.dart';
 import 'floating_bottom_nav.dart';
@@ -20,22 +21,41 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   var _selectedIndex = 1;
   var _isIdeaOverlayOpen = false;
-
-  static const _pages = [_EmptyShellPage(), HomePage(), _EmptyShellPage()];
+  var _hasPlayedAgentHeadline = false;
 
   void _toggleIdeaOverlay() {
     setState(() => _isIdeaOverlayOpen = !_isIdeaOverlayOpen);
   }
 
+  void _handleNavChanged(int index) {
+    setState(() => _selectedIndex = index);
+  }
+
+  void _handleAgentHeadlineAnimationCompleted() {
+    if (_hasPlayedAgentHeadline) {
+      return;
+    }
+    setState(() => _hasPlayedAgentHeadline = true);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      AgentPage(
+        animateHeadline: _selectedIndex == 0 && !_hasPlayedAgentHeadline,
+        onHeadlineAnimationCompleted: _handleAgentHeadlineAnimationCompleted,
+      ),
+      const HomePage(),
+      const _EmptyShellPage(),
+    ];
+
     return Scaffold(
       extendBody: true,
       backgroundColor: AppColors.bgPrimary,
       body: Stack(
         children: [
           Positioned.fill(
-            child: IndexedStack(index: _selectedIndex, children: _pages),
+            child: IndexedStack(index: _selectedIndex, children: pages),
           ),
           if (_isIdeaOverlayOpen)
             Positioned.fill(
@@ -43,28 +63,29 @@ class _RootShellState extends State<RootShell> {
                 onDismiss: () => setState(() => _isIdeaOverlayOpen = false),
               ),
             ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                  child: const AppTopActions(),
+          if (_selectedIndex != 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: const AppTopActions(),
+                  ),
                 ),
               ),
             ),
-          ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: FloatingBottomNav(
               selectedIndex: _selectedIndex,
-              onChanged: (index) => setState(() => _selectedIndex = index),
+              onChanged: _handleNavChanged,
               onAdd: _toggleIdeaOverlay,
               addActive: _isIdeaOverlayOpen,
             ),
