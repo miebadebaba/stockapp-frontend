@@ -26,8 +26,8 @@ class _RoundIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 45,
+      height: 45,
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         shape: BoxShape.circle,
@@ -50,7 +50,7 @@ class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CircleAvatar(
-      radius: 26,
+      radius: 22.5,
       backgroundColor: AppColors.accentCyanCardSoft,
       child: Icon(Icons.person_rounded, color: AppColors.accentCyanTextDark),
     );
