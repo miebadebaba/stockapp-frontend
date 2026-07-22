@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'widgets/agent_input_card.dart';
 
@@ -122,7 +123,7 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage> {
                                     .textTheme
                                     .bodyMedium
                                     ?.copyWith(
-                                      color: const Color(0xB7D4DDEA),
+                                      color: const Color(0xB7333740),
                                       fontWeight: FontWeight.w500,
                                     ),
                               ),
@@ -145,7 +146,7 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF060B14),
+      backgroundColor: AppColors.bgPrimary,
       body: content,
     );
   }
@@ -161,7 +162,11 @@ class _PreviewBackdrop extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0B1220), Color(0xFF060913), Color(0xFF03050A)],
+          colors: [
+            AppColors.bgPrimary,
+            AppColors.bgGradientLavenderStart,
+            AppColors.bgGradientLavenderEnd,
+          ],
         ),
       ),
       child: Stack(
@@ -170,22 +175,22 @@ class _PreviewBackdrop extends StatelessWidget {
           _BlurredOrb(
             alignment: Alignment(-0.92, -0.88),
             diameter: 260,
-            colors: [Color(0x553DDCFF), Color(0x003DDCFF)],
+            colors: [Color(0x44BEEFF3), Color(0x00BEEFF3)],
           ),
           _BlurredOrb(
             alignment: Alignment(0.95, -0.72),
             diameter: 300,
-            colors: [Color(0x44A78BFA), Color(0x00A78BFA)],
+            colors: [Color(0x2CB6A7FF), Color(0x00B6A7FF)],
           ),
           _BlurredOrb(
             alignment: Alignment(0.08, -0.16),
             diameter: 420,
-            colors: [Color(0x28FFFFFF), Color(0x00FFFFFF)],
+            colors: [Color(0x40FFFFFF), Color(0x00FFFFFF)],
           ),
           _BlurredOrb(
             alignment: Alignment(-0.55, 0.62),
             diameter: 280,
-            colors: [Color(0x2A78E8FF), Color(0x0078E8FF)],
+            colors: [Color(0x26C6E8F7), Color(0x00C6E8F7)],
           ),
           _GridSheen(),
         ],
@@ -238,7 +243,7 @@ class _GridSheen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.white.withValues(alpha: 0.05),
+              Colors.white.withValues(alpha: 0.18),
               Colors.white.withValues(alpha: 0),
             ],
           ),
@@ -255,7 +260,7 @@ class _GridSheenPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.035)
+      ..color = const Color(0xFF111114).withValues(alpha: 0.035)
       ..strokeWidth = 1;
 
     const spacing = 42.0;

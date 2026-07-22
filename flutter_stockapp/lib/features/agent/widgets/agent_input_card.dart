@@ -194,7 +194,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
                   fontSize: 38,
                   height: 1.14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFEFF4FF),
+                  color: const Color(0xFF17171B),
                   letterSpacing: 0.2,
                 ),
                 children: [
@@ -205,7 +205,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
                             ? '|'
                             : '',
                     style: const TextStyle(
-                      color: Color(0x99F4F7FF),
+                      color: Color(0x99304156),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -230,7 +230,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
                       TextField(
                         controller: _controller,
                         focusNode: _focusNode,
-                        cursorColor: const Color(0xFFF4F7FF),
+                        cursorColor: const Color(0xFF17171B),
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontSize: 17,
                           height: 1.45,
@@ -318,15 +318,15 @@ class _GlassCardShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF04101D).withValues(alpha: 0.28),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            color: const Color(0xFF111114).withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
           if (hasFocus)
             BoxShadow(
-              color: const Color(0xFF93C5FD).withValues(alpha: 0.18),
-              blurRadius: 36,
-              spreadRadius: 2,
+              color: const Color(0xFF93C5FD).withValues(alpha: 0.14),
+              blurRadius: 24,
+              spreadRadius: 1,
             ),
         ],
       ),
@@ -340,56 +340,14 @@ class _GlassCardShell extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: Colors.white.withValues(alpha: hasFocus ? 0.24 : 0.13),
+                color: Colors.white.withValues(alpha: hasFocus ? 0.28 : 0.16),
                 width: hasFocus ? 1.2 : 0.85,
               ),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: hasFocus ? 0.28 : 0.22),
-                  Colors.white.withValues(alpha: hasFocus ? 0.18 : 0.12),
-                ],
+              color: const Color(0xFFF1EEEA).withValues(
+                alpha: hasFocus ? 0.92 : 0.84,
               ),
             ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center: const Alignment(-0.75, -0.95),
-                          radius: 1.2,
-                          colors: [
-                            const Color(0x66FFFFFF),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0x30FFFFFF),
-                            const Color(0x16FFFFFF),
-                            const Color(0x16DCEEFF),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                child,
-              ],
-            ),
+            child: child,
           ),
         ),
       ),
@@ -417,14 +375,14 @@ class _StatusPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: Colors.white.withValues(alpha: 0.48),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.14),
+              color: const Color(0x14111114),
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF050C17).withValues(alpha: 0.22),
+                color: const Color(0xFF111114).withValues(alpha: 0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -439,7 +397,7 @@ class _StatusPill extends StatelessWidget {
                 Text(
                   text!,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xC5D4DBE8),
+                        color: const Color(0xCC556070),
                         fontWeight: FontWeight.w500,
                       ),
                 ),
@@ -473,8 +431,8 @@ class _InlineGlassLinkState extends State<_InlineGlassLink> {
   @override
   Widget build(BuildContext context) {
     final accent = _hovering || _pressing
-        ? const Color(0xFFE8F4FF)
-        : const Color(0xFFBDD8FF);
+        ? const Color(0xFF1E5FE0)
+        : const Color(0xFF2F6FED);
 
     return MouseRegion(
       cursor: widget.onTap == null
