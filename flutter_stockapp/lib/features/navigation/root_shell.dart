@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../account/account_page.dart';
 import '../agent/agent_page.dart';
+import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
+import '../news/news_list_page.dart';
 import '../settings/settings_preview_page.dart';
+import '../tutorial/tutorial_category_page.dart';
 import 'app_top_actions.dart';
 import 'floating_bottom_nav.dart';
 import 'idea_builder_sheet.dart';
@@ -32,6 +35,9 @@ class _RootShellState extends State<RootShell> {
   var _isIdeaOverlayOpen = false;
   var _isAccountPageOpen = false;
   var _isSettingsPageOpen = false;
+  var _isNewsPageOpen = false;
+  var _isTutorialPageOpen = false;
+  var _isForumPageOpen = false;
   var _hasPlayedAgentHeadline = false;
 
   void _toggleIdeaOverlay() {
@@ -51,6 +57,9 @@ class _RootShellState extends State<RootShell> {
       _isIdeaOverlayOpen = false;
       _isAccountPageOpen = false;
       _isSettingsPageOpen = false;
+      _isNewsPageOpen = false;
+      _isTutorialPageOpen = false;
+      _isForumPageOpen = false;
     });
   }
 
@@ -86,6 +95,53 @@ class _RootShellState extends State<RootShell> {
     setState(() => _isSettingsPageOpen = false);
   }
 
+  void _openNewsPage() {
+    setState(() {
+      _isNewsPageOpen = true;
+      _isIdeaOverlayOpen = false;
+      _isAccountPageOpen = false;
+      _isSettingsPageOpen = false;
+    });
+  }
+
+  void _closeNewsPage() {
+    if (!_isNewsPageOpen) {
+      return;
+    }
+    setState(() => _isNewsPageOpen = false);
+  }
+
+  void _openTutorialPage() {
+    setState(() {
+      _isTutorialPageOpen = true;
+      _isIdeaOverlayOpen = false;
+      _isNewsPageOpen = false;
+    });
+  }
+
+  void _closeTutorialPage() {
+    if (!_isTutorialPageOpen) {
+      return;
+    }
+    setState(() => _isTutorialPageOpen = false);
+  }
+
+  void _openForumPage() {
+    setState(() {
+      _isForumPageOpen = true;
+      _isIdeaOverlayOpen = false;
+      _isNewsPageOpen = false;
+      _isTutorialPageOpen = false;
+    });
+  }
+
+  void _closeForumPage() {
+    if (!_isForumPageOpen) {
+      return;
+    }
+    setState(() => _isForumPageOpen = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
@@ -100,9 +156,26 @@ class _RootShellState extends State<RootShell> {
 
     return PopScope(
       canPop:
-          !_isIdeaOverlayOpen && !_isAccountPageOpen && !_isSettingsPageOpen,
+          !_isIdeaOverlayOpen &&
+          !_isAccountPageOpen &&
+          !_isSettingsPageOpen &&
+          !_isNewsPageOpen &&
+          !_isTutorialPageOpen &&
+          !_isForumPageOpen,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
+          return;
+        }
+        if (_isForumPageOpen) {
+          _closeForumPage();
+          return;
+        }
+        if (_isTutorialPageOpen) {
+          _closeTutorialPage();
+          return;
+        }
+        if (_isNewsPageOpen) {
+          _closeNewsPage();
           return;
         }
         if (_isIdeaOverlayOpen) {
@@ -125,6 +198,26 @@ class _RootShellState extends State<RootShell> {
             Positioned.fill(
               child: IndexedStack(index: _selectedIndex, children: pages),
             ),
+            if (_isForumPageOpen)
+              Positioned.fill(
+                child: DiscussionListPage.demo(
+                  bottomPadding: 140,
+                  showTopActions: false,
+                  onSettingsTap: _openSettingsPage,
+                  onProfileTap: _openAccountPage,
+                  onPostTap: (_) {},
+                  onNewPostTap: () {},
+                ),
+              ),
+            if (_isTutorialPageOpen)
+              Positioned.fill(
+                child: TutorialCategoryPage.demo(
+                  topPadding: 96,
+                  bottomPadding: 140,
+                  onSearchChanged: (_) {},
+                  onCategoryTap: (_) {},
+                ),
+              ),
             if (_isSettingsPageOpen)
               Positioned.fill(
                 child: SettingsPreviewPage(
@@ -152,7 +245,9 @@ class _RootShellState extends State<RootShell> {
                   onSignOutTap: () {},
                 ),
               ),
-            if (!_isAccountPageOpen && !_isSettingsPageOpen)
+            if (!_isAccountPageOpen &&
+                !_isSettingsPageOpen &&
+                !_isNewsPageOpen)
               Positioned(
                 left: 0,
                 right: 0,
@@ -173,7 +268,12 @@ class _RootShellState extends State<RootShell> {
               ),
             if (_isIdeaOverlayOpen)
               Positioned.fill(
-                child: _GlassPageOverlay(onDismiss: _closeIdeaOverlay),
+                child: _GlassPageOverlay(
+                  onDismiss: _closeIdeaOverlay,
+                  onNewsTap: _openNewsPage,
+                  onTutorialTap: _openTutorialPage,
+                  onForumTap: _openForumPage,
+                ),
               ),
             Positioned(
               left: 0,
@@ -186,6 +286,16 @@ class _RootShellState extends State<RootShell> {
                 addActive: _isIdeaOverlayOpen,
               ),
             ),
+            if (_isNewsPageOpen)
+              Positioned.fill(
+                child: NewsListPage.demo(
+                  onCloseTap: _closeNewsPage,
+                  onArticleTap: (_) {},
+                  onListenTap: (_) {},
+                  onShareTap: (_) {},
+                  onBookmarkTap: (_) {},
+                ),
+              ),
           ],
         ),
       ),
@@ -194,9 +304,17 @@ class _RootShellState extends State<RootShell> {
 }
 
 class _GlassPageOverlay extends StatelessWidget {
-  const _GlassPageOverlay({required this.onDismiss});
+  const _GlassPageOverlay({
+    required this.onDismiss,
+    this.onNewsTap,
+    this.onTutorialTap,
+    this.onForumTap,
+  });
 
   final VoidCallback onDismiss;
+  final VoidCallback? onNewsTap;
+  final VoidCallback? onTutorialTap;
+  final VoidCallback? onForumTap;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +336,11 @@ class _GlassPageOverlay extends StatelessWidget {
             Center(
               child: GestureDetector(
                 onTap: () {},
-                child: const IdeaBuilderSheet(),
+                child: IdeaBuilderSheet(
+                  onNewsTap: onNewsTap,
+                  onTutorialTap: onTutorialTap,
+                  onForumTap: onForumTap,
+                ),
               ),
             ),
           ],

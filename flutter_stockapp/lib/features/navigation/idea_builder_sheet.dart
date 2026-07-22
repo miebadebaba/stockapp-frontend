@@ -4,7 +4,16 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/glass_container.dart';
 
 class IdeaBuilderSheet extends StatelessWidget {
-  const IdeaBuilderSheet({super.key});
+  const IdeaBuilderSheet({
+    this.onNewsTap,
+    this.onTutorialTap,
+    this.onForumTap,
+    super.key,
+  });
+
+  final VoidCallback? onNewsTap;
+  final VoidCallback? onTutorialTap;
+  final VoidCallback? onForumTap;
 
   @override
   Widget build(BuildContext context) {
@@ -26,20 +35,23 @@ class IdeaBuilderSheet extends StatelessWidget {
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: 1.15,
-          children: const [
+          children: [
             _GlassNavigationButton(
               icon: Icons.newspaper_rounded,
               label: 'News',
+              onTap: onNewsTap,
             ),
             _GlassNavigationButton(
               icon: Icons.menu_book_rounded,
               label: 'Tutorial',
+              onTap: onTutorialTap,
             ),
             _GlassNavigationButton(
               icon: Icons.forum_rounded,
               label: 'Forum',
+              onTap: onForumTap,
             ),
-            _GlassNavigationButton(
+            const _GlassNavigationButton(
               icon: Icons.science_rounded,
               label: 'Simulation',
             ),
@@ -51,10 +63,15 @@ class IdeaBuilderSheet extends StatelessWidget {
 }
 
 class _GlassNavigationButton extends StatelessWidget {
-  const _GlassNavigationButton({required this.icon, required this.label});
+  const _GlassNavigationButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +79,7 @@ class _GlassNavigationButton extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
