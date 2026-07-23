@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'selected_stock.dart';
 
 class QuantPage extends StatelessWidget {
-  const QuantPage({this.selectedStockCode, this.onChooseStock, super.key});
+  const QuantPage({this.selectedStock, this.onChooseStock, super.key});
 
-  final String? selectedStockCode;
+  final SelectedStock? selectedStock;
   final VoidCallback? onChooseStock;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final hasSelectedStock =
-        selectedStockCode != null && selectedStockCode!.isNotEmpty;
+        selectedStock != null && selectedStock!.code.isNotEmpty;
 
     return AnimatedPageWrapper(
       child: ColoredBox(
@@ -51,7 +52,7 @@ class QuantPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     if (hasSelectedStock)
-                      _SelectedStockState(stockCode: selectedStockCode!)
+                      _SelectedStockState(stock: selectedStock!)
                     else
                       _EmptyStockState(onChooseStock: onChooseStock),
                   ],
@@ -105,9 +106,9 @@ class _EmptyStockState extends StatelessWidget {
 }
 
 class _SelectedStockState extends StatelessWidget {
-  const _SelectedStockState({required this.stockCode});
+  const _SelectedStockState({required this.stock});
 
-  final String stockCode;
+  final SelectedStock stock;
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +125,18 @@ class _SelectedStockState extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          stockCode,
+          stock.name,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: palette.primaryText,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          stock.code,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.secondaryText,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
