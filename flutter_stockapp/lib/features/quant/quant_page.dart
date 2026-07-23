@@ -3,13 +3,35 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
 
-class QuantPage extends StatelessWidget {
-  const QuantPage({this.selectedStock, this.onChooseStock, super.key});
+class QuantPage extends StatefulWidget {
+  const QuantPage({super.key});
 
-  final SelectedStock? selectedStock;
-  final VoidCallback? onChooseStock;
+  @override
+  State<QuantPage> createState() => _QuantPageState();
+}
+
+class _QuantPageState extends State<QuantPage> {
+  SelectedStock? selectedStock;
+
+  Future<void> _chooseStock() async {
+    final stock = await showModalBottomSheet<SelectedStock>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const FractionallySizedBox(
+        heightFactor: 0.75,
+        child: QuantStockSearchSheet(),
+      ),
+    );
+
+    if (stock == null || !mounted) {
+      return;
+    }
+
+    setState(() => selectedStock = stock);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +74,12 @@ class QuantPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     if (hasSelectedStock)
-                      _SelectedStockState(stock: selectedStock!)
+                      _SelectedStockState(
+                        stock: selectedStock!,
+                        onChooseStock: _chooseStock,
+                      )
                     else
-                      _EmptyStockState(onChooseStock: onChooseStock),
+                      _EmptyStockState(onChooseStock: _chooseStock),
                   ],
                 ),
               ),
@@ -106,9 +131,10 @@ class _EmptyStockState extends StatelessWidget {
 }
 
 class _SelectedStockState extends StatelessWidget {
-  const _SelectedStockState({required this.stock});
+  const _SelectedStockState({required this.stock, required this.onChooseStock});
 
   final SelectedStock stock;
+  final VoidCallback onChooseStock;
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +164,12 @@ class _SelectedStockState extends StatelessWidget {
             color: palette.secondaryText,
             fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        OutlinedButton.icon(
+          onPressed: onChooseStock,
+          icon: const Icon(Icons.swap_horiz_rounded),
+          label: const Text('更换股票'),
         ),
       ],
     );
