@@ -356,16 +356,6 @@ class _EmptyShellPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
-    return ColoredBox(
-      color: palette.pageBackground,
-      child: Center(
-        child: Text(
-          'Git collaboration test - Alex',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: palette.primaryText,
-          ),
-        ),
-      ),
-    );
+    return ColoredBox(color: palette.pageBackground);
   }
 }
