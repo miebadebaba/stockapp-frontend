@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'rsi_calculator.dart';
+import 'rsi_interpreter.dart';
 import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
 import 'mock_stock_quotes.dart';
@@ -149,6 +151,8 @@ class _SelectedStockState extends StatelessWidget {
     final ma5 = calculateMovingAverage(bars: bars, period: 5);
     final ma10 = calculateMovingAverage(bars: bars, period: 10);
     final ma20 = calculateMovingAverage(bars: bars, period: 20);
+    final rsi14 = calculateRsi(bars: bars);
+    final rsiInsight = interpretRsi(rsi14);
     final insight = interpretMovingAverages(
       close: quote?.close,
       ma5: ma5,
@@ -291,7 +295,61 @@ class _SelectedStockState extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxl),
         Text(
-          '指标解读',
+          '动量指标',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'RSI用于观察近期上涨和下跌力量的相对变化',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _QuoteMetric(label: 'RSI14', value: rsi14?.toStringAsFixed(2) ?? '--'),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          rsiInsight.title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          rsiInsight.explanation,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: palette.secondaryText,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                rsiInsight.riskNotice,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          '均线解读',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: palette.primaryText,
             fontWeight: FontWeight.w800,
