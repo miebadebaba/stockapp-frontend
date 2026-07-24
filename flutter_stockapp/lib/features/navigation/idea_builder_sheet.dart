@@ -8,12 +8,14 @@ class IdeaBuilderSheet extends StatelessWidget {
     this.onNewsTap,
     this.onTutorialTap,
     this.onForumTap,
+    this.onSimulationTap,
     super.key,
   });
 
   final VoidCallback? onNewsTap;
   final VoidCallback? onTutorialTap;
   final VoidCallback? onForumTap;
+  final VoidCallback? onSimulationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +53,10 @@ class IdeaBuilderSheet extends StatelessWidget {
               label: 'Forum',
               onTap: onForumTap,
             ),
-            const _GlassNavigationButton(
+            _GlassNavigationButton(
               icon: Icons.science_rounded,
               label: 'Simulation',
+              onTap: onSimulationTap,
             ),
           ],
         ),
@@ -99,9 +102,9 @@ class _GlassNavigationButton extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
           ),
