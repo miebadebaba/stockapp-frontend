@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import 'widgets/market_snapshot_section.dart';
 import 'widgets/investing_chart_card.dart';
+import 'widgets/market_snapshot_section.dart';
 import 'widgets/stock_list_section.dart';
 
 class HomePage extends StatelessWidget {
@@ -22,22 +22,64 @@ class HomePage extends StatelessWidget {
 
   static const List<StockListItemData> _mockStocks = [
     StockListItemData(
-      id: 'acot-call',
-      title: 'ACOT \$20 Call',
-      subtitle: '7/14 Exp · 1 Buy',
+      id: 'aapl',
+      title: 'AAPL',
+      subtitle: 'Apple Inc.',
+      priceText: '208.65',
       changePercent: 3.00,
+      referenceValue: 204.10,
+      sparklineValues: [
+        201.8,
+        202.4,
+        203.1,
+        202.7,
+        204.6,
+        205.2,
+        206.1,
+        205.8,
+        207.4,
+        208.65,
+      ],
     ),
     StockListItemData(
-      id: 'tsla-common',
+      id: 'tsla',
       title: 'TSLA',
-      subtitle: 'Long stock · 4 Shares',
+      subtitle: 'Tesla, Inc.',
+      priceText: '246.18',
       changePercent: -1.42,
+      referenceValue: 249.70,
+      sparklineValues: [
+        251.1,
+        250.4,
+        249.8,
+        250.2,
+        248.9,
+        248.1,
+        247.6,
+        247.1,
+        246.7,
+        246.18,
+      ],
     ),
     StockListItemData(
-      id: 'nvda-call',
-      title: 'NVDA \$160 Call',
-      subtitle: '8/02 Exp · 2 Buys',
+      id: 'nvda',
+      title: 'NVDA',
+      subtitle: 'NVIDIA Corporation',
+      priceText: '134.92',
       changePercent: 6.85,
+      referenceValue: 126.40,
+      sparklineValues: [
+        124.2,
+        124.8,
+        125.7,
+        126.1,
+        127.6,
+        128.9,
+        130.8,
+        132.3,
+        133.7,
+        134.92,
+      ],
     ),
   ];
 
