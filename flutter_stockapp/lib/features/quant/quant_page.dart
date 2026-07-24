@@ -5,6 +5,7 @@ import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
+import 'mock_stock_quotes.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -139,6 +140,12 @@ class _SelectedStockState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final quote = mockStockQuotes[stock.code];
+    final tradingDate = quote == null
+        ? ''
+        : '${quote.tradingDate.year}-'
+              '${quote.tradingDate.month.toString().padLeft(2, '0')}-'
+              '${quote.tradingDate.day.toString().padLeft(2, '0')}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,10 +173,105 @@ class _SelectedStockState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
+        if (quote != null) ...[
+          Text(
+            '最近交易日收盘· $tradingDate',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            quote.close.toStringAsFixed(2),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '${quote.change >= 0 ? '+' : ''}${quote.change.toStringAsFixed(2)}  '
+            '${quote.changePercent >= 0 ? '+' : ''}'
+            '${quote.changePercent.toStringAsFixed(2)}%',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: palette.secondaryText,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _QuoteMetric(
+                  label: '开盘',
+                  value: quote.open.toStringAsFixed(2),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _QuoteMetric(
+                  label: '最高',
+                  value: quote.high.toStringAsFixed(2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _QuoteMetric(
+                  label: '最低',
+                  value: quote.low.toStringAsFixed(2),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _QuoteMetric(
+                  label: '成交量',
+                  value: '${(quote.volume / 10000).toStringAsFixed(2)} 万股',
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.lg),
         OutlinedButton.icon(
           onPressed: onChooseStock,
           icon: const Icon(Icons.swap_horiz_rounded),
           label: const Text('更换股票'),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuoteMetric extends StatelessWidget {
+  const _QuoteMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
