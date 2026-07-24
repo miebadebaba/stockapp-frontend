@@ -8,6 +8,7 @@ import 'selected_stock.dart';
 import 'mock_stock_quotes.dart';
 import 'mock_stock_daily_bars.dart';
 import 'moving_average_calculator.dart';
+import 'moving_average_interpreter.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -148,6 +149,12 @@ class _SelectedStockState extends StatelessWidget {
     final ma5 = calculateMovingAverage(bars: bars, period: 5);
     final ma10 = calculateMovingAverage(bars: bars, period: 10);
     final ma20 = calculateMovingAverage(bars: bars, period: 20);
+    final insight = interpretMovingAverages(
+      close: quote?.close,
+      ma5: ma5,
+      ma10: ma10,
+      ma20: ma20,
+    );
     final tradingDate = quote == null
         ? ''
         : '${quote.tradingDate.year}-'
@@ -278,6 +285,51 @@ class _SelectedStockState extends StatelessWidget {
               child: _QuoteMetric(
                 label: 'MA20',
                 value: ma20?.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          '指标解读',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          insight.title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          insight.explanation,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: palette.secondaryText,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                insight.riskNotice,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
               ),
             ),
           ],
