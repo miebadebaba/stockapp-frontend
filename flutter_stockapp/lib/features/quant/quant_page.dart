@@ -17,6 +17,8 @@ import 'volume_analyzer.dart';
 import 'volume_interpreter.dart';
 import 'technical_summary_analyzer.dart';
 import 'technical_summary_interpreter.dart';
+import 'quant_analysis_state_view.dart';
+import 'quant_analysis_status.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -27,6 +29,7 @@ class QuantPage extends StatefulWidget {
 
 class _QuantPageState extends State<QuantPage> {
   SelectedStock? selectedStock;
+  QuantAnalysisStatus _analysisStatus = QuantAnalysisStatus.idle;
 
   Future<void> _chooseStock() async {
     final stock = await showModalBottomSheet<SelectedStock>(
@@ -42,7 +45,24 @@ class _QuantPageState extends State<QuantPage> {
       return;
     }
 
-    setState(() => selectedStock = stock);
+    setState(() {
+      selectedStock = stock;
+      _analysisStatus = QuantAnalysisStatus.loading;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+
+    if (!mounted) {
+      return;
+    }
+
+    final bars = mockStockDailyBars[stock.code] ?? const [];
+
+    setState(() {
+      _analysisStatus = bars.isEmpty
+          ? QuantAnalysisStatus.empty
+          : QuantAnalysisStatus.success;
+    });
   }
 
   @override
@@ -85,13 +105,15 @@ class _QuantPageState extends State<QuantPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    if (hasSelectedStock)
+                    if (!hasSelectedStock)
+                      _EmptyStockState(onChooseStock: _chooseStock)
+                    else if (_analysisStatus == QuantAnalysisStatus.success)
                       _SelectedStockState(
                         stock: selectedStock!,
                         onChooseStock: _chooseStock,
                       )
                     else
-                      _EmptyStockState(onChooseStock: _chooseStock),
+                      QuantAnalysisStateView(status: _analysisStatus),
                   ],
                 ),
               ),
