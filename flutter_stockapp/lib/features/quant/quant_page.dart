@@ -13,6 +13,8 @@ import 'macd_calculator.dart';
 import 'macd_interpreter.dart';
 import 'moving_average_calculator.dart';
 import 'moving_average_interpreter.dart';
+import 'volume_analyzer.dart';
+import 'volume_interpreter.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -157,6 +159,8 @@ class _SelectedStockState extends StatelessWidget {
     final macdInsight = interpretMacd(macd);
     final rsi14 = calculateRsi(bars: bars);
     final rsiInsight = interpretRsi(rsi14);
+    final volumeAnalysis = analyzeVolume(bars: bars);
+    final volumeInsight = interpretVolume(volumeAnalysis);
     final insight = interpretMovingAverages(
       close: quote?.close,
       ma5: ma5,
@@ -420,6 +424,78 @@ class _SelectedStockState extends StatelessWidget {
             Expanded(
               child: Text(
                 rsiInsight.riskNotice,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          '量价分析',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '比较最新成交量与此前5日平均成交量',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Expanded(
+              child: _QuoteMetric(
+                label: '前5日均量',
+                value: volumeAnalysis == null
+                    ? '--'
+                    : '${(volumeAnalysis.averageVolume / 10000).toStringAsFixed(2)} 万股',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _QuoteMetric(
+                label: '量比',
+                value: volumeAnalysis?.volumeRatio.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          volumeInsight.title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          volumeInsight.explanation,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: palette.secondaryText,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                volumeInsight.riskNotice,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: palette.secondaryText,
                   height: 1.5,
