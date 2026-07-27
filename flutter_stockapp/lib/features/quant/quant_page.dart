@@ -19,6 +19,7 @@ import 'technical_summary_analyzer.dart';
 import 'technical_summary_interpreter.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
+import 'quant_data_metadata.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -225,12 +226,14 @@ class _SelectedStockState extends StatelessWidget {
       ma10: ma10,
       ma20: ma20,
     );
-    final tradingDate = quote == null
-        ? ''
-        : '${quote.tradingDate.year}-'
-              '${quote.tradingDate.month.toString().padLeft(2, '0')}-'
-              '${quote.tradingDate.day.toString().padLeft(2, '0')}';
-
+    final metadata = quote == null
+        ? null
+        : QuantDataMetadata(
+            latestTradingDate: quote.tradingDate,
+            sourceName: '本地模拟数据',
+            priceAdjustment: PriceAdjustment.unknown,
+            isSimulated: true,
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,12 +282,19 @@ class _SelectedStockState extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '最近交易日收盘· $tradingDate',
+            '最近交易日收盘 · ${metadata!.formattedTradingDate}',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
           ),
           const SizedBox(height: AppSpacing.xs),
+          Text(
+            '数据来源：${metadata.sourceName} · 复权方式：${metadata.priceAdjustment.label}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.md),
           Text(
             quote.close.toStringAsFixed(2),
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
