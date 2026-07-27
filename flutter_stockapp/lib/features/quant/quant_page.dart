@@ -9,6 +9,8 @@ import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
 import 'mock_stock_quotes.dart';
 import 'mock_stock_daily_bars.dart';
+import 'macd_calculator.dart';
+import 'macd_interpreter.dart';
 import 'moving_average_calculator.dart';
 import 'moving_average_interpreter.dart';
 
@@ -151,6 +153,8 @@ class _SelectedStockState extends StatelessWidget {
     final ma5 = calculateMovingAverage(bars: bars, period: 5);
     final ma10 = calculateMovingAverage(bars: bars, period: 10);
     final ma20 = calculateMovingAverage(bars: bars, period: 20);
+    final macd = calculateMacd(bars: bars);
+    final macdInsight = interpretMacd(macd);
     final rsi14 = calculateRsi(bars: bars);
     final rsiInsight = interpretRsi(rsi14);
     final insight = interpretMovingAverages(
@@ -289,6 +293,83 @@ class _SelectedStockState extends StatelessWidget {
               child: _QuoteMetric(
                 label: 'MA20',
                 value: ma20?.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          '趋势动量指标',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'MACD用于观察短期与长期价格趋势的差异',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Expanded(
+              child: _QuoteMetric(
+                label: 'DIF',
+                value: macd?.dif.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _QuoteMetric(
+                label: 'DEA',
+                value: macd?.dea.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _QuoteMetric(
+                label: 'MACD柱',
+                value: macd?.histogram.toStringAsFixed(2) ?? '--',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          macdInsight.title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          macdInsight.explanation,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: palette.secondaryText,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                macdInsight.riskNotice,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
               ),
             ),
           ],
