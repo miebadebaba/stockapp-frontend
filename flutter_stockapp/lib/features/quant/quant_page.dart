@@ -45,24 +45,46 @@ class _QuantPageState extends State<QuantPage> {
       return;
     }
 
+    selectedStock = stock;
+    await _loadAnalysis(stock);
+  }
+
+  Future<void> _loadAnalysis(SelectedStock stock) async {
     setState(() {
-      selectedStock = stock;
       _analysisStatus = QuantAnalysisStatus.loading;
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
 
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      final bars = mockStockDailyBars[stock.code] ?? const [];
+
+      setState(() {
+        _analysisStatus = bars.isEmpty
+            ? QuantAnalysisStatus.empty
+            : QuantAnalysisStatus.success;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _analysisStatus = QuantAnalysisStatus.failure;
+      });
     }
+  }
 
-    final bars = mockStockDailyBars[stock.code] ?? const [];
+  void _retryAnalysis() {
+    final stock = selectedStock;
 
-    setState(() {
-      _analysisStatus = bars.isEmpty
-          ? QuantAnalysisStatus.empty
-          : QuantAnalysisStatus.success;
-    });
+    if (stock != null) {
+      _loadAnalysis(stock);
+    }
   }
 
   @override
@@ -113,7 +135,12 @@ class _QuantPageState extends State<QuantPage> {
                         onChooseStock: _chooseStock,
                       )
                     else
-                      QuantAnalysisStateView(status: _analysisStatus),
+                      QuantAnalysisStateView(
+                        status: _analysisStatus,
+                        onRetry: _analysisStatus == QuantAnalysisStatus.failure
+                            ? _retryAnalysis
+                            : null,
+                      ),
                   ],
                 ),
               ),
