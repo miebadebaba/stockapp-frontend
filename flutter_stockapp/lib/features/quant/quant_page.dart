@@ -209,6 +209,26 @@ class _SelectedStockState extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         if (quote != null) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.science_outlined,
+                size: 18,
+                color: palette.secondaryText,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  '当前为模拟数据，仅用于功能演示和量化学习',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: palette.secondaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             '最近交易日收盘· $tradingDate',
             style: Theme.of(
