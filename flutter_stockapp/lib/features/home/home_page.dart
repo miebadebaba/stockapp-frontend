@@ -3,85 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import 'widgets/investing_chart_card.dart';
+import 'home_stock_data.dart';
+import '../market/market_stock_detail_data.dart';
+import '../market/market_stock_detail_page.dart';
+import 'stocks_page.dart';
 import 'widgets/market_snapshot_section.dart';
 import 'widgets/stock_list_section.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  static const Map<String, List<double>> _mockSeries = {
-    '1D': [62, 63, 62.5, 63.2, 63.0, 63.5, 64.4, 66.3, 69.8, 73.2],
-    '1W': [58, 58.7, 59.1, 58.8, 59.4, 60.1, 60.0, 61.3, 63.7, 67.2],
-    '1M': [51, 51.6, 52.0, 51.8, 52.3, 52.1, 53.0, 54.6, 57.4, 61.0],
-    '3M': [42, 42.5, 42.7, 42.4, 42.8, 43.2, 44.3, 46.8, 50.9, 56.5],
-    'YTD': [35, 35.4, 35.0, 35.8, 36.2, 36.0, 37.3, 39.6, 44.1, 49.8],
-    '1Y': [28, 28.8, 29.1, 28.9, 29.8, 30.2, 31.6, 34.0, 38.7, 45.6],
-    'ALL': [18, 18.5, 18.2, 19.0, 18.7, 19.6, 22.4, 28.6, 37.8, 52.4],
-  };
-
-  static const List<StockListItemData> _mockStocks = [
-    StockListItemData(
-      id: 'aapl',
-      title: 'AAPL',
-      subtitle: 'Apple Inc.',
-      priceText: '208.65',
-      changePercent: 3.00,
-      referenceValue: 204.10,
-      sparklineValues: [
-        201.8,
-        202.4,
-        203.1,
-        202.7,
-        204.6,
-        205.2,
-        206.1,
-        205.8,
-        207.4,
-        208.65,
-      ],
-    ),
-    StockListItemData(
-      id: 'tsla',
-      title: 'TSLA',
-      subtitle: 'Tesla, Inc.',
-      priceText: '246.18',
-      changePercent: -1.42,
-      referenceValue: 249.70,
-      sparklineValues: [
-        251.1,
-        250.4,
-        249.8,
-        250.2,
-        248.9,
-        248.1,
-        247.6,
-        247.1,
-        246.7,
-        246.18,
-      ],
-    ),
-    StockListItemData(
-      id: 'nvda',
-      title: 'NVDA',
-      subtitle: 'NVIDIA Corporation',
-      priceText: '134.92',
-      changePercent: 6.85,
-      referenceValue: 126.40,
-      sparklineValues: [
-        124.2,
-        124.8,
-        125.7,
-        126.1,
-        127.6,
-        128.9,
-        130.8,
-        132.3,
-        133.7,
-        134.92,
-      ],
-    ),
-  ];
 
   static const List<MarketSnapshotItemData> _mockMarkets = [
     MarketSnapshotItemData(
@@ -145,21 +75,6 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InvestingChartCard(
-                      title: 'Investing',
-                      amountText: '\$8,153.31',
-                      changeText: '\$922.47 (12.76%)',
-                      changeLabel: 'All time',
-                      showBadge: true,
-                      badgeText: 'Gold perks',
-                      initialRange: 'ALL',
-                      mockData: _mockSeries,
-                      showEndMarker: false,
-                      onRangeChanged: (_) {},
-                      onBadgeTap: () {},
-                      onSettingsTap: () {},
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
@@ -178,9 +93,30 @@ class HomePage extends StatelessWidget {
                       ),
                       child: StockListSection(
                         titleText: 'Stocks',
-                        stocks: _mockStocks,
-                        onTitleTap: () {},
-                        onStockTap: (_) {},
+                        stocks: homeStocks.take(3).toList(),
+                        onTitleTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (context) {
+                                return const StocksPage(stocks: homeStocks);
+                              },
+                            ),
+                          );
+                        },
+                        onStockTap: (stockId) {
+                          final stock = marketStockDetailById(stockId);
+                          if (stock == null) {
+                            return;
+                          }
+
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (context) {
+                                return MarketStockDetailPage(stock: stock);
+                              },
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],

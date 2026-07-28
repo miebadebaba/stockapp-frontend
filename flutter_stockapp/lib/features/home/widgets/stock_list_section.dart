@@ -85,7 +85,7 @@ class StockListSection extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             final stock = stocks[index];
-            return _StockListTile(
+            return StockListTile(
               stock: stock,
               onTap: onStockTap == null ? null : () => onStockTap!(stock.id),
             );
@@ -103,8 +103,8 @@ class StockListSection extends StatelessWidget {
   }
 }
 
-class _StockListTile extends StatelessWidget {
-  const _StockListTile({required this.stock, this.onTap});
+class StockListTile extends StatelessWidget {
+  const StockListTile({required this.stock, this.onTap, super.key});
 
   final StockListItemData stock;
   final VoidCallback? onTap;
