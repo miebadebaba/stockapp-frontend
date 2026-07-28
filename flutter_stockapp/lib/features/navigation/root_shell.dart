@@ -153,6 +153,7 @@ class _RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final pages = [
       AgentPage(
         animateHeadline: _selectedIndex == 0 && !_hasPlayedAgentHeadline,
@@ -282,17 +283,18 @@ class _RootShellState extends State<RootShell> {
                   onSimulationTap: _openSimulationPage,
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: FloatingBottomNav(
-                selectedIndex: _selectedIndex,
-                onChanged: _handleNavChanged,
-                onAdd: _toggleIdeaOverlay,
-                addActive: _isIdeaOverlayOpen,
+            if (!keyboardVisible)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: FloatingBottomNav(
+                  selectedIndex: _selectedIndex,
+                  onChanged: _handleNavChanged,
+                  onAdd: _toggleIdeaOverlay,
+                  addActive: _isIdeaOverlayOpen,
+                ),
               ),
-            ),
             if (_isNewsPageOpen)
               Positioned.fill(
                 child: NewsListPage.demo(
