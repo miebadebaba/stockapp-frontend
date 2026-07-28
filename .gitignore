@@ -1,0 +1,24 @@
+# Keep this repo focused on the Flutter frontend when pushing.
+backend-main/
+
+# Local workspace noise
+.codex/
+.agents/
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Flutter / Dart build outputs
+flutter_stockapp/.dart_tool/
+flutter_stockapp/.packages
+flutter_stockapp/build/
+flutter_stockapp/.flutter-plugins
+flutter_stockapp/.flutter-plugins-dependencies
+flutter_stockapp/.metadata
+flutter_stockapp/android/.gradle/
+flutter_stockapp/android/app/debug/
+flutter_stockapp/android/app/profile/
+flutter_stockapp/android/app/release/
+flutter_stockapp/ios/Flutter/Flutter.framework
+flutter_stockapp/ios/Flutter/Flutter.podspec
