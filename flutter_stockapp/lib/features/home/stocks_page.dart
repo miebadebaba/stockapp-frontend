@@ -4,15 +4,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import '../market/market_stock_detail_data.dart';
 import '../market/market_stock_detail_page.dart';
 import 'widgets/stock_list_section.dart';
 
 class StocksPage extends StatefulWidget {
-  const StocksPage({
-    required this.stocks,
-    super.key,
-  });
+  const StocksPage({required this.stocks, super.key});
 
   final List<StockListItemData> stocks;
 
@@ -49,19 +45,9 @@ class _StocksPageState extends State<StocksPage> {
   }
 
   void _openStock(BuildContext context, String stockId) {
-    final stock = marketStockDetailById(stockId);
-    if (stock == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This stock detail page is not ready yet.'),
-        ),
-      );
-      return;
-    }
-
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => MarketStockDetailPage(stock: stock),
+        builder: (context) => MarketStockDetailPage(stockId: stockId),
       ),
     );
   }
@@ -105,13 +91,13 @@ class _StocksPageState extends State<StocksPage> {
                                 Expanded(
                                   child: Text(
                                     'Stocks',
-                                    style:
-                                        theme.textTheme.headlineMedium?.copyWith(
-                                      fontSize: 36,
-                                      height: 1.06,
-                                      color: palette.primaryText,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                                    style: theme.textTheme.headlineMedium
+                                        ?.copyWith(
+                                          fontSize: 36,
+                                          height: 1.06,
+                                          color: palette.primaryText,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.md),
@@ -223,10 +209,7 @@ class _StocksHeader extends StatelessWidget {
 }
 
 class _StocksSearchField extends StatelessWidget {
-  const _StocksSearchField({
-    required this.controller,
-    required this.onChanged,
-  });
+  const _StocksSearchField({required this.controller, required this.onChanged});
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
@@ -241,15 +224,15 @@ class _StocksSearchField extends StatelessWidget {
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: palette.primaryText,
-            fontWeight: FontWeight.w600,
-          ),
+        color: palette.primaryText,
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         hintText: 'Search',
         hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.secondaryText,
-              fontWeight: FontWeight.w500,
-            ),
+          color: palette.secondaryText,
+          fontWeight: FontWeight.w500,
+        ),
         prefixIcon: Icon(
           Icons.search_rounded,
           size: 20,
@@ -269,8 +252,7 @@ class _StocksSearchField extends StatelessWidget {
                 ),
               ),
         filled: true,
-        fillColor:
-            isDark ? palette.groupBackground : AppColors.surfaceMuted,
+        fillColor: isDark ? palette.groupBackground : AppColors.surfaceMuted,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
@@ -306,10 +288,7 @@ class _EmptySearchState extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 36,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       decoration: BoxDecoration(
         color: palette.groupBackground,
         borderRadius: BorderRadius.circular(AppRadius.xl),

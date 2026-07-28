@@ -4,7 +4,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'home_stock_data.dart';
-import '../market/market_stock_detail_data.dart';
 import '../market/market_stock_detail_page.dart';
 import 'stocks_page.dart';
 import 'widgets/market_snapshot_section.dart';
@@ -104,15 +103,10 @@ class HomePage extends StatelessWidget {
                           );
                         },
                         onStockTap: (stockId) {
-                          final stock = marketStockDetailById(stockId);
-                          if (stock == null) {
-                            return;
-                          }
-
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (context) {
-                                return MarketStockDetailPage(stock: stock);
+                                return MarketStockDetailPage(stockId: stockId);
                               },
                             ),
                           );

@@ -16,6 +16,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173,"
         "http://127.0.0.1:8080"
     )
+    pandaai_username: str = ""
+    pandaai_password: str = ""
+    pandaai_base_url: str = "http://pandadata.pandaaiquant.com"
+    pandaai_timeout_seconds: float = 15.0
+    pandaai_max_retries: int = 2
+    pandaai_verify_ssl: bool = True
+    pandaai_cache_ttl_seconds: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",

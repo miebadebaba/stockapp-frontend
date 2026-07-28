@@ -6,10 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/chart_primitives.dart';
 
 class MarketStockStatData {
-  const MarketStockStatData({
-    required this.label,
-    required this.value,
-  });
+  const MarketStockStatData({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -69,10 +66,96 @@ class MarketStockDetailData {
   final Map<String, List<ChartCandleData>> candleSeries;
   final List<MarketStockStatData> stats;
   final List<MarketStockNewsArticleData> newsArticles;
+
+  factory MarketStockDetailData.fromBackendJson(
+    Map<String, dynamic> json, {
+    List<MarketStockNewsArticleData>? fallbackNews,
+  }) {
+    final rawChartRanges = _asTypedList<Map<String, dynamic>>(
+      json['chart_ranges'],
+    );
+    final defaultRange = (json['default_chart_range'] as String?)?.trim();
+    final orderedRanges = _moveDefaultRangeFirst(rawChartRanges, defaultRange);
+
+    final chartSeries = <String, List<double>>{};
+    final candleSeries = <String, List<ChartCandleData>>{};
+
+    for (final rangeJson in orderedRanges) {
+      final range = (rangeJson['range'] as String?)?.trim();
+      if (range == null || range.isEmpty) {
+        continue;
+      }
+
+      final linePoints = _asTypedList<Map<String, dynamic>>(
+        rangeJson['line_points'],
+      );
+      final candlePoints = _asTypedList<Map<String, dynamic>>(
+        rangeJson['candle_points'],
+      );
+
+      final closes = linePoints
+          .map((point) => _asDouble(point['close']))
+          .whereType<double>()
+          .toList();
+      final candles = candlePoints
+          .map(
+            (point) => ChartCandleData(
+              open: _asDouble(point['open']) ?? 0,
+              high: _asDouble(point['high']) ?? 0,
+              low: _asDouble(point['low']) ?? 0,
+              close: _asDouble(point['close']) ?? 0,
+            ),
+          )
+          .where((point) {
+            return point.open != 0 ||
+                point.high != 0 ||
+                point.low != 0 ||
+                point.close != 0;
+          })
+          .toList();
+
+      if (closes.length >= 2) {
+        chartSeries[range] = closes;
+      }
+      if (candles.length >= 2) {
+        candleSeries[range] = candles;
+      }
+    }
+
+    final stats = _asTypedList<Map<String, dynamic>>(json['stats'])
+        .map(
+          (item) => MarketStockStatData(
+            label: (item['label'] as String?)?.trim() ?? '--',
+            value: (item['value'] as String?)?.trim() ?? '--',
+          ),
+        )
+        .toList();
+
+    return MarketStockDetailData(
+      id: (json['id'] as String?)?.trim() ?? '',
+      ticker: (json['ticker'] as String?)?.trim() ?? '',
+      companyName: (json['company_name'] as String?)?.trim() ?? '',
+      exchangeLabel: (json['exchange_label'] as String?)?.trim() ?? '',
+      priceText: (json['price_text'] as String?)?.trim() ?? '--',
+      changeValue: _asDouble(json['change_value']) ?? 0,
+      changePercent: _asDouble(json['change_percent']) ?? 0,
+      changeLabel: (json['change_label'] as String?)?.trim() ?? 'Latest close',
+      chartSeries: chartSeries,
+      candleSeries: candleSeries,
+      stats: stats,
+      newsArticles: fallbackNews ?? const [],
+    );
+  }
 }
 
 MarketStockDetailData? marketStockDetailById(String id) {
   return _mockMarketStockDetails[id];
+}
+
+List<MarketStockNewsArticleData> marketStockNewsArticlesById(String id) {
+  return List<MarketStockNewsArticleData>.from(
+    _mockMarketStockDetails[id]?.newsArticles ?? const [],
+  );
 }
 
 final _aaplSeries = _normalizeRangeSeries(<String, List<double>>{
@@ -80,9 +163,31 @@ final _aaplSeries = _normalizeRangeSeries(<String, List<double>>{
   '1W': [197.1, 198.8, 199.2, 200.4, 201.6, 203.0, 205.1, 206.4, 207.1, 208.65],
   '1M': [188.4, 189.7, 191.3, 192.8, 194.5, 196.0, 199.4, 202.2, 205.7, 208.65],
   '3M': [176.3, 178.8, 180.1, 183.2, 186.9, 190.4, 194.7, 199.1, 204.2, 208.65],
-  'YTD': [169.2, 171.8, 174.4, 178.1, 182.6, 188.7, 194.5, 199.8, 204.1, 208.65],
+  'YTD': [
+    169.2,
+    171.8,
+    174.4,
+    178.1,
+    182.6,
+    188.7,
+    194.5,
+    199.8,
+    204.1,
+    208.65,
+  ],
   '1Y': [164.1, 166.7, 170.9, 175.8, 181.2, 187.0, 193.6, 198.2, 203.9, 208.65],
-  'ALL': [121.6, 128.4, 136.8, 149.1, 161.7, 174.9, 186.5, 197.2, 204.7, 208.65],
+  'ALL': [
+    121.6,
+    128.4,
+    136.8,
+    149.1,
+    161.7,
+    174.9,
+    186.5,
+    197.2,
+    204.7,
+    208.65,
+  ],
 });
 
 final _tslaSeries = _normalizeRangeSeries(<String, List<double>>{
@@ -90,9 +195,31 @@ final _tslaSeries = _normalizeRangeSeries(<String, List<double>>{
   '1W': [258.8, 257.6, 255.1, 253.7, 251.9, 250.6, 249.4, 248.0, 247.3, 246.18],
   '1M': [241.0, 244.8, 248.4, 252.7, 256.9, 259.2, 255.4, 251.8, 248.2, 246.18],
   '3M': [224.9, 231.7, 236.1, 242.6, 249.1, 255.0, 258.2, 254.4, 250.1, 246.18],
-  'YTD': [198.8, 205.6, 213.1, 221.5, 232.2, 241.6, 249.9, 253.0, 249.1, 246.18],
+  'YTD': [
+    198.8,
+    205.6,
+    213.1,
+    221.5,
+    232.2,
+    241.6,
+    249.9,
+    253.0,
+    249.1,
+    246.18,
+  ],
   '1Y': [171.6, 182.3, 194.8, 208.5, 222.1, 236.9, 249.7, 257.2, 251.6, 246.18],
-  'ALL': [102.4, 118.2, 143.8, 171.1, 198.6, 224.2, 243.4, 255.7, 251.0, 246.18],
+  'ALL': [
+    102.4,
+    118.2,
+    143.8,
+    171.1,
+    198.6,
+    224.2,
+    243.4,
+    255.7,
+    251.0,
+    246.18,
+  ],
 });
 
 final _nvdaSeries = _normalizeRangeSeries(<String, List<double>>{
@@ -380,12 +507,7 @@ Map<String, List<ChartCandleData>> _buildCandleSeries(
           math.min(open, close) * (1 - wickFactor - (index % 2) * 0.0008),
         );
 
-        return ChartCandleData(
-          open: open,
-          high: high,
-          low: low,
-          close: close,
-        );
+        return ChartCandleData(open: open, high: high, low: low, close: close);
       }),
     );
   });
@@ -438,4 +560,44 @@ double _sampleSeriesAtProgress(List<double> values, double progress) {
 
 double _roundPrice(double value) {
   return double.parse(value.toStringAsFixed(2));
+}
+
+List<Map<String, dynamic>> _moveDefaultRangeFirst(
+  List<Map<String, dynamic>> rawRanges,
+  String? defaultRange,
+) {
+  if (defaultRange == null || defaultRange.isEmpty) {
+    return rawRanges;
+  }
+
+  final prioritized = <Map<String, dynamic>>[];
+  final remaining = <Map<String, dynamic>>[];
+
+  for (final range in rawRanges) {
+    final rangeLabel = (range['range'] as String?)?.trim();
+    if (rangeLabel == defaultRange) {
+      prioritized.add(range);
+    } else {
+      remaining.add(range);
+    }
+  }
+
+  return [...prioritized, ...remaining];
+}
+
+List<T> _asTypedList<T>(Object? raw) {
+  if (raw is List) {
+    return raw.whereType<T>().toList();
+  }
+  return <T>[];
+}
+
+double? _asDouble(Object? raw) {
+  if (raw is num) {
+    return raw.toDouble();
+  }
+  if (raw is String) {
+    return double.tryParse(raw);
+  }
+  return null;
 }

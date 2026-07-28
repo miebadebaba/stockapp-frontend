@@ -1,108 +1,75 @@
 # StockApp Backend
 
-Independent FastAPI backend project for the StockApp Flutter app.
-
-This repository is separate from:
-
-```text
-D:\git_repo\stockapp-frontend
-```
-
-The Flutter application lives at:
-
-```text
-D:\git_repo\stockapp-frontend\flutter_stockapp
-```
+FastAPI backend for the Flutter app in `D:\stockapp\flutter_stockapp`.
 
 ## Current Scope
 
-Phase 1 only creates the backend skeleton and the Health endpoint.
-
-Implemented:
+Implemented now:
 
 - FastAPI application entrypoint
 - Versioned API router
 - Health endpoint at `GET /api/v1/health`
-- Minimal environment-based settings
-- Minimal standard-library logging setup
-- Minimal shared exception handling
-- CORS registration from settings
-- Health endpoint test
-
-Skeleton only:
-
-- `auth`
-- `users`
-- `market`
-- `quant`
-- `ai`
-- `news`
-- `tutorial`
-- `forum`
-- `db`
-- `integrations/pandaai`
-- `integrations/qlib`
-- `integrations/siliconflow`
-
-Not implemented in Phase 1:
-
-- Database connections or tables
-- Login or registration
-- JWT or password hashing
-- PandaAI calls
-- Qlib execution
-- SiliconFlow calls
-- Market, Quant, AI, News, Forum, or Tutorial APIs
-- Fake business data
+- Market stock detail endpoint at `GET /api/v1/market/stocks/{symbol}/detail`
+- PandaAI-backed market integration with internal response mapping
+- Environment-based settings, logging, exception handling, and CORS setup
 
 ## Python
 
-This project was created with Python 3.12.13.
+Use Python `3.12`.
 
-## Setup
+## Local Setup
 
-Run these commands in Windows PowerShell:
-
-```powershell
-Set-Location D:\git_repo\stockapp-backend
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-```
-
-If the virtual environment does not exist yet:
+1. Install dependencies:
 
 ```powershell
-Set-Location D:\git_repo\stockapp-backend
-C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+Set-Location D:\stockapp\backend-main
+& 'F:\python 3.12\python.exe' -m pip install -e ".[dev]"
 ```
+
+2. Ensure `D:\stockapp\backend-main\.env` exists.
+
+`PANDAAI_USERNAME` and `PANDAAI_PASSWORD` must be stored in `.env` only.
 
 ## Run
 
+Preferred local start command:
+
 ```powershell
-Set-Location D:\git_repo\stockapp-backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+Set-Location D:\stockapp\backend-main
+.\scripts\start-dev.ps1
 ```
 
-Health endpoint:
+If `8010` is already occupied by an old backend instance:
 
-```text
-GET http://127.0.0.1:8000/api/v1/health
+```powershell
+Set-Location D:\stockapp\backend-main
+.\scripts\stop-dev.ps1
 ```
 
-Android emulator example for future frontend integration:
+Manual alternative:
+
+```powershell
+Set-Location D:\stockapp\backend-main
+& 'F:\python 3.12\python.exe' -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
+```
+
+Useful URLs:
 
 ```text
-GET http://10.0.2.2:8000/api/v1/health
+Health:  http://127.0.0.1:8010/api/v1/health
+Detail:  http://127.0.0.1:8010/api/v1/market/stocks/AAPL/detail
+Emulator: http://10.0.2.2:8010/api/v1/health
 ```
 
 ## Test
 
 ```powershell
-Set-Location D:\git_repo\stockapp-backend
-.\.venv\Scripts\python.exe -m pytest
+Set-Location D:\stockapp\backend-main
+& 'F:\python 3.12\python.exe' -m pytest
 ```
 
-## CORS
+## Notes
 
-`CORS_ORIGINS` is configured for local development in `.env.example`.
-Production origins should be set explicitly through environment variables and should not use a permanent wildcard without a concrete reason.
+- Real credentials must never be committed.
+- `.env.example` is only a template.
+- Flutter Android emulator traffic should use `http://10.0.2.2:8010`.
