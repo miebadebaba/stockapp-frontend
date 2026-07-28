@@ -8,6 +8,7 @@ import '../agent/agent_page.dart';
 import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
 import '../news/news_list_page.dart';
+import '../paper_trading/paper_trading_page.dart';
 import '../quant/quant_page.dart';
 import '../settings/settings_preview_page.dart';
 import '../tutorial/tutorial_category_page.dart';
@@ -143,9 +144,17 @@ class _RootShellState extends State<RootShell> {
     setState(() => _isForumPageOpen = false);
   }
 
+  void _openSimulationPage() {
+    _closeIdeaOverlay();
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (context) => const PaperTradingPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final pages = [
       AgentPage(
         animateHeadline: _selectedIndex == 0 && !_hasPlayedAgentHeadline,
@@ -246,9 +255,7 @@ class _RootShellState extends State<RootShell> {
                   onSignOutTap: () {},
                 ),
               ),
-            if (!_isAccountPageOpen &&
-                !_isSettingsPageOpen &&
-                !_isNewsPageOpen)
+            if (!_isAccountPageOpen && !_isSettingsPageOpen && !_isNewsPageOpen)
               Positioned(
                 left: 0,
                 right: 0,
@@ -274,19 +281,21 @@ class _RootShellState extends State<RootShell> {
                   onNewsTap: _openNewsPage,
                   onTutorialTap: _openTutorialPage,
                   onForumTap: _openForumPage,
+                  onSimulationTap: _openSimulationPage,
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: FloatingBottomNav(
-                selectedIndex: _selectedIndex,
-                onChanged: _handleNavChanged,
-                onAdd: _toggleIdeaOverlay,
-                addActive: _isIdeaOverlayOpen,
+            if (!keyboardVisible)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: FloatingBottomNav(
+                  selectedIndex: _selectedIndex,
+                  onChanged: _handleNavChanged,
+                  onAdd: _toggleIdeaOverlay,
+                  addActive: _isIdeaOverlayOpen,
+                ),
               ),
-            ),
             if (_isNewsPageOpen)
               Positioned.fill(
                 child: NewsListPage.demo(
@@ -310,12 +319,14 @@ class _GlassPageOverlay extends StatelessWidget {
     this.onNewsTap,
     this.onTutorialTap,
     this.onForumTap,
+    this.onSimulationTap,
   });
 
   final VoidCallback onDismiss;
   final VoidCallback? onNewsTap;
   final VoidCallback? onTutorialTap;
   final VoidCallback? onForumTap;
+  final VoidCallback? onSimulationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -341,6 +352,7 @@ class _GlassPageOverlay extends StatelessWidget {
                   onNewsTap: onNewsTap,
                   onTutorialTap: onTutorialTap,
                   onForumTap: onForumTap,
+                  onSimulationTap: onSimulationTap,
                 ),
               ),
             ),

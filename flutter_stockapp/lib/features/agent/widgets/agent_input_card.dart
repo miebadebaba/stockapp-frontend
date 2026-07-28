@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme_palette.dart';
 
-typedef AgentSendCallback = void Function(String text);
+typedef AgentSendCallback = Future<bool> Function(String text);
 
 class AgentInputCard extends StatefulWidget {
   const AgentInputCard({
@@ -23,6 +23,10 @@ class AgentInputCard extends StatefulWidget {
     this.onStatusTap,
     this.onHeadlineAnimationCompleted,
     this.initialText = '',
+    this.isSending = false,
+    this.clearInputRevision = 0,
+    this.showIntro = true,
+    this.showComposer = true,
     super.key,
   });
 
@@ -40,6 +44,10 @@ class AgentInputCard extends StatefulWidget {
   final VoidCallback? onStatusTap;
   final VoidCallback? onHeadlineAnimationCompleted;
   final String initialText;
+  final bool isSending;
+  final int clearInputRevision;
+  final bool showIntro;
+  final bool showComposer;
 
   @override
   State<AgentInputCard> createState() => _AgentInputCardState();
@@ -54,6 +62,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
   var _visibleHeadlineCharacters = 0;
   var _hasFocus = false;
   var _hasInput = false;
+  var _isSubmitting = false;
 
   @override
   void initState() {
@@ -71,6 +80,10 @@ class _AgentInputCardState extends State<AgentInputCard> {
     if (oldWidget.headlineText != widget.headlineText ||
         oldWidget.animateHeadline != widget.animateHeadline) {
       _syncHeadlineState();
+    }
+    if (oldWidget.clearInputRevision != widget.clearInputRevision) {
+      _hasInput = false;
+      _controller.clear();
     }
   }
 
@@ -150,15 +163,25 @@ class _AgentInputCardState extends State<AgentInputCard> {
     setState(_showFullHeadline);
   }
 
-  void _submitText() {
+  Future<void> _submitText() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || widget.onSend == null) {
+    if (text.isEmpty ||
+        widget.onSend == null ||
+        widget.isSending ||
+        _isSubmitting) {
       return;
     }
 
-    widget.onSend!(text);
-    _controller.clear();
+    setState(() => _isSubmitting = true);
     _focusNode.unfocus();
+    final sent = await widget.onSend!(text);
+    if (!mounted) {
+      return;
+    }
+    if (sent) {
+      _controller.clear();
+    }
+    setState(() => _isSubmitting = false);
   }
 
   @override
@@ -166,6 +189,7 @@ class _AgentInputCardState extends State<AgentInputCard> {
     final theme = Theme.of(context);
     final palette = theme.extension<AppThemePalette>()!;
     final isDark = theme.brightness == Brightness.dark;
+    final isSending = widget.isSending || _isSubmitting;
     final headline = widget.headlineText.substring(
       0,
       _visibleHeadlineCharacters.clamp(0, widget.headlineText.length),
@@ -176,127 +200,142 @@ class _AgentInputCardState extends State<AgentInputCard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.statusText != null || widget.statusActionLabel != null)
+          if (widget.showIntro &&
+              (widget.statusText != null || widget.statusActionLabel != null))
             _StatusPill(
               text: widget.statusText,
               actionLabel: widget.statusActionLabel,
               onTap: widget.onStatusTap,
             ),
-          if (widget.statusText != null || widget.statusActionLabel != null)
+          if (widget.showIntro &&
+              (widget.statusText != null || widget.statusActionLabel != null))
             const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            child: Text.rich(
-              TextSpan(
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontFamily: 'Georgia',
-                  fontFamilyFallback: const [
-                    'Times New Roman',
-                    'Noto Serif',
-                    'Source Han Serif SC',
-                  ],
-                  fontSize: 38,
-                  height: 1.14,
-                  fontWeight: FontWeight.w700,
-                  color: palette.primaryText,
-                  letterSpacing: 0.2,
-                ),
-                children: [
-                  TextSpan(text: headline),
-                  TextSpan(
-                    text:
-                        _visibleHeadlineCharacters < widget.headlineText.length
-                        ? '|'
-                        : '',
-                    style: TextStyle(
-                      color: isDark
-                          ? palette.secondaryText
-                          : const Color(0x99304156),
-                      fontWeight: FontWeight.w400,
-                    ),
+          if (widget.showIntro)
+            SizedBox(
+              width: double.infinity,
+              child: Text.rich(
+                TextSpan(
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontFamily: 'Georgia',
+                    fontFamilyFallback: const [
+                      'Times New Roman',
+                      'Noto Serif',
+                      'Source Han Serif SC',
+                    ],
+                    fontSize: 38,
+                    height: 1.14,
+                    fontWeight: FontWeight.w700,
+                    color: palette.primaryText,
+                    letterSpacing: 0.2,
                   ),
-                ],
+                  children: [
+                    TextSpan(text: headline),
+                    TextSpan(
+                      text:
+                          _visibleHeadlineCharacters <
+                              widget.headlineText.length
+                          ? '|'
+                          : '',
+                      style: TextStyle(
+                        color: isDark
+                            ? palette.secondaryText
+                            : const Color(0x99304156),
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+                softWrap: true,
               ),
-              textAlign: TextAlign.center,
-              softWrap: true,
             ),
-          ),
-          const SizedBox(height: 22),
-          _GlassCardShell(
-            hasFocus: _hasFocus,
-            borderRadius: _cardRadius,
-            isDark: isDark,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 470;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        cursorColor: palette.primaryText,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 17,
-                          height: 1.45,
-                          color: palette.primaryText,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        minLines: 3,
-                        maxLines: 5,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _submitText(),
-                        onTapOutside: (_) => _focusNode.unfocus(),
-                        decoration: InputDecoration(
-                          hintText: widget.placeholderText,
-                          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                            color: palette.secondaryText,
+          if (widget.showIntro && widget.showComposer)
+            const SizedBox(height: 22),
+          if (widget.showComposer)
+            _GlassCardShell(
+              hasFocus: _hasFocus,
+              borderRadius: _cardRadius,
+              isDark: isDark,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 470;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          key: const ValueKey('agent-input'),
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          enabled: !isSending,
+                          cursorColor: palette.primaryText,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontSize: 17,
+                            height: 1.45,
+                            color: palette.primaryText,
                             fontWeight: FontWeight.w500,
                           ),
-                          contentPadding: const EdgeInsets.fromLTRB(
-                            6,
-                            10,
-                            6,
-                            16,
+                          minLines: widget.showIntro ? 3 : 1,
+                          maxLines: widget.showIntro ? 5 : 4,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _submitText(),
+                          onTapOutside: (_) => _focusNode.unfocus(),
+                          decoration: InputDecoration(
+                            hintText: widget.placeholderText,
+                            hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                              color: palette.secondaryText,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              6,
+                              10,
+                              6,
+                              16,
+                            ),
+                            border: InputBorder.none,
+                            isCollapsed: true,
                           ),
-                          border: InputBorder.none,
-                          isCollapsed: true,
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Wrap(
-                          alignment: WrapAlignment.end,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 10,
-                          runSpacing: isCompact ? 10 : 0,
-                          children: _buildTrailingActions(),
+                        const SizedBox(height: 18),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 10,
+                            runSpacing: isCompact ? 10 : 0,
+                            children: _buildTrailingActions(isSending),
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildTrailingActions() {
+  List<Widget> _buildTrailingActions(bool isSending) {
     return [
-      _FrostedLabelButton(label: widget.modelLabel, onTap: widget.onModelTap),
+      _FrostedLabelButton(
+        label: widget.modelLabel,
+        onTap: isSending ? null : widget.onModelTap,
+      ),
       _FrostedIconButton(
         icon: Icons.add_rounded,
         tooltip: 'Attach',
-        onTap: widget.onAttachTap,
+        onTap: isSending ? null : widget.onAttachTap,
       ),
-      _FrostedSendButton(enabled: _hasInput, onTap: _submitText),
+      _FrostedSendButton(
+        enabled: _hasInput && !isSending,
+        loading: isSending,
+        onTap: _submitText,
+      ),
     ];
   }
 }
@@ -650,9 +689,14 @@ class _FrostedIconButtonState extends State<_FrostedIconButton> {
 }
 
 class _FrostedSendButton extends StatefulWidget {
-  const _FrostedSendButton({required this.enabled, required this.onTap});
+  const _FrostedSendButton({
+    required this.enabled,
+    required this.loading,
+    required this.onTap,
+  });
 
   final bool enabled;
+  final bool loading;
   final VoidCallback onTap;
 
   @override
@@ -677,8 +721,9 @@ class _FrostedSendButtonState extends State<_FrostedSendButton> {
         _pressing = false;
       }),
       child: Tooltip(
-        message: 'Send',
+        message: widget.loading ? 'Sending' : 'Send',
         child: GestureDetector(
+          key: const ValueKey('agent-send'),
           onTap: interactive ? widget.onTap : null,
           onTapDown: interactive
               ? (_) => setState(() => _pressing = true)
@@ -733,11 +778,21 @@ class _FrostedSendButtonState extends State<_FrostedSendButton> {
                       ]
                     : null,
               ),
-              child: Icon(
-                Icons.arrow_upward_rounded,
-                size: 21,
-                color: Colors.white.withValues(alpha: interactive ? 1 : 0.72),
-              ),
+              child: widget.loading
+                  ? const Padding(
+                      padding: EdgeInsets.all(13),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 21,
+                      color: Colors.white.withValues(
+                        alpha: interactive ? 1 : 0.72,
+                      ),
+                    ),
             ),
           ),
         ),
