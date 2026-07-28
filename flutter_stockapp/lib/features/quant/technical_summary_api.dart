@@ -10,15 +10,14 @@ typedef JsonPost =
     });
 
 class TechnicalSummaryApi {
-  const TechnicalSummaryApi({required JsonPost postJson})
-    : _postJson = postJson;
+  const TechnicalSummaryApi({required this.postJson});
 
   static const endpointPath = '/api/v1/quant/technical-summary';
 
-  final JsonPost _postJson;
+  final JsonPost postJson;
 
   Future<TechnicalSummaryResult> analyze(List<StockDailyBar> bars) async {
-    final response = await _postJson(
+    final response = await postJson(
       path: endpointPath,
       body: mapTechnicalSummaryRequest(bars),
     );
