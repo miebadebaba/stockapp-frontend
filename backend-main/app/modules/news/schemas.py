@@ -1,1 +1,0 @@
-"""Future news schemas."""

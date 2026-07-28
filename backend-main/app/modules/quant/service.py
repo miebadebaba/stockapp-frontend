@@ -1,1 +1,0 @@
-"""Future quant business logic."""

@@ -1,1 +1,0 @@
-"""StockApp backend application package."""
