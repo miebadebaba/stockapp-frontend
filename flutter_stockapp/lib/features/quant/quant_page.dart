@@ -16,7 +16,7 @@ import 'moving_average_interpreter.dart';
 import 'volume_analyzer.dart';
 import 'volume_interpreter.dart';
 import 'technical_summary_analyzer.dart';
-import 'technical_summary_interpreter.dart';
+import 'technical_summary_section.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
 import 'quant_data_metadata.dart';
@@ -219,7 +219,6 @@ class _SelectedStockState extends StatelessWidget {
       macd: macd,
       volume: volumeAnalysis,
     );
-    final technicalSummaryInsight = interpretTechnicalSummary(technicalSummary);
     final insight = interpretMovingAverages(
       close: quote?.close,
       ma5: ma5,
@@ -350,106 +349,7 @@ class _SelectedStockState extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.xxl),
-        Text(
-          '综合技术状态',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: palette.primaryText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          technicalSummaryInsight.title,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: palette.primaryText,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          technicalSummaryInsight.overview,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: palette.secondaryText,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.fact_check_outlined,
-              size: 18,
-              color: palette.secondaryText,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                technicalSummaryInsight.consistencyText,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: palette.secondaryText,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (technicalSummaryInsight.riskMessages.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            '风险提醒',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          for (final message in technicalSummaryInsight.riskMessages)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 18,
-                    color: palette.secondaryText,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      message,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: palette.secondaryText,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.info_outline_rounded,
-              size: 18,
-              color: palette.secondaryText,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                technicalSummaryInsight.riskNotice,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: palette.secondaryText,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
-        ),
+        TechnicalSummarySection(result: technicalSummary),
         const SizedBox(height: AppSpacing.xxl),
         Text(
           '移动平均线',
