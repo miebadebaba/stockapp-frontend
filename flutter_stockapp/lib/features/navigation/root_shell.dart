@@ -9,6 +9,7 @@ import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
 import '../news/news_list_page.dart';
 import '../paper_trading/paper_trading_page.dart';
+import '../quant/quant_page.dart';
 import '../settings/settings_preview_page.dart';
 import '../tutorial/tutorial_category_page.dart';
 import 'app_top_actions.dart';
@@ -160,7 +161,7 @@ class _RootShellState extends State<RootShell> {
         onHeadlineAnimationCompleted: _handleAgentHeadlineAnimationCompleted,
       ),
       const HomePage(),
-      const _EmptyShellPage(),
+      const QuantPage(),
     ];
 
     return PopScope(
@@ -359,15 +360,5 @@ class _GlassPageOverlay extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _EmptyShellPage extends StatelessWidget {
-  const _EmptyShellPage();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = Theme.of(context).extension<AppThemePalette>()!;
-    return ColoredBox(color: palette.pageBackground);
   }
 }
