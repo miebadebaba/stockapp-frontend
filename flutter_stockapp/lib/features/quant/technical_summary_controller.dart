@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/network/api_exception.dart';
 import 'quant_analysis_status.dart';
 import 'stock_daily_bar.dart';
 import 'technical_summary_api.dart';
@@ -36,8 +37,24 @@ class TechnicalSummaryController extends ChangeNotifier {
         return;
       }
 
-      result = analysisResult;
-      status = QuantAnalysisStatus.success;
+      if (analysisResult.riskFlags.contains(
+        TechnicalRiskFlag.dataInsufficient,
+      )) {
+        result = null;
+        status = QuantAnalysisStatus.insufficientData;
+      } else {
+        result = analysisResult;
+        status = QuantAnalysisStatus.success;
+      }
+    } on ApiException catch (error) {
+      if (_isDisposed || requestId != _requestId) {
+        return;
+      }
+
+      result = null;
+      status = error.type == ApiErrorType.notFound
+          ? QuantAnalysisStatus.empty
+          : QuantAnalysisStatus.failure;
     } catch (_) {
       if (_isDisposed || requestId != _requestId) {
         return;

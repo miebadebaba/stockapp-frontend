@@ -149,7 +149,11 @@ class _QuantPageState extends State<QuantPage> {
                     else
                       QuantAnalysisStateView(
                         status: _analysisStatus,
-                        onRetry: _analysisStatus == QuantAnalysisStatus.failure
+                        onRetry:
+                            _analysisStatus == QuantAnalysisStatus.failure ||
+                                _analysisStatus == QuantAnalysisStatus.empty ||
+                                _analysisStatus ==
+                                    QuantAnalysisStatus.insufficientData
                             ? _retryAnalysis
                             : null,
                       ),
