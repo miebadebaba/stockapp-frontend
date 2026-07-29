@@ -25,7 +25,9 @@ import 'technical_summary_controller.dart';
 import 'technical_summary_result.dart';
 
 class QuantPage extends StatefulWidget {
-  const QuantPage({super.key});
+  const QuantPage({this.postJson, super.key});
+
+  final JsonPost? postJson;
 
   @override
   State<QuantPage> createState() => _QuantPageState();
@@ -40,7 +42,9 @@ class _QuantPageState extends State<QuantPage> {
   void initState() {
     super.initState();
     _technicalSummaryController = TechnicalSummaryController(
-      api: TechnicalSummaryApi(postJson: ApiClient().postJson),
+      api: TechnicalSummaryApi(
+        postJson: widget.postJson ?? ApiClient().postJson,
+      ),
     );
   }
 
