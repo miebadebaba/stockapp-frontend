@@ -15,11 +15,14 @@ import 'moving_average_calculator.dart';
 import 'moving_average_interpreter.dart';
 import 'volume_analyzer.dart';
 import 'volume_interpreter.dart';
-import 'technical_summary_analyzer.dart';
 import 'technical_summary_section.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
 import 'quant_data_metadata.dart';
+import '../../core/network/api_client.dart';
+import 'technical_summary_api.dart';
+import 'technical_summary_controller.dart';
+import 'technical_summary_result.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({super.key});
@@ -31,6 +34,21 @@ class QuantPage extends StatefulWidget {
 class _QuantPageState extends State<QuantPage> {
   SelectedStock? selectedStock;
   QuantAnalysisStatus _analysisStatus = QuantAnalysisStatus.idle;
+  late final TechnicalSummaryController _technicalSummaryController;
+
+  @override
+  void initState() {
+    super.initState();
+    _technicalSummaryController = TechnicalSummaryController(
+      api: TechnicalSummaryApi(postJson: ApiClient().postJson),
+    );
+  }
+
+  @override
+  void dispose() {
+    _technicalSummaryController.dispose();
+    super.dispose();
+  }
 
   Future<void> _chooseStock() async {
     final stock = await showModalBottomSheet<SelectedStock>(
@@ -51,33 +69,21 @@ class _QuantPageState extends State<QuantPage> {
   }
 
   Future<void> _loadAnalysis(SelectedStock stock) async {
+    final bars = mockStockDailyBars[stock.code] ?? const [];
+
     setState(() {
       _analysisStatus = QuantAnalysisStatus.loading;
     });
 
-    try {
-      await Future<void>.delayed(const Duration(milliseconds: 600));
+    await _technicalSummaryController.analyze(bars);
 
-      if (!mounted) {
-        return;
-      }
-
-      final bars = mockStockDailyBars[stock.code] ?? const [];
-
-      setState(() {
-        _analysisStatus = bars.isEmpty
-            ? QuantAnalysisStatus.empty
-            : QuantAnalysisStatus.success;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _analysisStatus = QuantAnalysisStatus.failure;
-      });
+    if (!mounted) {
+      return;
     }
+
+    setState(() {
+      _analysisStatus = _technicalSummaryController.status;
+    });
   }
 
   void _retryAnalysis() {
@@ -133,6 +139,7 @@ class _QuantPageState extends State<QuantPage> {
                     else if (_analysisStatus == QuantAnalysisStatus.success)
                       _SelectedStockState(
                         stock: selectedStock!,
+                        technicalSummary: _technicalSummaryController.result!,
                         onChooseStock: _chooseStock,
                       )
                     else
@@ -193,9 +200,14 @@ class _EmptyStockState extends StatelessWidget {
 }
 
 class _SelectedStockState extends StatelessWidget {
-  const _SelectedStockState({required this.stock, required this.onChooseStock});
+  const _SelectedStockState({
+    required this.stock,
+    required this.technicalSummary,
+    required this.onChooseStock,
+  });
 
   final SelectedStock stock;
+  final TechnicalSummaryResult technicalSummary;
   final VoidCallback onChooseStock;
 
   @override
@@ -213,12 +225,6 @@ class _SelectedStockState extends StatelessWidget {
     final rsiInsight = interpretRsi(rsi14);
     final volumeAnalysis = analyzeVolume(bars: bars);
     final volumeInsight = interpretVolume(volumeAnalysis);
-    final technicalSummary = analyzeTechnicalSummary(
-      bars: bars,
-      rsi: rsi14,
-      macd: macd,
-      volume: volumeAnalysis,
-    );
     final insight = interpretMovingAverages(
       close: quote?.close,
       ma5: ma5,
