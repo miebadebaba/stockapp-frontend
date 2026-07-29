@@ -22,11 +22,21 @@ void main() {
     expect(find.text('正在获取行情并计算技术指标...'), findsOneWidget);
   });
 
-  testWidgets('空数据状态显示数据不足提示', (tester) async {
+  testWidgets('空行情状态显示暂无行情提示', (tester) async {
     await tester.pumpWidget(buildSubject(status: QuantAnalysisStatus.empty));
 
-    expect(find.text('暂无可分析数据'), findsOneWidget);
-    expect(find.text('当前股票的历史数据不足，请稍后重试或选择其他股票。'), findsOneWidget);
+    expect(find.text('暂无行情数据'), findsOneWidget);
+    expect(find.text('当前股票暂时没有可用行情，请稍后重试或选择其他股票。'), findsOneWidget);
+  });
+
+  testWidgets('数据不足状态显示历史数据不足提示', (tester) async {
+    await tester.pumpWidget(
+      buildSubject(status: QuantAnalysisStatus.insufficientData),
+    );
+
+    expect(find.text('历史数据不足'), findsOneWidget);
+    expect(find.text('当前行情数量不足以计算完整技术指标，请稍后再试。'), findsOneWidget);
+    expect(find.byIcon(Icons.history_rounded), findsOneWidget);
   });
 
   testWidgets('失败状态显示错误信息和重试按钮', (tester) async {
@@ -61,6 +71,7 @@ void main() {
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('分析失败'), findsNothing);
-    expect(find.text('暂无可分析数据'), findsNothing);
+    expect(find.text('暂无行情数据'), findsNothing);
+    expect(find.text('历史数据不足'), findsNothing);
   });
 }

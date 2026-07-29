@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stockapp/core/network/api_exception.dart';
 import 'package:flutter_stockapp/core/theme/app_theme.dart';
 import 'package:flutter_stockapp/features/quant/quant_page.dart';
 import 'package:flutter_stockapp/features/quant/technical_summary_section.dart';
@@ -48,6 +49,7 @@ void main() {
     expect(find.text('600519'), findsOneWidget);
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
   });
+
   testWidgets('retry succeeds after the first backend request fails', (
     tester,
   ) async {
@@ -96,5 +98,37 @@ void main() {
     expect(callCount, 2);
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
+  });
+
+  testWidgets('shows empty market state when backend returns 404', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: QuantPage(
+          postJson: ({required String path, required Object body}) async {
+            throw const ApiException(
+              type: ApiErrorType.notFound,
+              message: '请求的内容不存在。',
+              statusCode: 404,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.search_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('600519'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂无行情数据'), findsOneWidget);
+    expect(find.byIcon(Icons.refresh), findsOneWidget);
+    expect(find.byType(TechnicalSummarySection), findsNothing);
   });
 }
