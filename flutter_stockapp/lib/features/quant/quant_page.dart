@@ -267,14 +267,14 @@ class _SelectedStockState extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.science_outlined,
+                Icons.cloud_done_outlined,
                 size: 18,
                 color: palette.secondaryText,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  '当前为模拟数据，仅用于功能演示和量化学习',
+                  '当前数据来自 Market 行情服务',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: palette.secondaryText,
                     fontWeight: FontWeight.w600,
