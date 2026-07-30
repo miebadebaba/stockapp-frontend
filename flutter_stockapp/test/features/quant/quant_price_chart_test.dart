@@ -1,0 +1,70 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_stockapp/core/theme/app_theme.dart';
+import 'package:flutter_stockapp/features/quant/quant_price_chart.dart';
+import 'package:flutter_stockapp/features/quant/stock_daily_bar.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  testWidgets('displays price range and dates from daily bars', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantPriceChart(
+            bars: [
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 28),
+                open: 10.20,
+                high: 10.80,
+                low: 10.10,
+                close: 10.60,
+                volume: 1000,
+              ),
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 29),
+                open: 10.60,
+                high: 11.20,
+                low: 10.50,
+                close: 11.00,
+                volume: 1200,
+              ),
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 30),
+                open: 11.00,
+                high: 11.50,
+                low: 10.90,
+                close: 11.30,
+                volume: 1400,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('近60个交易日价格走势'), findsOneWidget);
+    expect(find.text('基于真实日线收盘价绘制'), findsOneWidget);
+    expect(find.text('区间最高'), findsOneWidget);
+    expect(find.text('11.50'), findsOneWidget);
+    expect(find.text('区间最低'), findsOneWidget);
+    expect(find.text('10.10'), findsOneWidget);
+    expect(find.text('最新收盘'), findsOneWidget);
+    expect(find.text('11.30'), findsOneWidget);
+    expect(find.text('2026-07-28'), findsOneWidget);
+    expect(find.text('2026-07-30'), findsOneWidget);
+    expect(find.byType(CustomPaint), findsWidgets);
+  });
+
+  testWidgets('renders nothing when bars are empty', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(body: QuantPriceChart(bars: [])),
+      ),
+    );
+
+    expect(find.text('近60个交易日价格走势'), findsNothing);
+  });
+}
