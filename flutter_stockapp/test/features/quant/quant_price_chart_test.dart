@@ -103,6 +103,60 @@ void main() {
     expect(find.text('159.50'), findsOneWidget);
   });
 
+  testWidgets('shows daily details after tapping the price chart', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantPriceChart(
+            bars: [
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 28),
+                open: 10.20,
+                high: 10.80,
+                low: 10.10,
+                close: 10.60,
+                volume: 1000,
+              ),
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 29),
+                open: 10.60,
+                high: 11.20,
+                low: 10.50,
+                close: 11.00,
+                volume: 1200,
+              ),
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 30),
+                open: 11.00,
+                high: 11.50,
+                low: 10.90,
+                close: 11.30,
+                volume: 1400,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    const details = '2026-07-28  收盘价 10.60  成交量 1000';
+    expect(find.text(details), findsNothing);
+
+    final chart = find.byKey(const ValueKey('quant-price-chart-gesture'));
+    await tester.tapAt(tester.getTopLeft(chart) + const Offset(1, 100));
+    await tester.pump();
+
+    expect(find.text(details), findsOneWidget);
+  });
+
   testWidgets('renders nothing when bars are empty', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
