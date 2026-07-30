@@ -18,6 +18,20 @@ class QuantPriceChart extends StatefulWidget {
 
 class _QuantPriceChartState extends State<QuantPriceChart> {
   int _selectedRange = 60;
+  DateTime? _selectedTradingDate;
+
+  void _selectBarAt(double dx, double width, List<StockDailyBar> bars) {
+    if (bars.isEmpty || width <= 0) {
+      return;
+    }
+
+    final position = (dx / width).clamp(0.0, 1.0);
+    final index = (position * (bars.length - 1)).round();
+
+    setState(() {
+      _selectedTradingDate = bars[index].tradingDate;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +50,11 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
     final highest = visibleBars.map((bar) => bar.high).reduce(math.max);
     final lowest = visibleBars.map((bar) => bar.low).reduce(math.min);
     final latest = visibleBars.last.close;
+    final selectedBar = _selectedTradingDate == null
+        ? null
+        : visibleBars
+              .where((bar) => bar.tradingDate == _selectedTradingDate)
+              .firstOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,6 +87,7 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             onSelectionChanged: (selection) {
               setState(() {
                 _selectedRange = selection.first;
+                _selectedTradingDate = null;
               });
             },
           ),
@@ -95,6 +115,14 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             ),
           ],
         ),
+        if (selectedBar != null) ...[
+          Text(
+            '${_formatDate(selectedBar.tradingDate)}  '
+            '收盘价 ${selectedBar.close.toStringAsFixed(2)}  '
+            '成交量 ${selectedBar.volume.toStringAsFixed(0)}',
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const SizedBox(height: AppSpacing.lg),
         Container(
           height: 220,
@@ -104,13 +132,33 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             border: Border.all(color: palette.divider),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: CustomPaint(
-            painter: _QuantPriceChartPainter(
-              bars: visibleBars,
-              lineColor: const Color(0xFF2F6FED),
-              gridColor: palette.divider,
-            ),
-            child: const SizedBox.expand(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              void selectAt(Offset position) {
+                _selectBarAt(position.dx, constraints.maxWidth, visibleBars);
+              }
+
+              return GestureDetector(
+                key: const ValueKey('quant-price-chart-gesture'),
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) => selectAt(details.localPosition),
+                onHorizontalDragStart: (details) =>
+                    selectAt(details.localPosition),
+                onHorizontalDragUpdate: (details) =>
+                    selectAt(details.localPosition),
+                child: CustomPaint(
+                  painter: _QuantPriceChartPainter(
+                    bars: visibleBars,
+                    selectedIndex: selectedBar == null
+                        ? null
+                        : visibleBars.indexOf(selectedBar),
+                    lineColor: const Color(0xFF2F6FED),
+                    gridColor: palette.divider,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -132,7 +180,10 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           ],
         ),
         const SizedBox(height: AppSpacing.xxl),
-        QuantVolumeChart(bars: visibleBars),
+        QuantVolumeChart(
+          bars: visibleBars,
+          selectedTradingDate: _selectedTradingDate,
+        ),
       ],
     );
   }
@@ -173,11 +224,13 @@ class _ChartMetric extends StatelessWidget {
 class _QuantPriceChartPainter extends CustomPainter {
   const _QuantPriceChartPainter({
     required this.bars,
+    required this.selectedIndex,
     required this.lineColor,
     required this.gridColor,
   });
 
   final List<StockDailyBar> bars;
+  final int? selectedIndex;
   final Color lineColor;
   final Color gridColor;
 
@@ -237,11 +290,27 @@ class _QuantPriceChartPainter extends CustomPainter {
     );
 
     canvas.drawCircle(points.last, 4, Paint()..color = lineColor);
+    final selection = selectedIndex;
+    if (selection != null && selection >= 0 && selection < points.length) {
+      final selectedPoint = points[selection];
+
+      canvas.drawLine(
+        Offset(selectedPoint.dx, 0),
+        Offset(selectedPoint.dx, size.height),
+        Paint()
+          ..color = lineColor.withValues(alpha: 0.35)
+          ..strokeWidth = 1.5,
+      );
+
+      canvas.drawCircle(selectedPoint, 6, Paint()..color = lineColor);
+      canvas.drawCircle(selectedPoint, 2.5, Paint()..color = Colors.white);
+    }
   }
 
   @override
   bool shouldRepaint(covariant _QuantPriceChartPainter oldDelegate) {
-    if (lineColor != oldDelegate.lineColor ||
+    if (selectedIndex != oldDelegate.selectedIndex ||
+        lineColor != oldDelegate.lineColor ||
         gridColor != oldDelegate.gridColor ||
         bars.length != oldDelegate.bars.length) {
       return true;

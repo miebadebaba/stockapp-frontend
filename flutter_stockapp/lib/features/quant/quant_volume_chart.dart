@@ -7,9 +7,14 @@ import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
 
 class QuantVolumeChart extends StatelessWidget {
-  const QuantVolumeChart({required this.bars, super.key});
+  const QuantVolumeChart({
+    required this.bars,
+    this.selectedTradingDate,
+    super.key,
+  });
 
   final List<StockDailyBar> bars;
+  final DateTime? selectedTradingDate;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +25,9 @@ class QuantVolumeChart extends StatelessWidget {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final maximumVolume = bars.map((bar) => bar.volume).reduce(math.max);
     final latestVolume = bars.last.volume;
+    final selectedIndex = selectedTradingDate == null
+        ? null
+        : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,6 +75,7 @@ class QuantVolumeChart extends StatelessWidget {
           child: CustomPaint(
             painter: _QuantVolumeChartPainter(
               bars: bars,
+              selectedIndex: selectedIndex == -1 ? null : selectedIndex,
               risingColor: const Color(0xFF16A085),
               fallingColor: const Color(0xFFE05A47),
               gridColor: palette.divider,
@@ -114,12 +123,14 @@ class _VolumeMetric extends StatelessWidget {
 class _QuantVolumeChartPainter extends CustomPainter {
   const _QuantVolumeChartPainter({
     required this.bars,
+    required this.selectedIndex,
     required this.risingColor,
     required this.fallingColor,
     required this.gridColor,
   });
 
   final List<StockDailyBar> bars;
+  final int? selectedIndex;
   final Color risingColor;
   final Color fallingColor;
   final Color gridColor;
@@ -160,11 +171,31 @@ class _QuantVolumeChartPainter extends CustomPainter {
         Paint()..color = bar.close >= bar.open ? risingColor : fallingColor,
       );
     }
+    final selection = selectedIndex;
+    if (selection != null && selection >= 0 && selection < bars.length) {
+      final centerX = slotWidth * selection + slotWidth / 2;
+
+      canvas.drawRect(
+        Rect.fromLTWH(centerX - slotWidth / 2, 0, slotWidth, size.height),
+        Paint()
+          ..color = const Color(0xFF2F6FED).withValues(alpha: 0.12)
+          ..style = PaintingStyle.fill,
+      );
+
+      canvas.drawLine(
+        Offset(centerX, 0),
+        Offset(centerX, size.height),
+        Paint()
+          ..color = const Color(0xFF2F6FED).withValues(alpha: 0.55)
+          ..strokeWidth = 1.5,
+      );
+    }
   }
 
   @override
   bool shouldRepaint(covariant _QuantVolumeChartPainter oldDelegate) {
-    if (risingColor != oldDelegate.risingColor ||
+    if (selectedIndex != oldDelegate.selectedIndex ||
+        risingColor != oldDelegate.risingColor ||
         fallingColor != oldDelegate.fallingColor ||
         gridColor != oldDelegate.gridColor ||
         bars.length != oldDelegate.bars.length) {
