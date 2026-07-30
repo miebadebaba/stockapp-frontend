@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-
+﻿import '../../core/network/api_config.dart';
 import 'market_stock_detail_data.dart';
 import 'market_stock_detail_transport.dart';
 
@@ -11,7 +10,7 @@ class MarketStockDetailApi {
   Future<MarketStockDetailData> fetchStockDetail(String stockId) async {
     final normalizedId = stockId.trim().toLowerCase();
     final symbol = normalizedId.toUpperCase();
-    final baseUrl = (apiBaseUrl ?? _defaultBaseUrl()).trim();
+    final baseUrl = (apiBaseUrl ?? ApiConfig.baseUri.toString()).trim();
     final url =
         '$baseUrl/api/v1/market/stocks/${Uri.encodeComponent(symbol)}/detail';
 
@@ -54,6 +53,12 @@ Future<Object?> _fetchJsonWithFriendlyErrors(
   } catch (error) {
     final message = error.toString();
 
+    if (message.contains('timed out')) {
+      throw MarketStockDetailApiException(
+        'Loading $symbol took too long. The backend or PandaAI is responding too slowly right now.',
+      );
+    }
+
     if (message.contains('SocketException') ||
         message.contains('Connection refused')) {
       throw MarketStockDetailApiException(
@@ -84,20 +89,4 @@ Future<Object?> _fetchJsonWithFriendlyErrors(
       'Unable to load stock detail right now. $message',
     );
   }
-}
-
-String _defaultBaseUrl() {
-  const configured = String.fromEnvironment('STOCKAPP_API_BASE_URL');
-  if (configured.isNotEmpty) {
-    return configured;
-  }
-
-  if (kIsWeb) {
-    return 'http://127.0.0.1:8010';
-  }
-
-  return switch (defaultTargetPlatform) {
-    TargetPlatform.android => 'http://10.0.2.2:8010',
-    _ => 'http://127.0.0.1:8010',
-  };
 }

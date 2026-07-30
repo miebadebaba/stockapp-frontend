@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
@@ -250,7 +250,7 @@ class _LoadedStockDetailView extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w800, fontSize: 18),
                   changeLabelStyle: Theme.of(context).textTheme.bodyLarge
                       ?.copyWith(color: palette.secondaryText, fontSize: 18),
-                  amountText: '\$${stock.priceText}',
+                  amountText: '${_currencyPrefixForTicker(stock.ticker)}${stock.priceText}',
                   changeText: changeText,
                   changeLabel: stock.changeLabel,
                   mockData: filteredLineSeries,
@@ -296,6 +296,10 @@ class _LoadedStockDetailView extends StatelessWidget {
       ],
     );
   }
+}
+
+String _currencyPrefixForTicker(String ticker) {
+  return ticker.contains('.') ? 'CNY ' : r'$';
 }
 
 class _LoadingState extends StatelessWidget {

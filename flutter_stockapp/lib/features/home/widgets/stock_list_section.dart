@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -23,6 +23,18 @@ class StockListItemData {
   final double changePercent;
   final double referenceValue;
   final List<double> sparklineValues;
+
+  factory StockListItemData.fromBackendJson(Map<String, dynamic> json) {
+    return StockListItemData(
+      id: (json['id'] as String?)?.trim() ?? '',
+      title: (json['ticker'] as String?)?.trim() ?? '',
+      subtitle: (json['company_name'] as String?)?.trim() ?? '',
+      priceText: (json['price_text'] as String?)?.trim() ?? '--',
+      changePercent: _asDouble(json['change_percent']) ?? 0,
+      referenceValue: _asDouble(json['reference_value']) ?? 0,
+      sparklineValues: _asDoubleList(json['sparkline_values']),
+    );
+  }
 }
 
 class StockListSection extends StatelessWidget {
@@ -352,4 +364,22 @@ class _StockTrendChartPainter extends CustomPainter {
 
     return false;
   }
+}
+
+double? _asDouble(Object? raw) {
+  if (raw is num) {
+    return raw.toDouble();
+  }
+  if (raw is String) {
+    return double.tryParse(raw);
+  }
+  return null;
+}
+
+List<double> _asDoubleList(Object? raw) {
+  if (raw is! List) {
+    return const [];
+  }
+
+  return raw.map(_asDouble).whereType<double>().toList();
 }

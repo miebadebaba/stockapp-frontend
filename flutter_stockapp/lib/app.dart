@@ -47,12 +47,22 @@ class _AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<_AuthGate> {
-  late final Future<AuthSession> _sessionFuture;
+  late Future<AuthSession> _sessionFuture;
 
   @override
   void initState() {
     super.initState();
-    _sessionFuture = AuthSession.load();
+    _sessionFuture = _loadSession();
+  }
+
+  Future<AuthSession> _loadSession() {
+    return AuthSession.load();
+  }
+
+  void _retryLoadSession() {
+    setState(() {
+      _sessionFuture = _loadSession();
+    });
   }
 
   @override
@@ -60,8 +70,12 @@ class _AuthGateState extends State<_AuthGate> {
     return FutureBuilder<AuthSession>(
       future: _sessionFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return const _AuthLoadingPage();
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return _AuthLoadErrorPage(onRetry: _retryLoadSession);
         }
 
         final session = snapshot.data!;
@@ -93,8 +107,54 @@ class _AuthLoadingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ColoredBox(color: AppColors.bgPrimary),
+      backgroundColor: AppColors.bgPrimary,
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class _AuthLoadErrorPage extends StatelessWidget {
+  const _AuthLoadErrorPage({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgPrimary,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Unable to load your session.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Local app data may be invalid. Retry to continue.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

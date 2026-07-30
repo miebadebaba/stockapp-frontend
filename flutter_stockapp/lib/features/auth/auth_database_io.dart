@@ -69,19 +69,25 @@ class FileAuthDatabase implements AuthDatabase {
   }
 
   Future<Map<String, Object?>> _readData() async {
-    if (!await _databaseFile.exists()) {
+    try {
+      if (!await _databaseFile.exists()) {
+        return _emptyDatabase();
+      }
+
+      final raw = await _databaseFile.readAsString();
+      if (raw.trim().isEmpty) {
+        return _emptyDatabase();
+      }
+
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, Object?>
+          ? Map<String, Object?>.from(decoded)
+          : _emptyDatabase();
+    } on FileSystemException {
+      return _emptyDatabase();
+    } on FormatException {
       return _emptyDatabase();
     }
-
-    final raw = await _databaseFile.readAsString();
-    if (raw.trim().isEmpty) {
-      return _emptyDatabase();
-    }
-
-    final decoded = jsonDecode(raw);
-    return decoded is Map<String, Object?>
-        ? Map<String, Object?>.from(decoded)
-        : _emptyDatabase();
   }
 
   Future<void> _writeData(Map<String, Object?> data) async {

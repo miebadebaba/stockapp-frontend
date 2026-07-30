@@ -218,6 +218,10 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final topPadding = widget.embedInScaffold ? 88.0 : 104.0;
+    final bottomPadding = keyboardVisible
+        ? 12.0
+        : (widget.embedInScaffold ? 108.0 : 144.0);
     final content = AnimatedPageWrapper(
       child: Stack(
         fit: StackFit.expand,
@@ -227,9 +231,9 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 20,
-                widget.embedInScaffold ? 88 : 16,
+                topPadding,
                 20,
-                widget.embedInScaffold && !keyboardVisible ? 108 : 12,
+                bottomPadding,
               ),
               child: Column(
                 children: [
@@ -242,8 +246,11 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
                     child: _messages.isEmpty
                         ? _EmptyConversation(
                             animateHeadline: widget.animateHeadline,
-                            enabled: !_isSending,
-                            onSelected: _sendMessage,
+                            onSend: _sendMessage,
+                            isSending: _isSending,
+                            clearInputRevision: _clearInputRevision,
+                            onAttachTap: () => _showInteraction('Attachment coming soon'),
+                            onModelTap: () => _showInteraction('Using configured backend AI model'),
                             onHeadlineAnimationCompleted:
                                 widget.onHeadlineAnimationCompleted,
                           )
@@ -255,19 +262,21 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
                             onRetry: _retry,
                           ),
                   ),
-                  const SizedBox(height: 12),
-                  AgentInputCard(
-                    showIntro: false,
-                    animateHeadline: false,
-                    headlineText: '',
-                    placeholderText: '输入消息',
-                    modelLabel: 'AI Chat',
-                    onSend: _sendMessage,
-                    isSending: _isSending,
-                    clearInputRevision: _clearInputRevision,
-                    onAttachTap: () => _showInteraction('附件功能待接入'),
-                    onModelTap: () => _showInteraction('当前使用后端配置的 AI 模型'),
-                  ),
+                  if (_messages.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    AgentInputCard(
+                      showIntro: false,
+                      animateHeadline: false,
+                      headlineText: '',
+                      placeholderText: 'Input message',
+                      modelLabel: 'AI Chat',
+                      onSend: _sendMessage,
+                      isSending: _isSending,
+                      clearInputRevision: _clearInputRevision,
+                      onAttachTap: () => _showInteraction('Attachment coming soon'),
+                      onModelTap: () => _showInteraction('Using configured backend AI model'),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -338,81 +347,58 @@ class _ChatHeader extends StatelessWidget {
 class _EmptyConversation extends StatelessWidget {
   const _EmptyConversation({
     required this.animateHeadline,
-    required this.enabled,
-    required this.onSelected,
+    required this.onSend,
+    required this.isSending,
+    required this.clearInputRevision,
+    required this.onAttachTap,
+    required this.onModelTap,
     required this.onHeadlineAnimationCompleted,
   });
 
   final bool animateHeadline;
-  final bool enabled;
-  final Future<bool> Function(String text) onSelected;
+  final Future<bool> Function(String text) onSend;
+  final bool isSending;
+  final int clearInputRevision;
+  final VoidCallback onAttachTap;
+  final VoidCallback onModelTap;
   final VoidCallback? onHeadlineAnimationCompleted;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 36),
-            AgentInputCard(
-              showComposer: false,
-              animateHeadline: animateHeadline,
-              headlineText: 'Welcome back. What would you like to build next?',
-              placeholderText: '',
-              modelLabel: '',
-              onHeadlineAnimationCompleted: onHeadlineAnimationCompleted,
-            ),
-            const SizedBox(height: 24),
-            _SuggestedQuestions(enabled: enabled, onSelected: onSelected),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SuggestedQuestions extends StatelessWidget {
-  const _SuggestedQuestions({required this.enabled, required this.onSelected});
-
-  static const questions = ['用三句话解释什么是市盈率', '如何建立长期投资计划', '帮我梳理今天的学习重点'];
-
-  final bool enabled;
-  final Future<bool> Function(String text) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = Theme.of(context).extension<AppThemePalette>()!;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 760),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          for (final question in questions)
-            OutlinedButton(
-              onPressed: enabled ? () => onSelected(question) : null,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: palette.primaryText,
-                side: BorderSide(
-                  color: palette.secondaryText.withValues(alpha: 0.28),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 36),
+                  AgentInputCard(
+                    animateHeadline: animateHeadline,
+                    headlineText:
+                        'Welcome back. What would you like to build next?',
+                    placeholderText: 'Input message',
+                    modelLabel: 'AI Chat',
+                    onSend: onSend,
+                    isSending: isSending,
+                    clearInputRevision: clearInputRevision,
+                    onAttachTap: onAttachTap,
+                    onModelTap: onModelTap,
+                    onHeadlineAnimationCompleted:
+                        onHeadlineAnimationCompleted,
+                  ),
+                ],
               ),
-              child: Text(question),
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }
