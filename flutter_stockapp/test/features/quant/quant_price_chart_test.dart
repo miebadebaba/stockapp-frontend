@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('displays price range and dates from daily bars', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -58,6 +60,8 @@ void main() {
   });
 
   testWidgets('switches chart to the latest 20 daily bars', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final bars = List.generate(60, (index) {
       final value = index.toDouble();
 
@@ -67,7 +71,7 @@ void main() {
         high: 101 + value,
         low: 99 + value,
         close: 100.5 + value,
-        volume: 1000 + index,
+        volume: index == 0 ? 250000000 : 1000 + index,
       );
     });
 
@@ -82,11 +86,14 @@ void main() {
 
     expect(find.text('2026-01-01'), findsOneWidget);
     expect(find.text('近60个交易日价格走势'), findsOneWidget);
+    expect(find.text('2.50 亿股'), findsOneWidget);
 
     await tester.tap(find.text('20日'));
     await tester.pumpAndSettle();
     expect(find.text('近20个交易日价格走势'), findsOneWidget);
     expect(find.text('近60个交易日价格走势'), findsNothing);
+    expect(find.text('2.50 亿股'), findsNothing);
+    expect(find.text('1059 股'), findsNWidgets(2));
 
     expect(find.text('2026-01-01'), findsNothing);
     expect(find.text('2026-02-10'), findsOneWidget);
