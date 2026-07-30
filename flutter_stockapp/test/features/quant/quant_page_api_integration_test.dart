@@ -47,6 +47,48 @@ void main() {
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
   });
 
+  testWidgets('custom stock code requests backend analysis', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    String? receivedPath;
+    Map<String, dynamic>? receivedQuery;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: QuantPage(
+          getJson:
+              ({
+                required String path,
+                Map<String, dynamic>? queryParameters,
+              }) async {
+                receivedPath = path;
+                receivedQuery = queryParameters;
+                return _successfulResponse();
+              },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.search_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '000333');
+    await tester.pumpAndSettle();
+
+    final customCodeTile = find.widgetWithText(ListTile, '000333');
+    expect(customCodeTile, findsOneWidget);
+
+    await tester.tap(customCodeTile);
+    await tester.pumpAndSettle();
+
+    expect(receivedPath, '/api/v1/quant/stocks/000333/analysis');
+    expect(receivedQuery, {'limit': 60});
+    expect(find.text('000333'), findsOneWidget);
+  });
+
   testWidgets('retry succeeds after the first backend request fails', (
     tester,
   ) async {

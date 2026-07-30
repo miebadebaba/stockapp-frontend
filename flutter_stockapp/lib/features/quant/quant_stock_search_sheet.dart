@@ -12,6 +12,20 @@ class QuantStockSearchSheet extends StatefulWidget {
 
 class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
   String _query = '';
+  String get _normalizedQuery => _query.trim();
+
+  bool get _canAnalyzeCustomCode {
+    return RegExp(r'^\d{6}$').hasMatch(_normalizedQuery) &&
+        !quantStockCatalog.any((stock) => stock.code == _normalizedQuery);
+  }
+
+  SelectedStock get _customStock {
+    return SelectedStock(code: _normalizedQuery, name: 'A股代码');
+  }
+
+  List<SelectedStock> get _displayedStocks {
+    return [if (_canAnalyzeCustomCode) _customStock, ..._filteredStocks];
+  }
 
   List<SelectedStock> get _filteredStocks {
     final keyword = _query.trim().toLowerCase();
@@ -63,13 +77,13 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: _filteredStocks.isEmpty
+              child: _displayedStocks.isEmpty
                   ? const Center(child: Text('未找到匹配的 A 股'))
                   : ListView.separated(
-                      itemCount: _filteredStocks.length,
+                      itemCount: _displayedStocks.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
-                        final stock = _filteredStocks[index];
+                        final stock = _displayedStocks[index];
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
