@@ -13,12 +13,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Welcome to AppName.'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('Market Habit Wall'), findsNothing);
     expect(find.text('Signal Counter Grid'), findsNothing);
 
-    await tester.enterText(find.byType(TextField), 'nova');
     await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Sign in'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'nova');
+    await tester.tap(find.text('Continue').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -34,7 +39,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Welcome to AppName.'), findsNothing);
+    expect(find.text('Welcome back'), findsNothing);
     expect(find.byIcon(Icons.add_rounded), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
   });

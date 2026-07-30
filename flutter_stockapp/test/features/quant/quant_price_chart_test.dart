@@ -57,6 +57,45 @@ void main() {
     expect(find.byType(CustomPaint), findsWidgets);
   });
 
+  testWidgets('switches chart to the latest 20 daily bars', (tester) async {
+    final bars = List.generate(60, (index) {
+      final value = index.toDouble();
+
+      return StockDailyBar(
+        tradingDate: DateTime(2026, 1, 1).add(Duration(days: index)),
+        open: 100 + value,
+        high: 101 + value,
+        low: 99 + value,
+        close: 100.5 + value,
+        volume: 1000 + index,
+      );
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(body: QuantPriceChart(bars: bars)),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026-01-01'), findsOneWidget);
+    expect(find.text('近60个交易日价格走势'), findsOneWidget);
+
+    await tester.tap(find.text('20日'));
+    await tester.pumpAndSettle();
+    expect(find.text('近20个交易日价格走势'), findsOneWidget);
+    expect(find.text('近60个交易日价格走势'), findsNothing);
+
+    expect(find.text('2026-01-01'), findsNothing);
+    expect(find.text('2026-02-10'), findsOneWidget);
+    expect(find.text('2026-03-01'), findsOneWidget);
+    expect(find.text('139.00'), findsOneWidget);
+    expect(find.text('160.00'), findsOneWidget);
+    expect(find.text('159.50'), findsOneWidget);
+  });
+
   testWidgets('renders nothing when bars are empty', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

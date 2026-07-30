@@ -6,13 +6,21 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
 
-class QuantPriceChart extends StatelessWidget {
+class QuantPriceChart extends StatefulWidget {
   const QuantPriceChart({required this.bars, super.key});
 
   final List<StockDailyBar> bars;
 
   @override
+  State<QuantPriceChart> createState() => _QuantPriceChartState();
+}
+
+class _QuantPriceChartState extends State<QuantPriceChart> {
+  int _selectedRange = 60;
+
+  @override
   Widget build(BuildContext context) {
+    final bars = widget.bars;
     if (bars.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -20,16 +28,19 @@ class QuantPriceChart extends StatelessWidget {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final orderedBars = List<StockDailyBar>.of(bars)
       ..sort((a, b) => a.tradingDate.compareTo(b.tradingDate));
+    final visibleBars = orderedBars.length <= _selectedRange
+        ? orderedBars
+        : orderedBars.sublist(orderedBars.length - _selectedRange);
 
-    final highest = orderedBars.map((bar) => bar.high).reduce(math.max);
-    final lowest = orderedBars.map((bar) => bar.low).reduce(math.min);
-    final latest = orderedBars.last.close;
+    final highest = visibleBars.map((bar) => bar.high).reduce(math.max);
+    final lowest = visibleBars.map((bar) => bar.low).reduce(math.min);
+    final latest = visibleBars.last.close;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '近60个交易日价格走势',
+          '近$_selectedRange个交易日价格走势',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: palette.primaryText,
             fontWeight: FontWeight.w800,
@@ -41,6 +52,24 @@ class QuantPriceChart extends StatelessWidget {
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            segments: const [
+              ButtonSegment<int>(value: 20, label: Text('20日')),
+              ButtonSegment<int>(value: 40, label: Text('40日')),
+              ButtonSegment<int>(value: 60, label: Text('60日')),
+            ],
+            selected: {_selectedRange},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              setState(() {
+                _selectedRange = selection.first;
+              });
+            },
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         Row(
@@ -76,7 +105,7 @@ class QuantPriceChart extends StatelessWidget {
           ),
           child: CustomPaint(
             painter: _QuantPriceChartPainter(
-              bars: orderedBars,
+              bars: visibleBars,
               lineColor: const Color(0xFF2F6FED),
               gridColor: palette.divider,
             ),
@@ -88,13 +117,13 @@ class QuantPriceChart extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _formatDate(orderedBars.first.tradingDate),
+              _formatDate(visibleBars.first.tradingDate),
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
             ),
             Text(
-              _formatDate(orderedBars.last.tradingDate),
+              _formatDate(visibleBars.last.tradingDate),
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
