@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
+import 'quant_volume_chart.dart';
 
 class QuantPriceChart extends StatefulWidget {
   const QuantPriceChart({required this.bars, super.key});
@@ -130,6 +131,8 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantVolumeChart(bars: visibleBars),
       ],
     );
   }
