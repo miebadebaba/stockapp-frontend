@@ -157,6 +157,51 @@ void main() {
     expect(find.text(details), findsOneWidget);
   });
 
+  testWidgets('switches from line chart to candlestick chart', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantPriceChart(
+            bars: [
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 29),
+                open: 10.20,
+                high: 10.90,
+                low: 10.10,
+                close: 10.70,
+                volume: 1000,
+              ),
+              StockDailyBar(
+                tradingDate: DateTime(2026, 7, 30),
+                open: 10.80,
+                high: 11.00,
+                low: 10.30,
+                close: 10.40,
+                volume: 1200,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('quant-candlestick-chart')), findsNothing);
+
+    await tester.tap(find.text('K线图'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('quant-candlestick-chart')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('renders nothing when bars are empty', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

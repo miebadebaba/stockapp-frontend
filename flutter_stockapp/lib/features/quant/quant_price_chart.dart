@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
+import 'quant_candlestick_chart.dart';
 import 'quant_volume_chart.dart';
 
 class QuantPriceChart extends StatefulWidget {
@@ -18,6 +19,7 @@ class QuantPriceChart extends StatefulWidget {
 
 class _QuantPriceChartState extends State<QuantPriceChart> {
   int _selectedRange = 60;
+  bool _showCandlesticks = false;
   DateTime? _selectedTradingDate;
 
   void _selectBarAt(double dx, double width, List<StockDailyBar> bars) {
@@ -72,6 +74,24 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment<bool>(value: false, label: Text('折线图')),
+              ButtonSegment<bool>(value: true, label: Text('K线图')),
+            ],
+            selected: {_showCandlesticks},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              setState(() {
+                _showCandlesticks = selection.first;
+                _selectedTradingDate = null;
+              });
+            },
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         SizedBox(
@@ -146,17 +166,24 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                     selectAt(details.localPosition),
                 onHorizontalDragUpdate: (details) =>
                     selectAt(details.localPosition),
-                child: CustomPaint(
-                  painter: _QuantPriceChartPainter(
-                    bars: visibleBars,
-                    selectedIndex: selectedBar == null
-                        ? null
-                        : visibleBars.indexOf(selectedBar),
-                    lineColor: const Color(0xFF2F6FED),
-                    gridColor: palette.divider,
-                  ),
-                  child: const SizedBox.expand(),
-                ),
+                child: _showCandlesticks
+                    ? QuantCandlestickChart(
+                        bars: visibleBars,
+                        selectedIndex: selectedBar == null
+                            ? null
+                            : visibleBars.indexOf(selectedBar),
+                      )
+                    : CustomPaint(
+                        painter: _QuantPriceChartPainter(
+                          bars: visibleBars,
+                          selectedIndex: selectedBar == null
+                              ? null
+                              : visibleBars.indexOf(selectedBar),
+                          lineColor: const Color(0xFF2F6FED),
+                          gridColor: palette.divider,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
               );
             },
           ),
