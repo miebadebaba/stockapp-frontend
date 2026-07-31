@@ -2,48 +2,42 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_exception.dart';
 import 'quant_analysis_status.dart';
-import 'stock_daily_bar.dart';
-import 'technical_summary_api.dart';
+import 'quant_stock_analysis.dart';
+import 'quant_stock_analysis_api.dart';
 import 'technical_summary_result.dart';
 
-class TechnicalSummaryController extends ChangeNotifier {
-  TechnicalSummaryController({required this.api});
+class QuantStockAnalysisController extends ChangeNotifier {
+  QuantStockAnalysisController({required this.api});
 
-  final TechnicalSummaryApi api;
+  final QuantStockAnalysisApi api;
 
   QuantAnalysisStatus status = QuantAnalysisStatus.idle;
-  TechnicalSummaryResult? result;
+  QuantStockAnalysis? result;
 
   int _requestId = 0;
   bool _isDisposed = false;
 
-  Future<void> analyze(List<StockDailyBar> bars) async {
+  Future<void> analyze(String symbol) async {
     final requestId = ++_requestId;
     result = null;
-
-    if (bars.isEmpty) {
-      status = QuantAnalysisStatus.empty;
-      notifyListeners();
-      return;
-    }
-
     status = QuantAnalysisStatus.loading;
     notifyListeners();
 
     try {
-      final analysisResult = await api.analyze(bars);
+      final analysis = await api.analyze(symbol);
 
       if (_isDisposed || requestId != _requestId) {
         return;
       }
 
-      if (analysisResult.riskFlags.contains(
+      if (analysis.bars.isEmpty) {
+        status = QuantAnalysisStatus.empty;
+      } else if (analysis.technicalSummary.riskFlags.contains(
         TechnicalRiskFlag.dataInsufficient,
       )) {
-        result = null;
         status = QuantAnalysisStatus.insufficientData;
       } else {
-        result = analysisResult;
+        result = analysis;
         status = QuantAnalysisStatus.success;
       }
     } on ApiException catch (error) {
@@ -51,7 +45,6 @@ class TechnicalSummaryController extends ChangeNotifier {
         return;
       }
 
-      result = null;
       status = error.type == ApiErrorType.notFound
           ? QuantAnalysisStatus.empty
           : QuantAnalysisStatus.failure;
@@ -60,7 +53,6 @@ class TechnicalSummaryController extends ChangeNotifier {
         return;
       }
 
-      result = null;
       status = QuantAnalysisStatus.failure;
     }
 

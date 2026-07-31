@@ -1,1 +1,8 @@
-enum QuantAnalysisStatus { idle, loading, success, empty, failure }
+enum QuantAnalysisStatus {
+  idle,
+  loading,
+  success,
+  empty,
+  insufficientData,
+  failure,
+}
