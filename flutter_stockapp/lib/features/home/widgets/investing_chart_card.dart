@@ -373,6 +373,28 @@ class _InvestingChartCardState extends State<InvestingChartCard>
     return '\$${value.toStringAsFixed(2)}';
   }
 
+  _ChartSelectionData? _activeSelectionData({
+    required List<double> values,
+    required List<ChartCandleData> candles,
+  }) {
+    final index = _selectedChartIndex;
+    if (!widget.enableSelectionDetails || index == null) {
+      return null;
+    }
+
+    if (widget.chartMode == ChartDisplayMode.candles && candles.isNotEmpty) {
+      final clampedIndex = index.clamp(0, candles.length - 1) as int;
+      return _candleSelectionData(candles, clampedIndex);
+    }
+
+    if (values.isEmpty) {
+      return null;
+    }
+
+    final clampedIndex = index.clamp(0, values.length - 1) as int;
+    return _lineSelectionData(values, clampedIndex);
+  }
+
   @override
   void dispose() {
     _markerPulseController.dispose();
@@ -391,8 +413,13 @@ class _InvestingChartCardState extends State<InvestingChartCard>
     final gridColor = isDark
         ? Colors.white.withValues(alpha: 0.30)
         : AppColors.outlineSoft;
+    final currentValues = widget.mockData[_selectedRange] ?? const <double>[];
     final currentCandles =
         widget.candlestickData?[_selectedRange] ?? const <ChartCandleData>[];
+    final activeSelectionData = _activeSelectionData(
+      values: currentValues,
+      candles: currentCandles,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -492,6 +519,10 @@ class _InvestingChartCardState extends State<InvestingChartCard>
                           ),
                         ],
                       ),
+                      if (activeSelectionData != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        _InlineChartSelectionPanel(data: activeSelectionData),
+                      ],
                     ],
                   ),
                 ),
@@ -582,6 +613,68 @@ class _InvestingChartCardState extends State<InvestingChartCard>
               rangeButtonHorizontalPadding: widget.rangeButtonHorizontalPadding,
               minRangeButtonWidth: widget.minRangeButtonWidth,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineChartSelectionPanel extends StatelessWidget {
+  const _InlineChartSelectionPanel({required this.data});
+
+  final _ChartSelectionData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: palette.groupBackground,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            data.headline,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: palette.secondaryText,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 10,
+            children: [
+              for (final metric in data.metrics)
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${metric.label} ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: palette.secondaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(
+                        text: metric.value,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: palette.primaryText,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),

@@ -1,61 +1,34 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import 'home_stock_data.dart';
+import 'market_snapshot_api.dart';
 import '../market/market_stock_detail_page.dart';
+import 'market_snapshot_data.dart';
+import 'market_stock_list_api.dart';
+import 'markets_page.dart';
 import 'stocks_page.dart';
 import 'widgets/market_snapshot_section.dart';
 import 'widgets/stock_list_section.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  static const List<MarketSnapshotItemData> _mockMarkets = [
-    MarketSnapshotItemData(
-      id: 'sp500',
-      assetName: 'S&P 500',
-      valueText: '5,634.2',
-      changePercent: 0.84,
-      sparklineValues: [18, 19, 18.6, 19.5, 20.4, 20.1, 21.2],
-    ),
-    MarketSnapshotItemData(
-      id: 'nasdaq100',
-      assetName: 'Nasdaq 100',
-      valueText: '19,402.8',
-      changePercent: -0.42,
-      sparklineValues: [22, 21.8, 22.4, 22.1, 21.7, 21.4, 21.1],
-    ),
-    MarketSnapshotItemData(
-      id: 'dowjones',
-      assetName: 'Dow Jones',
-      valueText: '41,228.6',
-      changePercent: 0.31,
-      sparklineValues: [15, 15.4, 15.1, 15.9, 16.2, 16.0, 16.5],
-    ),
-    MarketSnapshotItemData(
-      id: 'semis',
-      assetName: 'Semiconductors',
-      valueText: '4,812.3',
-      changePercent: -1.18,
-      sparklineValues: [28, 27.4, 27.8, 27.1, 26.3, 25.8, 25.2],
-    ),
-    MarketSnapshotItemData(
-      id: 'energy',
-      assetName: 'Energy',
-      valueText: '1,084.7',
-      changePercent: 1.06,
-      sparklineValues: [12, 12.3, 12.8, 12.6, 13.1, 13.5, 13.8],
-    ),
-    MarketSnapshotItemData(
-      id: 'healthcare',
-      assetName: 'Healthcare',
-      valueText: '3,226.9',
-      changePercent: -0.26,
-      sparklineValues: [20, 19.9, 20.1, 19.8, 19.6, 19.4, 19.3],
-    ),
-  ];
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late final Future<MarketSnapshotOverviewData> _marketsFuture;
+  late final Future<List<StockListItemData>> _stocksFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _marketsFuture = const MarketSnapshotApi().fetchOverview();
+    _stocksFuture = const MarketStockListApi().fetchStocks();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +51,50 @@ class HomePage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
                       ),
-                      child: MarketSnapshotSection(
-                        titleText: 'Markets',
-                        assets: _mockMarkets,
-                        onTitleTap: () {},
-                        onAssetTap: (_) {},
+                      child: FutureBuilder<MarketSnapshotOverviewData>(
+                        future: _marketsFuture,
+                        builder: (context, snapshot) {
+                          final overview = snapshot.data;
+                          if (overview != null &&
+                              overview.previewItems.isNotEmpty) {
+                            return MarketSnapshotSection(
+                              titleText: 'Markets',
+                              assets: overview.previewItems,
+                              onTitleTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) {
+                                      return MarketsPage(
+                                        initialData: overview,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                              onAssetTap: (_) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) {
+                                      return MarketsPage(
+                                        initialData: overview,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            return const _MarketsStatusCard(
+                              title: 'Markets',
+                              message:
+                                  'Live market indexes are temporarily unavailable.',
+                            );
+                          }
+
+                          return const _MarketsLoadingSection();
+                        },
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -90,26 +102,46 @@ class HomePage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
                       ),
-                      child: StockListSection(
-                        titleText: 'Stocks',
-                        stocks: homeStocks.take(3).toList(),
-                        onTitleTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (context) {
-                                return const StocksPage(stocks: homeStocks);
+                      child: FutureBuilder<List<StockListItemData>>(
+                        future: _stocksFuture,
+                        builder: (context, snapshot) {
+                          final stocks = snapshot.data;
+                          if (stocks != null && stocks.isNotEmpty) {
+                            return StockListSection(
+                              titleText: 'Stocks',
+                              stocks: stocks.take(3).toList(),
+                              onTitleTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) {
+                                      return StocksPage(stocks: stocks);
+                                    },
+                                  ),
+                                );
                               },
-                            ),
-                          );
-                        },
-                        onStockTap: (stockId) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (context) {
-                                return MarketStockDetailPage(stockId: stockId);
+                              onStockTap: (stockId) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) {
+                                      return MarketStockDetailPage(
+                                        stockId: stockId,
+                                      );
+                                    },
+                                  ),
+                                );
                               },
-                            ),
-                          );
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            return const _StocksStatusCard(
+                              title: 'Stocks',
+                              message:
+                                  'Live stock list is temporarily unavailable.',
+                            );
+                          }
+
+                          return const _StocksLoadingSection();
                         },
                       ),
                     ),
@@ -122,4 +154,122 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MarketsLoadingSection extends StatelessWidget {
+  const _MarketsLoadingSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return _MarketsStatusCard(
+      title: 'Markets',
+      message: 'Loading live market indexes...',
+      trailing: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.2,
+          valueColor: AlwaysStoppedAnimation<Color>(palette.primaryText),
+        ),
+      ),
+    );
+  }
+}
+
+class _StocksLoadingSection extends StatelessWidget {
+  const _StocksLoadingSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return _StocksStatusCard(
+      title: 'Stocks',
+      message: 'Loading live stocks...',
+      trailing: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.2,
+          valueColor: AlwaysStoppedAnimation<Color>(palette.primaryText),
+        ),
+      ),
+    );
+  }
+}
+
+class _MarketsStatusCard extends StatelessWidget {
+  const _MarketsStatusCard({
+    required this.title,
+    required this.message,
+    this.trailing,
+  });
+
+  final String title;
+  final String message;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          child: Text(
+            title,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontSize: 30,
+              height: 1.12,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.lg,
+          ),
+          decoration: BoxDecoration(
+            color: palette.groupBackground,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: palette.secondaryText,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: AppSpacing.md),
+                trailing!,
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StocksStatusCard extends _MarketsStatusCard {
+  const _StocksStatusCard({
+    required super.title,
+    required super.message,
+    super.trailing,
+  });
 }

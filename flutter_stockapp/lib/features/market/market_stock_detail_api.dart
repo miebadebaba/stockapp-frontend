@@ -1,4 +1,4 @@
-﻿import '../../core/network/api_config.dart';
+import '../../core/network/api_config.dart';
 import 'market_stock_detail_data.dart';
 import 'market_stock_detail_transport.dart';
 

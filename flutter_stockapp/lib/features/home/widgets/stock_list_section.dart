@@ -25,10 +25,14 @@ class StockListItemData {
   final List<double> sparklineValues;
 
   factory StockListItemData.fromBackendJson(Map<String, dynamic> json) {
+    final ticker = (json['ticker'] as String?)?.trim() ?? '';
+    final companyName = (json['company_name'] as String?)?.trim() ?? '';
+    final isAShare = _isAShareTicker(ticker);
+
     return StockListItemData(
       id: (json['id'] as String?)?.trim() ?? '',
-      title: (json['ticker'] as String?)?.trim() ?? '',
-      subtitle: (json['company_name'] as String?)?.trim() ?? '',
+      title: isAShare ? (companyName.isNotEmpty ? companyName : ticker) : ticker,
+      subtitle: isAShare ? ticker : companyName,
       priceText: (json['price_text'] as String?)?.trim() ?? '--',
       changePercent: _asDouble(json['change_percent']) ?? 0,
       referenceValue: _asDouble(json['reference_value']) ?? 0,
@@ -382,4 +386,17 @@ List<double> _asDoubleList(Object? raw) {
   }
 
   return raw.map(_asDouble).whereType<double>().toList();
+}
+
+bool _isAShareTicker(String ticker) {
+  final normalized = ticker.trim().toUpperCase();
+  final parts = normalized.split('.');
+  if (parts.length != 2) {
+    return false;
+  }
+
+  final code = parts[0];
+  final market = parts[1];
+  return RegExp(r'^\d{6}$').hasMatch(code) &&
+      (market == 'SH' || market == 'SZ' || market == 'BJ');
 }
