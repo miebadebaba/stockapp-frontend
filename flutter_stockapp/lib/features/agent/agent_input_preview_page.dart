@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme_palette.dart';
@@ -317,8 +318,9 @@ class _ChatHeader extends StatelessWidget {
                 ),
                 Text(
                   '临时会话',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: palette.secondaryText),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
                 ),
               ],
             ),
@@ -502,10 +504,90 @@ class _MessageBubble extends StatelessWidget {
                 : palette.secondaryText.withValues(alpha: 0.14),
           ),
         ),
-        child: Text(
-          entry.message.content,
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(color: palette.primaryText, height: 1.45),
+        child: isUser
+            ? Text(
+                entry.message.content,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: palette.primaryText,
+                  height: 1.45,
+                ),
+              )
+            : _AssistantMarkdown(content: entry.message.content),
+      ),
+    );
+  }
+}
+
+class _AssistantMarkdown extends StatelessWidget {
+  const _AssistantMarkdown({required this.content});
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+    final textStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: palette.primaryText,
+      height: 1.45,
+    );
+    final codeColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF1F2937)
+        : const Color(0xFFEFF4FB);
+
+    return MarkdownBody(
+      key: const ValueKey('agent-assistant-markdown'),
+      data: content,
+      selectable: true,
+      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+        p: textStyle,
+        strong: textStyle?.copyWith(fontWeight: FontWeight.w800),
+        h1: theme.textTheme.titleLarge?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.25,
+        ),
+        h2: theme.textTheme.titleMedium?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.28,
+        ),
+        h3: theme.textTheme.titleSmall?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.3,
+        ),
+        listBullet: textStyle,
+        blockSpacing: 8,
+        horizontalRuleDecoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: palette.secondaryText.withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+        code: theme.textTheme.bodyMedium?.copyWith(
+          color: palette.primaryText,
+          fontFamily: 'monospace',
+          backgroundColor: codeColor,
+        ),
+        codeblockPadding: const EdgeInsets.all(10),
+        codeblockDecoration: BoxDecoration(
+          color: codeColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: palette.secondaryText.withValues(alpha: 0.14),
+          ),
+        ),
+        tableColumnWidth: const IntrinsicColumnWidth(),
+        tableCellsPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        ),
+        tableHead: textStyle?.copyWith(fontWeight: FontWeight.w800),
+        tableBody: textStyle,
+        tableBorder: TableBorder.all(
+          color: palette.secondaryText.withValues(alpha: 0.22),
         ),
       ),
     );
@@ -533,8 +615,9 @@ class _LoadingReply extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               '正在思考…',
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: palette.secondaryText),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
             ),
           ],
         ),
