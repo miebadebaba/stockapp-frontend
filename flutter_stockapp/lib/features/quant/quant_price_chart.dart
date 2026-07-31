@@ -9,7 +9,9 @@ import 'quant_moving_average_overlay.dart';
 import 'stock_daily_bar.dart';
 import 'quant_candlestick_chart.dart';
 import 'quant_ohlc_details.dart';
+import 'quant_rsi_chart.dart';
 import 'quant_volume_chart.dart';
+import 'rsi_series.dart';
 
 class QuantPriceChart extends StatefulWidget {
   const QuantPriceChart({required this.bars, super.key});
@@ -73,6 +75,10 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         ).sublist(visibleStartIndex),
     };
 
+    final rsiSeries = calculateRsiSeries(
+      bars: orderedBars,
+      period: 14,
+    ).sublist(visibleStartIndex);
     final highest = visibleBars.map((bar) => bar.high).reduce(math.max);
     final lowest = visibleBars.map((bar) => bar.low).reduce(math.min);
     final latest = visibleBars.last.close;
@@ -286,6 +292,12 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         const SizedBox(height: AppSpacing.xxl),
         QuantVolumeChart(
           bars: visibleBars,
+          selectedTradingDate: _selectedTradingDate,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantRsiChart(
+          bars: visibleBars,
+          values: rsiSeries,
           selectedTradingDate: _selectedTradingDate,
         ),
       ],
