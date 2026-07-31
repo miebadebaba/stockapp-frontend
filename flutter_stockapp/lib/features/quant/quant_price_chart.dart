@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
 import 'quant_candlestick_chart.dart';
+import 'quant_ohlc_details.dart';
 import 'quant_volume_chart.dart';
 
 class QuantPriceChart extends StatefulWidget {
@@ -57,6 +58,14 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         : visibleBars
               .where((bar) => bar.tradingDate == _selectedTradingDate)
               .firstOrNull;
+    final selectedBarIndex = selectedBar == null
+        ? -1
+        : orderedBars.indexWhere(
+            (bar) => bar.tradingDate == selectedBar.tradingDate,
+          );
+    final previousClose = selectedBarIndex > 0
+        ? orderedBars[selectedBarIndex - 1].close
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,11 +145,8 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           ],
         ),
         if (selectedBar != null) ...[
-          Text(
-            '${_formatDate(selectedBar.tradingDate)}  '
-            '收盘价 ${selectedBar.close.toStringAsFixed(2)}  '
-            '成交量 ${selectedBar.volume.toStringAsFixed(0)}',
-          ),
+          const SizedBox(height: AppSpacing.md),
+          QuantOhlcDetails(bar: selectedBar, previousClose: previousClose),
           const SizedBox(height: AppSpacing.md),
         ],
         const SizedBox(height: AppSpacing.lg),
