@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stockapp/core/theme/app_theme.dart';
+import 'package:flutter_stockapp/features/quant/quant_moving_average_overlay.dart';
 import 'package:flutter_stockapp/features/quant/quant_price_chart.dart';
 import 'package:flutter_stockapp/features/quant/stock_daily_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('displays price range and dates from daily bars', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -60,7 +61,7 @@ void main() {
   });
 
   testWidgets('switches chart to the latest 20 daily bars', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final bars = List.generate(60, (index) {
       final value = index.toDouble();
@@ -106,7 +107,7 @@ void main() {
   testWidgets('shows daily details after tapping the price chart', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -164,7 +165,7 @@ void main() {
   });
 
   testWidgets('switches from line chart to candlestick chart', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -206,6 +207,49 @@ void main() {
       find.byKey(const ValueKey('quant-candlestick-chart')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('toggles moving average series independently', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final bars = List.generate(20, (index) {
+      final value = 10.0 + index;
+
+      return StockDailyBar(
+        tradingDate: DateTime(2026, 7, 1).add(Duration(days: index)),
+        open: value,
+        high: value + 1,
+        low: value - 1,
+        close: value,
+        volume: 1000,
+      );
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(body: QuantPriceChart(bars: bars)),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    var overlay = tester.widget<QuantMovingAverageOverlay>(
+      find.byType(QuantMovingAverageOverlay),
+    );
+
+    expect(overlay.series.keys, containsAll([5, 10, 20]));
+
+    await tester.tap(find.byKey(const ValueKey('quant-ma-5-checkbox')));
+    await tester.pump();
+
+    overlay = tester.widget<QuantMovingAverageOverlay>(
+      find.byType(QuantMovingAverageOverlay),
+    );
+
+    expect(overlay.series.containsKey(5), isFalse);
+    expect(overlay.series.keys, containsAll([10, 20]));
   });
 
   testWidgets('renders nothing when bars are empty', (tester) async {
