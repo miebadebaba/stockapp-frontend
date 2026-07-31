@@ -147,14 +147,20 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    const details = '2026-07-28  收盘价 10.60  成交量 1000';
-    expect(find.text(details), findsNothing);
+    expect(find.byKey(const ValueKey('quant-ohlc-details')), findsNothing);
 
     final chart = find.byKey(const ValueKey('quant-price-chart-gesture'));
-    await tester.tapAt(tester.getTopLeft(chart) + const Offset(1, 100));
+    await tester.tapAt(tester.getCenter(chart));
     await tester.pump();
 
-    expect(find.text(details), findsOneWidget);
+    expect(find.byKey(const ValueKey('quant-ohlc-details')), findsOneWidget);
+    expect(find.text('2026-07-29'), findsOneWidget);
+    expect(find.text('开盘价'), findsOneWidget);
+    expect(find.text('最高价'), findsOneWidget);
+    expect(find.text('最低价'), findsOneWidget);
+    expect(find.text('收盘价'), findsOneWidget);
+    expect(find.text('成交量'), findsOneWidget);
+    expect(find.text('+0.40  +3.77%'), findsOneWidget);
   });
 
   testWidgets('switches from line chart to candlestick chart', (tester) async {
