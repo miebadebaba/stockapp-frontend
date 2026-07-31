@@ -18,6 +18,7 @@ import 'quant_stock_analysis.dart';
 import 'quant_stock_analysis_api.dart';
 import 'quant_stock_analysis_controller.dart';
 import 'quant_price_chart.dart';
+import 'quant_risk_metrics_section.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({this.getJson, super.key});
@@ -357,6 +358,8 @@ class _SelectedStockState extends StatelessWidget {
         QuantPriceChart(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
         TechnicalSummarySection(result: analysis.technicalSummary),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantRiskMetricsSection(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
         Text(
           '移动平均线',
