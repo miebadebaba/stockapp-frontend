@@ -107,7 +107,7 @@ void main() {
   testWidgets('shows daily details after tapping the price chart', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1500));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
