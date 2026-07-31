@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'moving_average_series.dart';
+import 'quant_moving_average_overlay.dart';
 import 'stock_daily_bar.dart';
 import 'quant_candlestick_chart.dart';
 import 'quant_ohlc_details.dart';
@@ -21,6 +23,9 @@ class QuantPriceChart extends StatefulWidget {
 class _QuantPriceChartState extends State<QuantPriceChart> {
   int _selectedRange = 60;
   bool _showCandlesticks = false;
+  bool _showMa5 = true;
+  bool _showMa10 = true;
+  bool _showMa20 = true;
   DateTime? _selectedTradingDate;
 
   void _selectBarAt(double dx, double width, List<StockDailyBar> bars) {
@@ -49,6 +54,24 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
     final visibleBars = orderedBars.length <= _selectedRange
         ? orderedBars
         : orderedBars.sublist(orderedBars.length - _selectedRange);
+    final visibleStartIndex = orderedBars.length - visibleBars.length;
+    final movingAverageSeries = <int, List<double?>>{
+      if (_showMa5)
+        5: calculateMovingAverageSeries(
+          bars: orderedBars,
+          period: 5,
+        ).sublist(visibleStartIndex),
+      if (_showMa10)
+        10: calculateMovingAverageSeries(
+          bars: orderedBars,
+          period: 10,
+        ).sublist(visibleStartIndex),
+      if (_showMa20)
+        20: calculateMovingAverageSeries(
+          bars: orderedBars,
+          period: 20,
+        ).sublist(visibleStartIndex),
+    };
 
     final highest = visibleBars.map((bar) => bar.high).reduce(math.max);
     final lowest = visibleBars.map((bar) => bar.low).reduce(math.min);
@@ -121,6 +144,43 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             },
           ),
         ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xs,
+          children: [
+            _MovingAverageToggle(
+              period: 5,
+              color: const Color(0xFFF2A93B),
+              value: _showMa5,
+              onChanged: (value) {
+                setState(() {
+                  _showMa5 = value;
+                });
+              },
+            ),
+            _MovingAverageToggle(
+              period: 10,
+              color: const Color(0xFF8B5CF6),
+              value: _showMa10,
+              onChanged: (value) {
+                setState(() {
+                  _showMa10 = value;
+                });
+              },
+            ),
+            _MovingAverageToggle(
+              period: 20,
+              color: const Color(0xFF00A6A6),
+              value: _showMa20,
+              onChanged: (value) {
+                setState(() {
+                  _showMa20 = value;
+                });
+              },
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
@@ -172,14 +232,18 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                     selectAt(details.localPosition),
                 onHorizontalDragUpdate: (details) =>
                     selectAt(details.localPosition),
-                child: _showCandlesticks
-                    ? QuantCandlestickChart(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_showCandlesticks)
+                      QuantCandlestickChart(
                         bars: visibleBars,
                         selectedIndex: selectedBar == null
                             ? null
                             : visibleBars.indexOf(selectedBar),
                       )
-                    : CustomPaint(
+                    else
+                      CustomPaint(
                         painter: _QuantPriceChartPainter(
                           bars: visibleBars,
                           selectedIndex: selectedBar == null
@@ -190,6 +254,13 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                         ),
                         child: const SizedBox.expand(),
                       ),
+                    QuantMovingAverageOverlay(
+                      bars: visibleBars,
+                      series: movingAverageSeries,
+                      candlestickMode: _showCandlesticks,
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -218,6 +289,85 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           selectedTradingDate: _selectedTradingDate,
         ),
       ],
+    );
+  }
+}
+
+class _MovingAverageToggle extends StatelessWidget {
+  const _MovingAverageToggle({
+    required this.period,
+    required this.color,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final int period;
+  final Color color;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: ValueKey('quant-ma-$period-toggle'),
+      width: 112,
+      height: 48,
+      child: Semantics(
+        label: 'MA$period moving average',
+        checked: value,
+        child: GestureDetector(
+          key: ValueKey('quant-ma-$period-checkbox'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(!value),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: value ? color : Colors.transparent,
+                    border: Border.all(color: color, width: 2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: value
+                      ? Center(
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              Positioned(
+                left: 44,
+                right: 8,
+                top: 0,
+                bottom: 0,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'MA$period',
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
