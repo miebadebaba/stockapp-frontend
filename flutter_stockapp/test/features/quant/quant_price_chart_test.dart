@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('displays price range and dates from daily bars', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -61,7 +61,7 @@ void main() {
   });
 
   testWidgets('switches chart to the latest 20 daily bars', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final bars = List.generate(60, (index) {
       final value = index.toDouble();
@@ -107,7 +107,7 @@ void main() {
   testWidgets('shows daily details after tapping the price chart', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1500));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -165,7 +165,7 @@ void main() {
   });
 
   testWidgets('switches from line chart to candlestick chart', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -210,7 +210,7 @@ void main() {
   });
 
   testWidgets('toggles moving average series independently', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final bars = List.generate(20, (index) {

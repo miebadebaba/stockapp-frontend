@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'macd_series.dart';
 import 'moving_average_series.dart';
+import 'quant_macd_chart.dart';
 import 'quant_moving_average_overlay.dart';
 import 'stock_daily_bar.dart';
 import 'quant_candlestick_chart.dart';
@@ -78,6 +80,9 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
     final rsiSeries = calculateRsiSeries(
       bars: orderedBars,
       period: 14,
+    ).sublist(visibleStartIndex);
+    final macdSeries = calculateMacdSeries(
+      bars: orderedBars,
     ).sublist(visibleStartIndex);
     final highest = visibleBars.map((bar) => bar.high).reduce(math.max);
     final lowest = visibleBars.map((bar) => bar.low).reduce(math.min);
@@ -298,6 +303,12 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         QuantRsiChart(
           bars: visibleBars,
           values: rsiSeries,
+          selectedTradingDate: _selectedTradingDate,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantMacdChart(
+          bars: visibleBars,
+          values: macdSeries,
           selectedTradingDate: _selectedTradingDate,
         ),
       ],
