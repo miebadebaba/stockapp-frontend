@@ -1,10 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'models/ai_chat_message.dart';
+import 'services/ai_chat_service.dart';
 import 'widgets/agent_input_card.dart';
 
 class AgentInputPreviewPage extends StatefulWidget {
@@ -12,26 +15,67 @@ class AgentInputPreviewPage extends StatefulWidget {
     this.embedInScaffold = true,
     this.animateHeadline = false,
     this.onHeadlineAnimationCompleted,
+    this.aiChatService,
     super.key,
   });
 
   final bool embedInScaffold;
   final bool animateHeadline;
   final VoidCallback? onHeadlineAnimationCompleted;
+  final AiChatService? aiChatService;
 
   @override
   State<AgentInputPreviewPage> createState() => _AgentInputPreviewPageState();
 }
 
-class _AgentInputPreviewPageState extends State<AgentInputPreviewPage> {
-  String _lastAction = 'Preview ready';
+class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
+    with WidgetsBindingObserver {
+  late final AiChatService _aiChatService;
+  late final bool _ownsAiChatService;
+  final ScrollController _scrollController = ScrollController();
+  final List<_ChatEntry> _messages = [];
+  var _isSending = false;
+  var _clearInputRevision = 0;
+  String? _errorMessage;
+  _ChatEntry? _failedEntry;
 
-  void _setLastAction(String value) {
-    setState(() => _lastAction = value);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _ownsAiChatService = widget.aiChatService == null;
+    _aiChatService = widget.aiChatService ?? HttpAiChatService();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
+    if (_ownsAiChatService) {
+      _aiChatService.close();
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    _scrollToLatest();
+  }
+
+  void _scrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        return;
+      }
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   void _showInteraction(String label) {
-    _setLastAction(label);
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) {
       return;
@@ -48,101 +92,185 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage> {
       );
   }
 
+  Future<bool> _sendMessage(String text) async {
+    final message = text.trim();
+    if (message.isEmpty || _isSending) {
+      return false;
+    }
+
+    final history = _recentHistory();
+    final entry = _ChatEntry(
+      message: AiChatMessage(role: AiChatRole.user, content: message),
+    );
+    setState(() {
+      _messages.add(entry);
+      _isSending = true;
+      _errorMessage = null;
+      _failedEntry = null;
+    });
+    _scrollToLatest();
+
+    return _requestReply(message: message, history: history, entry: entry);
+  }
+
+  Future<bool> _requestReply({
+    required String message,
+    required List<AiChatMessage> history,
+    required _ChatEntry entry,
+  }) async {
+    try {
+      final reply = await _aiChatService.sendMessage(
+        message: message,
+        history: history,
+      );
+      if (!mounted) {
+        return false;
+      }
+      setState(() {
+        entry.failed = false;
+        _messages.add(
+          _ChatEntry(
+            message: AiChatMessage(role: AiChatRole.assistant, content: reply),
+          ),
+        );
+        _isSending = false;
+        _errorMessage = null;
+        if (identical(_failedEntry, entry)) {
+          _failedEntry = null;
+        }
+      });
+      _scrollToLatest();
+      return true;
+    } on AiChatRequestException catch (error) {
+      if (!mounted) {
+        return false;
+      }
+      setState(() {
+        entry.failed = true;
+        _failedEntry = entry;
+        _isSending = false;
+        _errorMessage = error.message;
+      });
+      _scrollToLatest();
+      return false;
+    } catch (_) {
+      if (!mounted) {
+        return false;
+      }
+      setState(() {
+        entry.failed = true;
+        _failedEntry = entry;
+        _isSending = false;
+        _errorMessage = '发送失败，请稍后重试。';
+      });
+      _scrollToLatest();
+      return false;
+    }
+  }
+
+  Future<void> _retry() async {
+    final entry = _failedEntry;
+    if (entry == null || _isSending) {
+      return;
+    }
+
+    setState(() {
+      entry.failed = false;
+      _isSending = true;
+      _errorMessage = null;
+    });
+    _scrollToLatest();
+    final sent = await _requestReply(
+      message: entry.message.content,
+      history: _recentHistory(excluding: entry),
+      entry: entry,
+    );
+    if (sent && mounted) {
+      setState(() => _clearInputRevision += 1);
+    }
+  }
+
+  List<AiChatMessage> _recentHistory({_ChatEntry? excluding}) {
+    final history = _messages
+        .where((entry) => !entry.failed && !identical(entry, excluding))
+        .map((entry) => entry.message)
+        .toList();
+    if (history.length <= HttpAiChatService.maxHistoryMessages) {
+      return history;
+    }
+    return history.sublist(
+      history.length - HttpAiChatService.maxHistoryMessages,
+    );
+  }
+
+  void _startNewChat() {
+    if (_isSending) {
+      return;
+    }
+    setState(() {
+      _messages.clear();
+      _failedEntry = null;
+      _errorMessage = null;
+      _clearInputRevision += 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final content = AnimatedPageWrapper(
       child: Stack(
         fit: StackFit.expand,
         children: [
           const _PreviewBackdrop(),
           SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final topPadding = widget.embedInScaffold ? 36.0 : 108.0;
-                final bottomPadding = widget.embedInScaffold ? 36.0 : 132.0;
-
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    topPadding,
-                    20,
-                    bottomPadding,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                widget.embedInScaffold ? 88 : 16,
+                20,
+                widget.embedInScaffold && !keyboardVisible ? 108 : 12,
+              ),
+              child: Column(
+                children: [
+                  _ChatHeader(
+                    canClear: _messages.isNotEmpty && !_isSending,
+                    onClear: _startNewChat,
                   ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight:
-                          constraints.maxHeight - topPadding - bottomPadding,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        AgentInputCard(
-                          animateHeadline: widget.animateHeadline,
-                          statusText: 'Pro plan active',
-                          statusActionLabel: 'Upgrade',
-                          headlineText: 'Welcome back. What would you like to build next?',
-                          placeholderText: 'How can I help you today?',
-                          modelLabel: 'GPT-5 Pro / Balanced',
-                          onSend: (text) =>
-                              _showInteraction('Send pressed: "$text"'),
-                          onAttachTap: () =>
-                              _showInteraction('Attach action tapped'),
-                          onModelTap: () =>
-                              _showInteraction('Model selector tapped'),
-                          onMicTap: () =>
-                              _showInteraction('Microphone action tapped'),
-                          onVoiceTap: () =>
-                              _showInteraction('Voice mode tapped'),
-                          onStatusTap: () =>
-                              _showInteraction('Upgrade action tapped'),
-                          onHeadlineAnimationCompleted:
-                              widget.onHeadlineAnimationCompleted,
-                        ),
-                        const SizedBox(height: 20),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? palette.groupBackground.withValues(
-                                        alpha: 0.74,
-                                      )
-                                    : Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.14)
-                                      : Colors.white.withValues(alpha: 0.10),
-                                ),
-                              ),
-                              child: Text(
-                                _lastAction,
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: isDark
-                                          ? palette.secondaryText
-                                          : const Color(0xB7333740),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
-                            ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: _messages.isEmpty
+                        ? _EmptyConversation(
+                            animateHeadline: widget.animateHeadline,
+                            enabled: !_isSending,
+                            onSelected: _sendMessage,
+                            onHeadlineAnimationCompleted:
+                                widget.onHeadlineAnimationCompleted,
+                          )
+                        : _Conversation(
+                            controller: _scrollController,
+                            messages: _messages,
+                            isSending: _isSending,
+                            errorMessage: _errorMessage,
+                            onRetry: _retry,
                           ),
-                        ),
-                      ],
-                    ),
                   ),
-                );
-              },
+                  const SizedBox(height: 12),
+                  AgentInputCard(
+                    showIntro: false,
+                    animateHeadline: false,
+                    headlineText: '',
+                    placeholderText: '输入消息',
+                    modelLabel: 'AI Chat',
+                    onSend: _sendMessage,
+                    isSending: _isSending,
+                    clearInputRevision: _clearInputRevision,
+                    onAttachTap: () => _showInteraction('附件功能待接入'),
+                    onModelTap: () => _showInteraction('当前使用后端配置的 AI 模型'),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -154,6 +282,385 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage> {
     }
 
     return Scaffold(backgroundColor: palette.pageBackground, body: content);
+  }
+}
+
+class _ChatEntry {
+  _ChatEntry({required this.message});
+
+  final AiChatMessage message;
+  bool failed = false;
+}
+
+class _ChatHeader extends StatelessWidget {
+  const _ChatHeader({required this.canClear, required this.onClear});
+
+  final bool canClear;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI 助手',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '临时会话',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            key: const ValueKey('agent-clear'),
+            onPressed: canClear ? onClear : null,
+            icon: const Icon(Icons.delete_outline_rounded, size: 19),
+            label: const Text('清空对话'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyConversation extends StatelessWidget {
+  const _EmptyConversation({
+    required this.animateHeadline,
+    required this.enabled,
+    required this.onSelected,
+    required this.onHeadlineAnimationCompleted,
+  });
+
+  final bool animateHeadline;
+  final bool enabled;
+  final Future<bool> Function(String text) onSelected;
+  final VoidCallback? onHeadlineAnimationCompleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 36),
+            AgentInputCard(
+              showComposer: false,
+              animateHeadline: animateHeadline,
+              headlineText: 'Welcome back. What would you like to build next?',
+              placeholderText: '',
+              modelLabel: '',
+              onHeadlineAnimationCompleted: onHeadlineAnimationCompleted,
+            ),
+            const SizedBox(height: 24),
+            _SuggestedQuestions(enabled: enabled, onSelected: onSelected),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestedQuestions extends StatelessWidget {
+  const _SuggestedQuestions({required this.enabled, required this.onSelected});
+
+  static const questions = ['用三句话解释什么是市盈率', '如何建立长期投资计划', '帮我梳理今天的学习重点'];
+
+  final bool enabled;
+  final Future<bool> Function(String text) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          for (final question in questions)
+            OutlinedButton(
+              onPressed: enabled ? () => onSelected(question) : null,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: palette.primaryText,
+                side: BorderSide(
+                  color: palette.secondaryText.withValues(alpha: 0.28),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+              ),
+              child: Text(question),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Conversation extends StatelessWidget {
+  const _Conversation({
+    required this.controller,
+    required this.messages,
+    required this.isSending,
+    required this.errorMessage,
+    required this.onRetry,
+  });
+
+  final ScrollController controller;
+  final List<_ChatEntry> messages;
+  final bool isSending;
+  final String? errorMessage;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const ValueKey('agent-conversation'),
+      controller: controller,
+      physics: const BouncingScrollPhysics(),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        for (var index = 0; index < messages.length; index++) ...[
+          _CenteredConversationItem(
+            child: _MessageBubble(entry: messages[index], index: index),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (isSending) const _CenteredConversationItem(child: _LoadingReply()),
+        if (errorMessage != null)
+          _CenteredConversationItem(
+            child: _ChatError(message: errorMessage!, onRetry: onRetry),
+          ),
+      ],
+    );
+  }
+}
+
+class _CenteredConversationItem extends StatelessWidget {
+  const _CenteredConversationItem({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: SizedBox(width: double.infinity, child: child),
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({required this.entry, required this.index});
+
+  final _ChatEntry entry;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isUser = entry.message.role == AiChatRole.user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        key: ValueKey('agent-message-$index-${entry.message.role.value}'),
+        constraints: const BoxConstraints(maxWidth: 620),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isUser
+              ? (isDark ? const Color(0xFF245C91) : const Color(0xFFE2ECFA))
+              : palette.groupBackground.withValues(alpha: isDark ? 0.9 : 0.74),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: entry.failed
+                ? Theme.of(context).colorScheme.error.withValues(alpha: 0.55)
+                : palette.secondaryText.withValues(alpha: 0.14),
+          ),
+        ),
+        child: isUser
+            ? Text(
+                entry.message.content,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: palette.primaryText,
+                  height: 1.45,
+                ),
+              )
+            : _AssistantMarkdown(content: entry.message.content),
+      ),
+    );
+  }
+}
+
+class _AssistantMarkdown extends StatelessWidget {
+  const _AssistantMarkdown({required this.content});
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+    final textStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: palette.primaryText,
+      height: 1.45,
+    );
+    final codeColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF1F2937)
+        : const Color(0xFFEFF4FB);
+
+    return MarkdownBody(
+      key: const ValueKey('agent-assistant-markdown'),
+      data: content,
+      selectable: true,
+      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+        p: textStyle,
+        strong: textStyle?.copyWith(fontWeight: FontWeight.w800),
+        h1: theme.textTheme.titleLarge?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.25,
+        ),
+        h2: theme.textTheme.titleMedium?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.28,
+        ),
+        h3: theme.textTheme.titleSmall?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w800,
+          height: 1.3,
+        ),
+        listBullet: textStyle,
+        blockSpacing: 8,
+        horizontalRuleDecoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: palette.secondaryText.withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+        code: theme.textTheme.bodyMedium?.copyWith(
+          color: palette.primaryText,
+          fontFamily: 'monospace',
+          backgroundColor: codeColor,
+        ),
+        codeblockPadding: const EdgeInsets.all(10),
+        codeblockDecoration: BoxDecoration(
+          color: codeColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: palette.secondaryText.withValues(alpha: 0.14),
+          ),
+        ),
+        tableColumnWidth: const IntrinsicColumnWidth(),
+        tableCellsPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        ),
+        tableHead: textStyle?.copyWith(fontWeight: FontWeight.w800),
+        tableBody: textStyle,
+        tableBorder: TableBorder.all(
+          color: palette.secondaryText.withValues(alpha: 0.22),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingReply extends StatelessWidget {
+  const _LoadingReply();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        key: const ValueKey('agent-loading'),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '正在思考…',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatError extends StatelessWidget {
+  const _ChatError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('agent-error'),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: colors.errorContainer.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, color: colors.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: colors.onErrorContainer),
+            ),
+          ),
+          TextButton.icon(
+            key: const ValueKey('agent-retry'),
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('重试'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
