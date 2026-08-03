@@ -16,6 +16,7 @@ class AgentInputPreviewPage extends StatefulWidget {
     this.animateHeadline = false,
     this.onHeadlineAnimationCompleted,
     this.aiChatService,
+    this.initialMessage = '',
     super.key,
   });
 
@@ -23,6 +24,7 @@ class AgentInputPreviewPage extends StatefulWidget {
   final bool animateHeadline;
   final VoidCallback? onHeadlineAnimationCompleted;
   final AiChatService? aiChatService;
+  final String initialMessage;
 
   @override
   State<AgentInputPreviewPage> createState() => _AgentInputPreviewPageState();
@@ -230,12 +232,7 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
           const _PreviewBackdrop(),
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                topPadding,
-                20,
-                bottomPadding,
-              ),
+              padding: EdgeInsets.fromLTRB(20, topPadding, 20, bottomPadding),
               child: Column(
                 children: [
                   _ChatHeader(
@@ -250,8 +247,12 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
                             onSend: _sendMessage,
                             isSending: _isSending,
                             clearInputRevision: _clearInputRevision,
-                            onAttachTap: () => _showInteraction('Attachment coming soon'),
-                            onModelTap: () => _showInteraction('Using configured backend AI model'),
+                            initialMessage: widget.initialMessage,
+                            onAttachTap: () =>
+                                _showInteraction('Attachment coming soon'),
+                            onModelTap: () => _showInteraction(
+                              'Using configured backend AI model',
+                            ),
                             onHeadlineAnimationCompleted:
                                 widget.onHeadlineAnimationCompleted,
                           )
@@ -274,8 +275,10 @@ class _AgentInputPreviewPageState extends State<AgentInputPreviewPage>
                       onSend: _sendMessage,
                       isSending: _isSending,
                       clearInputRevision: _clearInputRevision,
-                      onAttachTap: () => _showInteraction('Attachment coming soon'),
-                      onModelTap: () => _showInteraction('Using configured backend AI model'),
+                      onAttachTap: () =>
+                          _showInteraction('Attachment coming soon'),
+                      onModelTap: () =>
+                          _showInteraction('Using configured backend AI model'),
                     ),
                   ],
                 ],
@@ -352,6 +355,7 @@ class _EmptyConversation extends StatelessWidget {
     required this.onSend,
     required this.isSending,
     required this.clearInputRevision,
+    required this.initialMessage,
     required this.onAttachTap,
     required this.onModelTap,
     required this.onHeadlineAnimationCompleted,
@@ -361,6 +365,7 @@ class _EmptyConversation extends StatelessWidget {
   final Future<bool> Function(String text) onSend;
   final bool isSending;
   final int clearInputRevision;
+  final String initialMessage;
   final VoidCallback onAttachTap;
   final VoidCallback onModelTap;
   final VoidCallback? onHeadlineAnimationCompleted;
@@ -387,13 +392,13 @@ class _EmptyConversation extends StatelessWidget {
                         'Welcome back. What would you like to build next?',
                     placeholderText: 'Input message',
                     modelLabel: 'AI Chat',
+                    initialText: initialMessage,
                     onSend: onSend,
                     isSending: isSending,
                     clearInputRevision: clearInputRevision,
                     onAttachTap: onAttachTap,
                     onModelTap: onModelTap,
-                    onHeadlineAnimationCompleted:
-                        onHeadlineAnimationCompleted,
+                    onHeadlineAnimationCompleted: onHeadlineAnimationCompleted,
                   ),
                 ],
               ),
