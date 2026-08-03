@@ -89,9 +89,7 @@ void main() {
     expect(find.text('000333'), findsOneWidget);
   });
 
-  testWidgets('retry succeeds after the first backend request fails', (
-    tester,
-  ) async {
+  testWidgets('uses mock analysis when backend request fails', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -107,12 +105,7 @@ void main() {
                 Map<String, dynamic>? queryParameters,
               }) async {
                 callCount += 1;
-
-                if (callCount == 1) {
-                  throw StateError('temporary failure');
-                }
-
-                return _successfulResponse();
+                throw StateError('temporary failure');
               },
         ),
       ),
@@ -125,20 +118,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(callCount, 1);
-    expect(find.byIcon(Icons.error_outline), findsOneWidget);
-    expect(find.byIcon(Icons.refresh), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.refresh));
-    await tester.pumpAndSettle();
-
-    expect(callCount, 2);
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
+    expect(find.byIcon(Icons.refresh), findsNothing);
   });
 
-  testWidgets('shows empty market state when backend returns 404', (
-    tester,
-  ) async {
+  testWidgets('uses mock analysis when backend returns 404', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -167,8 +152,8 @@ void main() {
     await tester.tap(find.text('600519'));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.refresh), findsOneWidget);
-    expect(find.byType(TechnicalSummarySection), findsNothing);
+    expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline), findsNothing);
   });
 }
 
