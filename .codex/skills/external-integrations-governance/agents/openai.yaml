@@ -1,0 +1,4 @@
+interface:
+  display_name: "External Integrations Governance"
+  short_description: "Enforce unified rules for third-party backend integrations."
+  default_prompt: "Use $external-integrations-governance to design or review backend integrations, service layering, and third-party API reuse."

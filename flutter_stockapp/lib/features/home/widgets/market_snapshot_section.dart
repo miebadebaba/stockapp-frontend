@@ -19,6 +19,27 @@ class MarketSnapshotItemData {
   final String valueText;
   final double changePercent;
   final List<double> sparklineValues;
+
+  factory MarketSnapshotItemData.fromBackendJson(Map<String, dynamic> json) {
+    final sparklineJson = json['sparkline_values'];
+    final sparklineValues = sparklineJson is List
+        ? sparklineJson
+              .whereType<num>()
+              .map((value) => value.toDouble())
+              .toList()
+        : const <double>[];
+
+    return MarketSnapshotItemData(
+      id: json['id'] as String? ?? '',
+      assetName:
+          json['display_name'] as String? ??
+          json['symbol'] as String? ??
+          '',
+      valueText: json['value_text'] as String? ?? '--',
+      changePercent: (json['change_percent'] as num?)?.toDouble() ?? 0,
+      sparklineValues: sparklineValues,
+    );
+  }
 }
 
 class MarketSnapshotSection extends StatelessWidget {

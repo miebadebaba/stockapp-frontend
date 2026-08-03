@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_stockapp/core/network/api_exception.dart';
 import 'package:flutter_stockapp/features/quant/quant_analysis_status.dart';
 import 'package:flutter_stockapp/features/quant/stock_daily_bar.dart';
 import 'package:flutter_stockapp/features/quant/technical_summary_api.dart';
@@ -87,6 +88,54 @@ void main() {
 
       controller.dispose();
     });
+
+    test('uses empty state when backend returns not found', () async {
+      final controller = TechnicalSummaryController(
+        api: TechnicalSummaryApi(
+          postJson: ({required String path, required Object body}) async {
+            throw const ApiException(
+              type: ApiErrorType.notFound,
+              message: '请求的内容不存在。',
+              statusCode: 404,
+            );
+          },
+        ),
+      );
+
+      await controller.analyze([_bar()]);
+
+      expect(controller.status, QuantAnalysisStatus.empty);
+      expect(controller.result, isNull);
+
+      controller.dispose();
+    });
+
+    test(
+      'uses insufficient state when backend reports short history',
+      () async {
+        final controller = TechnicalSummaryController(
+          api: TechnicalSummaryApi(
+            postJson: ({required String path, required Object body}) async {
+              return {
+                'trend': 'insufficient_data',
+                'momentum': 'insufficient_data',
+                'strength': 'insufficient_data',
+                'participation': 'insufficient_data',
+                'consistency': 'unavailable',
+                'risk_flags': ['data_insufficient'],
+              };
+            },
+          ),
+        );
+
+        await controller.analyze([_bar()]);
+
+        expect(controller.status, QuantAnalysisStatus.insufficientData);
+        expect(controller.result, isNull);
+
+        controller.dispose();
+      },
+    );
 
     test('an older request cannot overwrite a newer result', () async {
       final firstResponse = Completer<Map<String, dynamic>>();

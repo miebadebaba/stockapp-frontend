@@ -15,10 +15,19 @@ class QuantAnalysisStateView extends StatelessWidget {
         return const _LoadingView();
 
       case QuantAnalysisStatus.empty:
-        return const _MessageView(
+        return _MessageView(
           icon: Icons.inbox_outlined,
-          title: '暂无可分析数据',
-          message: '当前股票的历史数据不足，请稍后重试或选择其他股票。',
+          title: '暂无行情数据',
+          message: '当前股票暂时没有可用行情，请稍后重试或选择其他股票。',
+          onRetry: onRetry,
+        );
+
+      case QuantAnalysisStatus.insufficientData:
+        return _MessageView(
+          icon: Icons.history_rounded,
+          title: '历史数据不足',
+          message: '当前行情数量不足以计算完整技术指标，请稍后再试。',
+          onRetry: onRetry,
         );
 
       case QuantAnalysisStatus.failure:

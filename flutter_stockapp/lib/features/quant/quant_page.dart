@@ -3,31 +3,27 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import 'rsi_calculator.dart';
 import 'rsi_interpreter.dart';
 import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
-import 'mock_stock_quotes.dart';
-import 'mock_stock_daily_bars.dart';
-import 'macd_calculator.dart';
 import 'macd_interpreter.dart';
-import 'moving_average_calculator.dart';
 import 'moving_average_interpreter.dart';
-import 'volume_analyzer.dart';
 import 'volume_interpreter.dart';
 import 'technical_summary_section.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
 import 'quant_data_metadata.dart';
 import '../../core/network/api_client.dart';
-import 'technical_summary_api.dart';
-import 'technical_summary_controller.dart';
-import 'technical_summary_result.dart';
+import 'quant_stock_analysis.dart';
+import 'quant_stock_analysis_api.dart';
+import 'quant_stock_analysis_controller.dart';
+import 'quant_price_chart.dart';
+import 'quant_risk_metrics_section.dart';
 
 class QuantPage extends StatefulWidget {
-  const QuantPage({this.postJson, super.key});
+  const QuantPage({this.getJson, super.key});
 
-  final JsonPost? postJson;
+  final JsonGet? getJson;
 
   @override
   State<QuantPage> createState() => _QuantPageState();
@@ -36,21 +32,21 @@ class QuantPage extends StatefulWidget {
 class _QuantPageState extends State<QuantPage> {
   SelectedStock? selectedStock;
   QuantAnalysisStatus _analysisStatus = QuantAnalysisStatus.idle;
-  late final TechnicalSummaryController _technicalSummaryController;
+  late final QuantStockAnalysisController _stockAnalysisController;
 
   @override
   void initState() {
     super.initState();
-    _technicalSummaryController = TechnicalSummaryController(
-      api: TechnicalSummaryApi(
-        postJson: widget.postJson ?? ApiClient().postJson,
+    _stockAnalysisController = QuantStockAnalysisController(
+      api: QuantStockAnalysisApi(
+        getJson: widget.getJson ?? ApiClient().getJson,
       ),
     );
   }
 
   @override
   void dispose() {
-    _technicalSummaryController.dispose();
+    _stockAnalysisController.dispose();
     super.dispose();
   }
 
@@ -73,20 +69,18 @@ class _QuantPageState extends State<QuantPage> {
   }
 
   Future<void> _loadAnalysis(SelectedStock stock) async {
-    final bars = mockStockDailyBars[stock.code] ?? const [];
-
     setState(() {
       _analysisStatus = QuantAnalysisStatus.loading;
     });
 
-    await _technicalSummaryController.analyze(bars);
+    await _stockAnalysisController.analyze(stock.code);
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _analysisStatus = _technicalSummaryController.status;
+      _analysisStatus = _stockAnalysisController.status;
     });
   }
 
@@ -143,13 +137,17 @@ class _QuantPageState extends State<QuantPage> {
                     else if (_analysisStatus == QuantAnalysisStatus.success)
                       _SelectedStockState(
                         stock: selectedStock!,
-                        technicalSummary: _technicalSummaryController.result!,
+                        analysis: _stockAnalysisController.result!,
                         onChooseStock: _chooseStock,
                       )
                     else
                       QuantAnalysisStateView(
                         status: _analysisStatus,
-                        onRetry: _analysisStatus == QuantAnalysisStatus.failure
+                        onRetry:
+                            _analysisStatus == QuantAnalysisStatus.failure ||
+                                _analysisStatus == QuantAnalysisStatus.empty ||
+                                _analysisStatus ==
+                                    QuantAnalysisStatus.insufficientData
                             ? _retryAnalysis
                             : null,
                       ),
@@ -206,28 +204,26 @@ class _EmptyStockState extends StatelessWidget {
 class _SelectedStockState extends StatelessWidget {
   const _SelectedStockState({
     required this.stock,
-    required this.technicalSummary,
+    required this.analysis,
     required this.onChooseStock,
   });
 
   final SelectedStock stock;
-  final TechnicalSummaryResult technicalSummary;
+  final QuantStockAnalysis analysis;
   final VoidCallback onChooseStock;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
-    final quote = mockStockQuotes[stock.code];
-    final bars = mockStockDailyBars[stock.code] ?? const [];
-
-    final ma5 = calculateMovingAverage(bars: bars, period: 5);
-    final ma10 = calculateMovingAverage(bars: bars, period: 10);
-    final ma20 = calculateMovingAverage(bars: bars, period: 20);
-    final macd = calculateMacd(bars: bars);
+    final quote = analysis.bars.isEmpty ? null : analysis.latestBar;
+    final ma5 = analysis.ma5;
+    final ma10 = analysis.ma10;
+    final ma20 = analysis.ma20;
+    final macd = analysis.macd;
     final macdInsight = interpretMacd(macd);
-    final rsi14 = calculateRsi(bars: bars);
+    final rsi14 = analysis.rsi14;
     final rsiInsight = interpretRsi(rsi14);
-    final volumeAnalysis = analyzeVolume(bars: bars);
+    final volumeAnalysis = analysis.volume;
     final volumeInsight = interpretVolume(volumeAnalysis);
     final insight = interpretMovingAverages(
       close: quote?.close,
@@ -239,9 +235,9 @@ class _SelectedStockState extends StatelessWidget {
         ? null
         : QuantDataMetadata(
             latestTradingDate: quote.tradingDate,
-            sourceName: '本地模拟数据',
+            sourceName: 'Market 行情服务',
             priceAdjustment: PriceAdjustment.unknown,
-            isSimulated: true,
+            isSimulated: false,
           );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,14 +269,14 @@ class _SelectedStockState extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.science_outlined,
+                Icons.cloud_done_outlined,
                 size: 18,
                 color: palette.secondaryText,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  '当前为模拟数据，仅用于功能演示和量化学习',
+                  '当前数据来自 Market 行情服务',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: palette.secondaryText,
                     fontWeight: FontWeight.w600,
@@ -359,7 +355,11 @@ class _SelectedStockState extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.xxl),
-        TechnicalSummarySection(result: technicalSummary),
+        QuantPriceChart(bars: analysis.bars),
+        const SizedBox(height: AppSpacing.xxl),
+        TechnicalSummarySection(result: analysis.technicalSummary),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantRiskMetricsSection(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
         Text(
           '移动平均线',
