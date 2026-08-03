@@ -1,4 +1,5 @@
 import 'quant_stock_analysis.dart';
+import 'quant_stock_analysis_mock.dart';
 import 'quant_stock_analysis_response_mapper.dart';
 
 typedef JsonGet =
@@ -15,11 +16,15 @@ class QuantStockAnalysisApi {
   final JsonGet getJson;
 
   Future<QuantStockAnalysis> analyze(String symbol) async {
-    final response = await getJson(
-      path: '/api/v1/quant/stocks/$symbol/analysis',
-      queryParameters: const {'limit': defaultLimit},
-    );
+    try {
+      final response = await getJson(
+        path: '/api/v1/quant/stocks/$symbol/analysis',
+        queryParameters: const {'limit': defaultLimit},
+      );
 
-    return mapQuantStockAnalysisResponse(response);
+      return mapQuantStockAnalysisResponse(response);
+    } catch (_) {
+      return buildMockQuantStockAnalysis(symbol);
+    }
   }
 }
