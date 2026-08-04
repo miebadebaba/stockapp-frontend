@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('calculateQuantFactorScore', () {
-    test('趋势动量和量价均较强时返回强势评分', () {
+    test('趋势动量和量价均较强时返回偏强评分', () {
       final analysis = _buildAnalysis(
         close: 120,
         ma5: 115,
@@ -25,8 +25,8 @@ void main() {
       final result = calculateQuantFactorScore(analysis: analysis);
 
       expect(result.hasSufficientData, isTrue);
-      expect(result.technicalScore, closeTo(92.25, 0.001));
-      expect(result.rating, QuantTechnicalRating.strong);
+      expect(result.technicalScore, closeTo(83.514, 0.001));
+      expect(result.rating, QuantTechnicalRating.positive);
       expect(result.factors, hasLength(3));
       expect(result.risk.level, QuantRiskLevel.low);
     });
@@ -46,7 +46,7 @@ void main() {
       final result = calculateQuantFactorScore(analysis: analysis);
 
       expect(result.hasSufficientData, isTrue);
-      expect(result.technicalScore, closeTo(12.15, 0.001));
+      expect(result.technicalScore, closeTo(16.691, 0.001));
       expect(result.rating, QuantTechnicalRating.weak);
       expect(result.technicalScore, inInclusiveRange(0, 100));
     });
@@ -95,6 +95,48 @@ void main() {
       expect(lowRiskResult.technicalScore, highRiskResult.technicalScore);
       expect(lowRiskResult.risk.level, QuantRiskLevel.low);
       expect(highRiskResult.risk.level, QuantRiskLevel.high);
+    });
+    test('指标细微变化时对应因子分数连续变化', () {
+      final baseBars = _bars(List.generate(30, (index) => 100.0 + index * 0.2));
+
+      final lowerTrend = calculateQuantFactorScore(
+        analysis: _buildAnalysis(
+          close: 110,
+          ma5: 108,
+          ma10: 106,
+          ma20: 104,
+          rsi: 60,
+          macd: const MacdResult(dif: 1.2, dea: 0.8, histogram: 0.8),
+          volume: _volume(ratio: 1.1, direction: PriceDirection.up),
+          bars: baseBars,
+        ),
+      );
+
+      final higherTrend = calculateQuantFactorScore(
+        analysis: _buildAnalysis(
+          close: 112,
+          ma5: 108,
+          ma10: 106,
+          ma20: 104,
+          rsi: 62,
+          macd: const MacdResult(dif: 1.2, dea: 0.8, histogram: 0.8),
+          volume: _volume(ratio: 1.3, direction: PriceDirection.up),
+          bars: baseBars,
+        ),
+      );
+
+      expect(
+        _factorScore(higherTrend, 'trend'),
+        greaterThan(_factorScore(lowerTrend, 'trend')),
+      );
+      expect(
+        _factorScore(higherTrend, 'momentum'),
+        greaterThan(_factorScore(lowerTrend, 'momentum')),
+      );
+      expect(
+        _factorScore(higherTrend, 'volume'),
+        greaterThan(_factorScore(lowerTrend, 'volume')),
+      );
     });
   });
 }
@@ -176,4 +218,8 @@ VolumeAnalysisResult _volume({
     volumeRatio: ratio,
     priceDirection: direction,
   );
+}
+
+double _factorScore(QuantFactorScore result, String id) {
+  return result.factors.firstWhere((factor) => factor.id == id).score;
 }

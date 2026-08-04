@@ -66,32 +66,49 @@ QuantFactorItem _calculateTrendFactor(QuantStockAnalysis analysis) {
   final validMa10 = ma10!;
   final validMa20 = ma20!;
 
-  var score = 50.0;
+  final priceDeviation = ((close - validMa20) / validMa20)
+      .clamp(-0.10, 0.10)
+      .toDouble();
+
+  final shortTermSpread = ((validMa5 - validMa10) / validMa10)
+      .clamp(-0.05, 0.05)
+      .toDouble();
+
+  final mediumTermSpread = ((validMa10 - validMa20) / validMa20)
+      .clamp(-0.05, 0.05)
+      .toDouble();
+
+  final score =
+      (50 +
+              priceDeviation / 0.10 * 25 +
+              shortTermSpread / 0.05 * 12.5 +
+              mediumTermSpread / 0.05 * 12.5)
+          .clamp(0, 100)
+          .toDouble();
+
   final evidence = <String>[];
 
-  score += close > validMa5 ? 8 : -8;
-  score += close > validMa10 ? 8 : -8;
-  score += close > validMa20 ? 10 : -10;
-  score += validMa5 > validMa10 ? 7 : -7;
-  score += validMa10 > validMa20 ? 7 : -7;
-
   if (validMa5 > validMa10 && validMa10 > validMa20) {
-    score += 10;
     evidence.add('MA5、MA10、MA20呈多头排列');
   } else if (validMa5 < validMa10 && validMa10 < validMa20) {
-    score -= 10;
     evidence.add('MA5、MA10、MA20呈空头排列');
   } else {
     evidence.add('均线排列暂未形成一致方向');
   }
 
   if (close > validMa20) {
-    evidence.add('当前价格位于MA20上方');
+    evidence.add(
+      '当前价格高于MA20约'
+      '${(priceDeviation * 100).abs().toStringAsFixed(1)}%',
+    );
+  } else if (close < validMa20) {
+    evidence.add(
+      '当前价格低于MA20约'
+      '${(priceDeviation * 100).abs().toStringAsFixed(1)}%',
+    );
   } else {
-    evidence.add('当前价格位于MA20下方');
+    evidence.add('当前价格接近MA20');
   }
-
-  score = score.clamp(0, 100).toDouble();
 
   return QuantFactorItem(
     id: 'trend',
@@ -131,34 +148,43 @@ QuantFactorItem _calculateMomentumFactor(QuantStockAnalysis analysis) {
   final double rsiScore;
   final String rsiEvidence;
 
-  if (rsi >= 70) {
-    rsiScore = 65;
-    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，动量较强但存在过热迹象';
-  } else if (rsi > 55) {
-    rsiScore = 85;
-    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，处于相对强势区间';
-  } else if (rsi >= 45) {
-    rsiScore = 55;
-    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，处于相对均衡区间';
-  } else if (rsi > 30) {
-    rsiScore = 35;
-    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，动量相对偏弱';
-  } else {
-    rsiScore = 25;
+  if (rsi <= 30) {
+    rsiScore = 10 + rsi / 30 * 20;
     rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，处于超卖区间';
+  } else if (rsi <= 50) {
+    rsiScore = 30 + (rsi - 30);
+    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，动量相对偏弱';
+  } else if (rsi <= 65) {
+    rsiScore = 50 + (rsi - 50) / 15 * 35;
+    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，处于相对强势区间';
+  } else if (rsi <= 70) {
+    rsiScore = 85 - (rsi - 65) / 5 * 10;
+    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，动量较强但接近过热';
+  } else {
+    rsiScore = 75 - (rsi - 70) / 30 * 45;
+    rsiEvidence = 'RSI为${rsi.toStringAsFixed(1)}，存在过热迹象';
   }
 
-  final double macdScore;
+  final close = analysis.latestBar.close;
+  final normalizedGap = ((macd.dif - macd.dea) / close)
+      .clamp(-0.02, 0.02)
+      .toDouble();
+  final normalizedHistogram = (macd.histogram / close)
+      .clamp(-0.02, 0.02)
+      .toDouble();
+
+  final macdScore =
+      (50 + normalizedGap / 0.02 * 25 + normalizedHistogram / 0.02 * 25)
+          .clamp(0, 100)
+          .toDouble();
+
   final String macdEvidence;
 
-  if (macd.dif > macd.dea && macd.histogram > 0) {
-    macdScore = 85;
+  if (macdScore >= 65) {
     macdEvidence = 'MACD位于正向状态，上涨动量占优';
-  } else if (macd.dif < macd.dea && macd.histogram < 0) {
-    macdScore = 15;
+  } else if (macdScore < 45) {
     macdEvidence = 'MACD位于负向状态，下跌动量占优';
   } else {
-    macdScore = 50;
     macdEvidence = 'MACD方向尚不明确';
   }
 
@@ -194,33 +220,22 @@ QuantFactorItem _calculateVolumeFactor(QuantStockAnalysis analysis) {
   }
 
   final ratio = volume.volumeRatio;
+  final normalizedRatio = ratio.clamp(0.0, 2.0).toDouble();
   final double score;
   final String directionText;
 
   switch (volume.priceDirection) {
     case PriceDirection.up:
       directionText = '价格上涨';
-      if (ratio >= 1.2) {
-        score = 90;
-      } else if (ratio >= 1.0) {
-        score = 75;
-      } else {
-        score = 60;
-      }
+      score = (50 + normalizedRatio / 2 * 50).clamp(0, 100).toDouble();
 
     case PriceDirection.flat:
       directionText = '价格基本持平';
-      score = ratio >= 1.2 ? 50 : 45;
+      score = (45 + (normalizedRatio - 1).abs() * 5).clamp(40, 55).toDouble();
 
     case PriceDirection.down:
       directionText = '价格下跌';
-      if (ratio >= 1.2) {
-        score = 15;
-      } else if (ratio >= 1.0) {
-        score = 30;
-      } else {
-        score = 40;
-      }
+      score = (50 - normalizedRatio / 2 * 50).clamp(0, 100).toDouble();
   }
 
   final ratioText = ratio >= 1.2
