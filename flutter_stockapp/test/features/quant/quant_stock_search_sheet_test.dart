@@ -6,58 +6,115 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('returns a custom six digit A-share code', (tester) async {
-    SelectedStock? selectedStock;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: Builder(
-          builder: (context) {
-            return Scaffold(
-              body: TextButton(
-                onPressed: () async {
-                  selectedStock = await showModalBottomSheet<SelectedStock>(
-                    context: context,
-                    builder: (_) => const QuantStockSearchSheet(),
-                  );
-                },
-                child: const Text('打开'),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('打开'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField), '000333');
-    await tester.pumpAndSettle();
-
-    expect(find.text('A股代码'), findsOneWidget);
-    final customCodeTile = find.widgetWithText(ListTile, '000333');
-    expect(customCodeTile, findsOneWidget);
-
-    await tester.tap(customCodeTile);
-    await tester.pumpAndSettle();
+    final selectedStock = await _selectStock(tester, input: '000333');
 
     expect(selectedStock?.code, '000333');
     expect(selectedStock?.name, 'A股代码');
+    expect(selectedStock?.market, QuantMarket.aShare);
   });
 
-  testWidgets('rejects an incomplete stock code', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: const Scaffold(body: QuantStockSearchSheet()),
-      ),
-    );
+  testWidgets('rejects an incomplete A-share code', (tester) async {
+    await _pumpSearchSheet(tester);
 
     await tester.enterText(find.byType(TextField), '12345');
     await tester.pumpAndSettle();
 
     expect(find.text('A股代码'), findsNothing);
-    expect(find.text('未找到匹配的 A 股'), findsOneWidget);
+    expect(find.text('未找到匹配的A股股票'), findsOneWidget);
   });
+
+  testWidgets('normalizes and returns a custom Hong Kong code', (tester) async {
+    final selectedStock = await _selectStock(
+      tester,
+      market: QuantMarket.hongKong,
+      input: '123',
+    );
+
+    expect(selectedStock?.code, '00123.HK');
+    expect(selectedStock?.name, '港股代码');
+    expect(selectedStock?.market, QuantMarket.hongKong);
+  });
+
+  testWidgets('returns a custom United States stock code', (tester) async {
+    final selectedStock = await _selectStock(
+      tester,
+      market: QuantMarket.unitedStates,
+      input: 'AMD',
+    );
+
+    expect(selectedStock?.code, 'AMD');
+    expect(selectedStock?.name, '美股代码');
+    expect(selectedStock?.market, QuantMarket.unitedStates);
+  });
+}
+
+Future<void> _pumpSearchSheet(WidgetTester tester) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light,
+      home: const Scaffold(body: QuantStockSearchSheet()),
+    ),
+  );
+}
+
+Future<SelectedStock?> _selectStock(
+  WidgetTester tester, {
+  QuantMarket market = QuantMarket.aShare,
+  required String input,
+}) async {
+  SelectedStock? selectedStock;
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light,
+      home: Builder(
+        builder: (context) {
+          return Scaffold(
+            body: TextButton(
+              key: const ValueKey('open-search'),
+              onPressed: () async {
+                selectedStock = await showModalBottomSheet<SelectedStock>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => const FractionallySizedBox(
+                    heightFactor: 0.75,
+                    child: QuantStockSearchSheet(),
+                  ),
+                );
+              },
+              child: const Text('打开'),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+
+  await tester.tap(find.byKey(const ValueKey('open-search')));
+  await tester.pumpAndSettle();
+
+  if (market != QuantMarket.aShare) {
+    await tester.tap(find.text(market.label).first);
+    await tester.pumpAndSettle();
+  }
+
+  await tester.enterText(find.byType(TextField), input);
+  await tester.pumpAndSettle();
+
+  final normalizedCode = switch (market) {
+    QuantMarket.aShare => input,
+    QuantMarket.hongKong => '${input.padLeft(5, '0')}.HK',
+    QuantMarket.unitedStates => input.toUpperCase(),
+  };
+
+  final stockTile = find.widgetWithText(
+    ListTile,
+    '$normalizedCode · ${market.label}',
+  );
+  expect(stockTile, findsOneWidget);
+
+  await tester.tap(stockTile);
+  await tester.pumpAndSettle();
+
+  return selectedStock;
 }

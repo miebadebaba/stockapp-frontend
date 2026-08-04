@@ -48,7 +48,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('近60个交易日价格走势'), findsOneWidget);
-    expect(find.text('基于真实日线收盘价绘制'), findsOneWidget);
+    expect(find.text('基于最近日线收盘价绘制'), findsOneWidget);
     expect(find.text('区间最高'), findsOneWidget);
     expect(find.text('11.50'), findsOneWidget);
     expect(find.text('区间最低'), findsOneWidget);

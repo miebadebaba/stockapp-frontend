@@ -11,33 +11,67 @@ class QuantStockSearchSheet extends StatefulWidget {
 }
 
 class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
+  QuantMarket _selectedMarket = QuantMarket.aShare;
   String _query = '';
-  String get _normalizedQuery => _query.trim();
 
-  bool get _canAnalyzeCustomCode {
-    return RegExp(r'^\d{6}$').hasMatch(_normalizedQuery) &&
-        !quantStockCatalog.any((stock) => stock.code == _normalizedQuery);
+  String get _normalizedQuery => _query.trim().toUpperCase();
+
+  String? get _customCode {
+    final query = _normalizedQuery;
+
+    if (query.isEmpty) {
+      return null;
+    }
+
+    return switch (_selectedMarket) {
+      QuantMarket.aShare => RegExp(r'^\d{6}$').hasMatch(query) ? query : null,
+      QuantMarket.hongKong => _normalizeHongKongCode(query),
+      QuantMarket.unitedStates =>
+        RegExp(r'^[A-Z][A-Z0-9.-]{0,9}$').hasMatch(query) ? query : null,
+    };
   }
 
-  SelectedStock get _customStock {
-    return SelectedStock(code: _normalizedQuery, name: 'A股代码');
-  }
+  SelectedStock? get _customStock {
+    final code = _customCode;
 
-  List<SelectedStock> get _displayedStocks {
-    return [if (_canAnalyzeCustomCode) _customStock, ..._filteredStocks];
+    if (code == null || quantStockCatalog.any((stock) => stock.code == code)) {
+      return null;
+    }
+
+    return SelectedStock(
+      code: code,
+      name: '${_selectedMarket.label}代码',
+      market: _selectedMarket,
+    );
   }
 
   List<SelectedStock> get _filteredStocks {
-    final keyword = _query.trim().toLowerCase();
-
-    if (keyword.isEmpty) {
-      return quantStockCatalog;
-    }
+    final keyword = _normalizedQuery.toLowerCase();
 
     return quantStockCatalog.where((stock) {
-      return stock.code.contains(keyword) ||
+      if (stock.market != _selectedMarket) {
+        return false;
+      }
+
+      if (keyword.isEmpty) {
+        return true;
+      }
+
+      return stock.code.toLowerCase().contains(keyword) ||
           stock.name.toLowerCase().contains(keyword);
     }).toList();
+  }
+
+  List<SelectedStock> get _displayedStocks {
+    return [?_customStock, ..._filteredStocks];
+  }
+
+  String get _searchHint {
+    return switch (_selectedMarket) {
+      QuantMarket.aShare => '输入6位股票代码或名称',
+      QuantMarket.hongKong => '输入港股代码或名称',
+      QuantMarket.unitedStates => '输入美股代码或名称',
+    };
   }
 
   @override
@@ -63,13 +97,37 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<QuantMarket>(
+                segments: QuantMarket.values
+                    .map(
+                      (market) => ButtonSegment<QuantMarket>(
+                        value: market,
+                        label: Text(market.label),
+                      ),
+                    )
+                    .toList(),
+                selected: {_selectedMarket},
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _selectedMarket = selection.first;
+                    _query = '';
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
+              key: ValueKey(_selectedMarket),
               autofocus: true,
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search_rounded),
-                hintText: '输入股票代码或名称',
-                border: OutlineInputBorder(),
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: _searchHint,
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 setState(() => _query = value);
@@ -78,7 +136,7 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
             const SizedBox(height: 12),
             Expanded(
               child: _displayedStocks.isEmpty
-                  ? const Center(child: Text('未找到匹配的 A 股'))
+                  ? Center(child: Text('未找到匹配的${_selectedMarket.label}股票'))
                   : ListView.separated(
                       itemCount: _displayedStocks.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
@@ -88,10 +146,13 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(stock.name),
-                          subtitle: Text(stock.code),
+                          subtitle: Text(
+                            '${stock.code} · ${stock.market.label}',
+                          ),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () =>
-                              Navigator.of(context).pop<SelectedStock>(stock),
+                          onTap: () {
+                            Navigator.of(context).pop<SelectedStock>(stock);
+                          },
                         );
                       },
                     ),
@@ -101,4 +162,16 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
       ),
     );
   }
+}
+
+String? _normalizeHongKongCode(String value) {
+  final withoutSuffix = value.endsWith('.HK')
+      ? value.substring(0, value.length - 3)
+      : value;
+
+  if (!RegExp(r'^\d{1,5}$').hasMatch(withoutSuffix)) {
+    return null;
+  }
+
+  return '${withoutSuffix.padLeft(5, '0')}.HK';
 }

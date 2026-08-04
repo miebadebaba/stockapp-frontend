@@ -113,7 +113,7 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          '基于真实日线收盘价绘制',
+          '基于最近日线收盘价绘制',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
