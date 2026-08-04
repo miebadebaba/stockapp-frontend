@@ -25,10 +25,7 @@ void main() {
       expect(firstTrade.entryPrice, bars[35].open);
       expect(firstTrade.exitPrice, bars[39].close);
       expect(firstTrade.signalScore, inInclusiveRange(0, 100));
-      expect(
-        firstTrade.netReturnRate,
-        lessThan(firstTrade.grossReturnRate),
-      );
+      expect(firstTrade.netReturnRate, lessThan(firstTrade.grossReturnRate));
     });
 
     test('连续信号不会生成时间重叠的交易', () {
@@ -46,10 +43,7 @@ void main() {
         final previousTrade = result.trades[index - 1];
         final currentTrade = result.trades[index];
 
-        expect(
-          currentTrade.entryDate.isAfter(previousTrade.exitDate),
-          isTrue,
-        );
+        expect(currentTrade.entryDate.isAfter(previousTrade.exitDate), isTrue);
       }
     });
 
@@ -81,6 +75,64 @@ void main() {
       }
     });
 
+    test('生成策略净值和买入持有基准净值', () {
+      final bars = _buildBars(50);
+
+      final result = calculateQuantFactorBacktest(
+        symbol: '600519',
+        bars: bars,
+        signalThreshold: 0,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+
+      expect(result.hasEquityComparison, isTrue);
+      expect(result.equityCurve.length, 15);
+
+      final firstPoint = result.equityCurve.first;
+      final lastPoint = result.equityCurve.last;
+
+      expect(firstPoint.date, bars[35].tradingDate);
+      expect(firstPoint.benchmarkValue, closeTo(1, 0.000001));
+      expect(lastPoint.date, bars[49].tradingDate);
+
+      expect(
+        lastPoint.strategyValue,
+        closeTo(1 + result.cumulativeReturn, 0.000001),
+      );
+
+      final expectedBenchmark = bars[49].close / bars[35].close;
+
+      expect(lastPoint.benchmarkValue, closeTo(expectedBenchmark, 0.000001));
+      expect(result.benchmarkReturn, closeTo(expectedBenchmark - 1, 0.000001));
+      expect(
+        result.excessReturn,
+        closeTo(result.cumulativeReturn - result.benchmarkReturn, 0.000001),
+      );
+    });
+
+    test('没有交易时策略净值保持为1但仍计算基准', () {
+      final bars = _buildBars(50);
+
+      final result = calculateQuantFactorBacktest(
+        symbol: '600519',
+        bars: bars,
+        signalThreshold: 100,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+
+      expect(result.tradeCount, 0);
+      expect(result.hasEquityComparison, isTrue);
+
+      for (final point in result.equityCurve) {
+        expect(point.strategyValue, closeTo(1, 0.000001));
+      }
+
+      expect(result.benchmarkReturn, greaterThan(0));
+      expect(result.excessReturn, lessThan(0));
+    });
+
     test('阈值过高时不生成交易', () {
       final result = calculateQuantFactorBacktest(
         symbol: '600519',
@@ -99,6 +151,22 @@ void main() {
       expect(result.grossCumulativeReturn, 0);
       expect(result.cumulativeCostImpact, 0);
       expect(result.maximumDrawdown, 0);
+    });
+
+    test('历史数据不足时不生成净值对比', () {
+      final result = calculateQuantFactorBacktest(
+        symbol: '600519',
+        bars: _buildBars(35),
+        signalThreshold: 0,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+
+      expect(result.tradeCount, 0);
+      expect(result.equityCurve, isEmpty);
+      expect(result.hasEquityComparison, isFalse);
+      expect(result.benchmarkReturn, 0);
+      expect(result.excessReturn, 0);
     });
 
     test('拒绝无效的回测参数和交易成本', () {
@@ -135,9 +203,7 @@ void main() {
         () => calculateQuantFactorBacktest(
           symbol: '600519',
           bars: bars,
-          costSettings: const QuantBacktestCostSettings(
-            commissionRate: -0.001,
-          ),
+          costSettings: const QuantBacktestCostSettings(commissionRate: -0.001),
         ),
         throwsArgumentError,
       );
@@ -146,9 +212,7 @@ void main() {
         () => calculateQuantFactorBacktest(
           symbol: '600519',
           bars: bars,
-          costSettings: const QuantBacktestCostSettings(
-            slippageRate: 1,
-          ),
+          costSettings: const QuantBacktestCostSettings(slippageRate: 1),
         ),
         throwsArgumentError,
       );
@@ -174,21 +238,14 @@ void main() {
 
       final expectedEntryCost = 100 * 1.001 * 1.001;
       final expectedExitProceeds = 110 * 0.999 * 0.998;
-      final expectedNetReturn =
-          expectedExitProceeds / expectedEntryCost - 1;
+      final expectedNetReturn = expectedExitProceeds / expectedEntryCost - 1;
 
       expect(trade.executedEntryPrice, closeTo(100.1, 0.000001));
       expect(trade.executedExitPrice, closeTo(109.89, 0.000001));
       expect(trade.grossReturnRate, closeTo(0.10, 0.000001));
       expect(trade.totalEntryCost, closeTo(expectedEntryCost, 0.000001));
-      expect(
-        trade.netExitProceeds,
-        closeTo(expectedExitProceeds, 0.000001),
-      );
-      expect(
-        trade.netReturnRate,
-        closeTo(expectedNetReturn, 0.000001),
-      );
+      expect(trade.netExitProceeds, closeTo(expectedExitProceeds, 0.000001));
+      expect(trade.netReturnRate, closeTo(expectedNetReturn, 0.000001));
       expect(trade.netReturnRate, lessThan(trade.grossReturnRate));
       expect(
         trade.estimatedCostRate,
@@ -268,16 +325,35 @@ void main() {
         minimumLookback: 35,
       );
 
-      expect(
-        result.averageReturn,
-        lessThan(result.averageGrossReturn),
-      );
-      expect(
-        result.cumulativeReturn,
-        lessThan(result.grossCumulativeReturn),
-      );
+      expect(result.averageReturn, lessThan(result.averageGrossReturn));
+      expect(result.cumulativeReturn, lessThan(result.grossCumulativeReturn));
       expect(result.averageCostRate, greaterThan(0));
       expect(result.cumulativeCostImpact, greaterThan(0));
+    });
+
+    test('根据净值曲线计算基准收益和超额收益', () {
+      final result = QuantFactorBacktestResult(
+        trades: const [],
+        signalThreshold: 60,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+        equityCurve: [
+          QuantBacktestEquityPoint(
+            date: DateTime(2026, 1, 1),
+            strategyValue: 1,
+            benchmarkValue: 1,
+          ),
+          QuantBacktestEquityPoint(
+            date: DateTime(2026, 1, 10),
+            strategyValue: 1,
+            benchmarkValue: 1.12,
+          ),
+        ],
+      );
+
+      expect(result.hasEquityComparison, isTrue);
+      expect(result.benchmarkReturn, closeTo(0.12, 0.000001));
+      expect(result.excessReturn, closeTo(-0.12, 0.000001));
     });
   });
 }
