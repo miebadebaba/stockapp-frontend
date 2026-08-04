@@ -37,7 +37,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.search_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('600519'));
+    await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
 
     expect(callCount, 1);
@@ -79,7 +79,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '000333');
     await tester.pumpAndSettle();
 
-    final customCodeTile = find.widgetWithText(ListTile, '000333');
+    final customCodeTile = find.widgetWithText(ListTile, '000333 · A股');
     expect(customCodeTile, findsOneWidget);
 
     await tester.tap(customCodeTile);
@@ -115,7 +115,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.search_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('600519'));
+    await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
 
     expect(callCount, 1);
@@ -152,7 +152,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.search_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('600519'));
+    await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
