@@ -29,8 +29,23 @@ QuantFactorScore calculateQuantFactorScore({
   final riskMetrics = calculateRiskMetrics(bars: analysis.bars);
   final risk = _assessRisk(riskMetrics);
 
+  final riskPenalty = hasSufficientData
+      ? _calculateRiskPenalty(riskMetrics)
+      : null;
+
+  final riskAdjustedScore = riskPenalty == null
+      ? null
+      : (technicalScore - riskPenalty).clamp(0, 100).toDouble();
+
+  final riskAdjustedRating = riskAdjustedScore == null
+      ? null
+      : _classifyTechnicalRating(riskAdjustedScore);
+
   return QuantFactorScore(
     technicalScore: technicalScore,
+    riskAdjustedScore: riskAdjustedScore,
+    riskPenalty: riskPenalty,
+    riskAdjustedRating: riskAdjustedRating,
     rating: rating,
     factors: List.unmodifiable(factors),
     risk: risk,
@@ -260,6 +275,26 @@ QuantFactorItem _calculateVolumeFactor(QuantStockAnalysis analysis) {
       '当前成交量约为近期平均水平的${ratio.toStringAsFixed(2)}倍',
     ],
   );
+}
+
+double? _calculateRiskPenalty(RiskMetrics? metrics) {
+  if (metrics == null ||
+      !metrics.annualizedVolatility.isFinite ||
+      !metrics.maximumDrawdown.isFinite ||
+      metrics.annualizedVolatility < 0 ||
+      metrics.maximumDrawdown < 0) {
+    return null;
+  }
+
+  final volatilityPenalty = ((metrics.annualizedVolatility - 0.20) / 0.40 * 10)
+      .clamp(0, 10)
+      .toDouble();
+
+  final drawdownPenalty = ((metrics.maximumDrawdown - 0.10) / 0.20 * 10)
+      .clamp(0, 10)
+      .toDouble();
+
+  return volatilityPenalty + drawdownPenalty;
 }
 
 QuantRiskAssessment _assessRisk(RiskMetrics? metrics) {

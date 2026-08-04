@@ -76,7 +76,7 @@ void main() {
       );
     });
 
-    test('风险等级独立于技术状态评分', () {
+    test('原始技术分保持独立，高风险只降低风险调整分', () {
       final lowRiskAnalysis = _buildStrongAnalysis(
         bars: _bars([100, 100.5, 101, 101.5]),
       );
@@ -93,8 +93,20 @@ void main() {
       );
 
       expect(lowRiskResult.technicalScore, highRiskResult.technicalScore);
+
       expect(lowRiskResult.risk.level, QuantRiskLevel.low);
+      expect(lowRiskResult.riskPenalty, 0);
+      expect(
+        lowRiskResult.riskAdjustedScore,
+        closeTo(lowRiskResult.technicalScore, 0.001),
+      );
+
       expect(highRiskResult.risk.level, QuantRiskLevel.high);
+      expect(highRiskResult.riskPenalty, greaterThan(0));
+      expect(
+        highRiskResult.riskAdjustedScore,
+        lessThan(highRiskResult.technicalScore),
+      );
     });
     test('指标细微变化时对应因子分数连续变化', () {
       final baseBars = _bars(List.generate(30, (index) => 100.0 + index * 0.2));

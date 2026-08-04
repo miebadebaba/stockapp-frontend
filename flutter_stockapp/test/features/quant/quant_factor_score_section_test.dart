@@ -21,6 +21,9 @@ void main() {
       buildSubject(
         const QuantFactorScore(
           technicalScore: 78,
+          riskAdjustedScore: 74,
+          riskPenalty: 4,
+          riskAdjustedRating: QuantTechnicalRating.positive,
           rating: QuantTechnicalRating.positive,
           factors: [
             QuantFactorItem(
@@ -66,7 +69,8 @@ void main() {
     expect(find.text('多因子技术评分'), findsOneWidget);
     expect(find.text('78'), findsOneWidget);
     expect(find.text('/ 100'), findsOneWidget);
-    expect(find.text('偏强'), findsOneWidget);
+    expect(find.text('偏强'), findsNWidgets(2));
+    expect(find.text('风险调整参考分：74（风险扣分 4.0）'), findsOneWidget);
     expect(find.text('趋势'), findsOneWidget);
     expect(find.text('动量'), findsOneWidget);
     expect(find.text('量价'), findsOneWidget);
