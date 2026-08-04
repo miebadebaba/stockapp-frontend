@@ -20,6 +20,10 @@ import 'quant_stock_analysis_controller.dart';
 import 'quant_price_chart.dart';
 import 'quant_risk_metrics_section.dart';
 import 'quant_ai_analysis_section.dart';
+import 'quant_factor_score_calculator.dart';
+import 'quant_factor_score_section.dart';
+import 'quant_factor_backtest_calculator.dart';
+import 'quant_factor_backtest_section.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({this.getJson, super.key});
@@ -232,13 +236,18 @@ class _SelectedStockState extends StatelessWidget {
       ma10: ma10,
       ma20: ma20,
     );
+    final factorScore = calculateQuantFactorScore(analysis: analysis);
+    final factorBacktest = calculateQuantFactorBacktest(
+      symbol: analysis.symbol,
+      bars: analysis.bars,
+    );
     final metadata = quote == null
         ? null
         : QuantDataMetadata(
             latestTradingDate: quote.tradingDate,
-            sourceName: 'Market 行情服务',
+            sourceName: analysis.isSimulated ? '内置模拟数据' : 'Market 行情服务',
             priceAdjustment: PriceAdjustment.unknown,
-            isSimulated: false,
+            isSimulated: analysis.isSimulated,
           );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +286,9 @@ class _SelectedStockState extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  '当前数据来自 Market 行情服务',
+                  analysis.isSimulated
+                      ? '当前显示内置模拟数据，仅用于功能演示'
+                      : '当前数据来自 Market 行情服务',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: palette.secondaryText,
                     fontWeight: FontWeight.w600,
@@ -357,6 +368,13 @@ class _SelectedStockState extends StatelessWidget {
         ],
         const SizedBox(height: AppSpacing.xxl),
         QuantPriceChart(bars: analysis.bars),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantFactorScoreSection(result: factorScore),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantFactorBacktestSection(
+          result: factorBacktest,
+          isSimulated: analysis.isSimulated,
+        ),
         const SizedBox(height: AppSpacing.xxl),
         TechnicalSummarySection(result: analysis.technicalSummary),
         const SizedBox(height: AppSpacing.xxl),
