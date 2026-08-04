@@ -45,6 +45,7 @@ void main() {
     expect(receivedQuery, {'limit': 60});
     expect(find.text('600519'), findsOneWidget);
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.text('当前数据来自 Market 行情服务'), findsOneWidget);
   });
 
   testWidgets('custom stock code requests backend analysis', (tester) async {
@@ -121,6 +122,8 @@ void main() {
     expect(find.byType(TechnicalSummarySection), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
     expect(find.byIcon(Icons.refresh), findsNothing);
+    expect(find.text('当前显示内置模拟数据，仅用于功能演示'), findsOneWidget);
+    expect(find.text('当前数据来自 Market 行情服务'), findsNothing);
   });
 
   testWidgets('uses mock analysis when backend returns 404', (tester) async {
