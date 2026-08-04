@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import '../news/news_webview_page.dart';
 import 'market_stock_detail_data.dart';
 
 class MarketNewsArticlePage extends StatelessWidget {
@@ -120,6 +121,23 @@ class MarketNewsArticlePage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: AppSpacing.lg),
                                 ],
+                                if (article.articleUrl != null &&
+                                    article.articleUrl!.isNotEmpty) ...[
+                                  const SizedBox(height: AppSpacing.md),
+                                  FilledButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push<void>(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => NewsWebViewPage(
+                                            url: article.articleUrl!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.open_in_new_rounded),
+                                    label: const Text('Read full article'),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -199,6 +217,20 @@ class _ArticleHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          if (article.imageUrl != null && article.imageUrl!.isNotEmpty)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                child: Image.network(
+                  article.imageUrl!,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withValues(alpha: 0.22),
+                  colorBlendMode: BlendMode.darken,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
+                ),
+              ),
+            ),
           Positioned(
             top: -22,
             right: -10,
