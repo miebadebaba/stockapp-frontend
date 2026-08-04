@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'quant_backtest_equity_chart.dart';
 import 'quant_factor_backtest.dart';
 
 class QuantFactorBacktestSection extends StatelessWidget {
@@ -37,9 +38,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
           '${result.holdingPeriod} 个交易日',
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(
-            color: palette.secondaryText,
-          ),
+          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
@@ -139,6 +138,43 @@ class QuantFactorBacktestSection extends StatelessWidget {
             value: _percent(result.maximumDrawdown),
           ),
         ],
+        if (result.hasEquityComparison) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            '策略与基准对比',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '比较多因子策略净值与同期买入并持有的表现',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _BacktestMetric(
+                  label: '基准收益',
+                  value: _signedPercent(result.benchmarkReturn),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _BacktestMetric(
+                  label: '超额收益',
+                  value: _signedPercent(result.excessReturn),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          QuantBacktestEquityChart(points: result.equityCurve),
+        ],
         const SizedBox(height: AppSpacing.md),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,10 +204,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
 }
 
 class _BacktestMetric extends StatelessWidget {
-  const _BacktestMetric({
-    required this.label,
-    required this.value,
-  });
+  const _BacktestMetric({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -185,9 +218,9 @@ class _BacktestMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: palette.secondaryText,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(

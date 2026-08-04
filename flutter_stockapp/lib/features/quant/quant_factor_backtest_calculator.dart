@@ -15,8 +15,7 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
   double signalThreshold = 60,
   int holdingPeriod = 5,
   int minimumLookback = 35,
-  QuantBacktestCostSettings costSettings =
-      const QuantBacktestCostSettings(),
+  QuantBacktestCostSettings costSettings = const QuantBacktestCostSettings(),
 }) {
   if (signalThreshold < 0 || signalThreshold > 100) {
     throw ArgumentError.value(
@@ -27,11 +26,7 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
   }
 
   if (holdingPeriod <= 0) {
-    throw ArgumentError.value(
-      holdingPeriod,
-      'holdingPeriod',
-      '持有周期必须大于 0',
-    );
+    throw ArgumentError.value(holdingPeriod, 'holdingPeriod', '持有周期必须大于 0');
   }
 
   if (minimumLookback < 35) {
@@ -48,20 +43,13 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
       costSettings.commissionRate >= 1 ||
       costSettings.stampDutyRate >= 1 ||
       costSettings.slippageRate >= 1) {
-    throw ArgumentError.value(
-      costSettings,
-      'costSettings',
-      '交易成本率必须在 0～1 之间',
-    );
+    throw ArgumentError.value(costSettings, 'costSettings', '交易成本率必须在 0～1 之间');
   }
 
   final orderedBars = [...bars]
-    ..sort((left, right) {
-      return left.tradingDate.compareTo(right.tradingDate);
-    });
+    ..sort((left, right) => left.tradingDate.compareTo(right.tradingDate));
 
   final trades = <QuantBacktestTrade>[];
-
   var signalIndex = minimumLookback - 1;
 
   while (signalIndex < orderedBars.length) {
@@ -81,9 +69,7 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
       bars: historicalBars,
     );
 
-    final factorScore = calculateQuantFactorScore(
-      analysis: analysis,
-    );
+    final factorScore = calculateQuantFactorScore(analysis: analysis);
 
     final signalScore = factorScore.riskAdjustedScore;
 
@@ -95,8 +81,7 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     final entryBar = orderedBars[entryIndex];
     final exitBar = orderedBars[exitIndex];
 
-    if (!_isValidPrice(entryBar.open) ||
-        !_isValidPrice(exitBar.close)) {
+    if (!_isValidPrice(entryBar.open) || !_isValidPrice(exitBar.close)) {
       signalIndex++;
       continue;
     }
@@ -116,13 +101,79 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     signalIndex = exitIndex;
   }
 
+  final equityCurve = _buildEquityCurve(
+    bars: orderedBars,
+    trades: trades,
+    minimumLookback: minimumLookback,
+  );
+
   return QuantFactorBacktestResult(
     trades: List.unmodifiable(trades),
     signalThreshold: signalThreshold,
     holdingPeriod: holdingPeriod,
     minimumLookback: minimumLookback,
     costSettings: costSettings,
+    equityCurve: List.unmodifiable(equityCurve),
   );
+}
+
+List<QuantBacktestEquityPoint> _buildEquityCurve({
+  required List<StockDailyBar> bars,
+  required List<QuantBacktestTrade> trades,
+  required int minimumLookback,
+}) {
+  if (bars.length <= minimumLookback) {
+    return const [];
+  }
+
+  final backtestBars = bars.sublist(minimumLookback);
+  final benchmarkStartPrice = backtestBars.first.close;
+
+  if (!_isValidPrice(benchmarkStartPrice)) {
+    return const [];
+  }
+
+  final points = <QuantBacktestEquityPoint>[];
+  var settledEquity = 1.0;
+  var tradeIndex = 0;
+
+  for (final bar in backtestBars) {
+    var strategyValue = settledEquity;
+
+    if (tradeIndex < trades.length) {
+      final trade = trades[tradeIndex];
+      final isEntryOrLater = !bar.tradingDate.isBefore(trade.entryDate);
+      final isBeforeExit = bar.tradingDate.isBefore(trade.exitDate);
+      final isExitDate = bar.tradingDate.isAtSameMomentAs(trade.exitDate);
+
+      if (isEntryOrLater && isBeforeExit) {
+        final units = settledEquity / trade.totalEntryCost;
+        strategyValue = _isValidPrice(bar.close)
+            ? units * bar.close
+            : settledEquity;
+      } else if (isExitDate) {
+        settledEquity *= 1 + trade.netReturnRate;
+        strategyValue = settledEquity;
+        tradeIndex++;
+      }
+    }
+
+    final benchmarkValue = _isValidPrice(bar.close)
+        ? bar.close / benchmarkStartPrice
+        : points.isEmpty
+        ? 1.0
+        : points.last.benchmarkValue;
+
+    points.add(
+      QuantBacktestEquityPoint(
+        date: bar.tradingDate,
+        strategyValue: strategyValue,
+        benchmarkValue: benchmarkValue,
+      ),
+    );
+  }
+
+  return points;
 }
 
 QuantStockAnalysis _buildHistoricalAnalysis({
@@ -148,18 +199,9 @@ QuantStockAnalysis _buildHistoricalAnalysis({
       previousClose: previousBar.close,
       volume: latestBar.volume,
     ),
-    ma5: calculateMovingAverage(
-      bars: bars,
-      period: 5,
-    ),
-    ma10: calculateMovingAverage(
-      bars: bars,
-      period: 10,
-    ),
-    ma20: calculateMovingAverage(
-      bars: bars,
-      period: 20,
-    ),
+    ma5: calculateMovingAverage(bars: bars, period: 5),
+    ma10: calculateMovingAverage(bars: bars, period: 10),
+    ma20: calculateMovingAverage(bars: bars, period: 20),
     macd: macd,
     rsi14: rsi,
     volume: volume,

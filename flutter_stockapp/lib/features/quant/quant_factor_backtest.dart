@@ -58,9 +58,7 @@ class QuantBacktestTrade {
   /// 卖出所得，扣除卖出佣金、印花税和卖出滑点。
   double get netExitProceeds {
     return executedExitPrice *
-        (1 -
-            costSettings.commissionRate -
-            costSettings.stampDutyRate);
+        (1 - costSettings.commissionRate - costSettings.stampDutyRate);
   }
 
   /// 扣除佣金、印花税和滑点后的净收益率。
@@ -78,6 +76,21 @@ class QuantBacktestTrade {
   bool get isWinning => netReturnRate > 0;
 }
 
+/// 净值曲线中的一个时间点。
+///
+/// strategyValue 和 benchmarkValue 都以 1.0 为初始净值。
+class QuantBacktestEquityPoint {
+  const QuantBacktestEquityPoint({
+    required this.date,
+    required this.strategyValue,
+    required this.benchmarkValue,
+  });
+
+  final DateTime date;
+  final double strategyValue;
+  final double benchmarkValue;
+}
+
 class QuantFactorBacktestResult {
   const QuantFactorBacktestResult({
     required this.trades,
@@ -85,6 +98,7 @@ class QuantFactorBacktestResult {
     required this.holdingPeriod,
     required this.minimumLookback,
     this.costSettings = const QuantBacktestCostSettings(),
+    this.equityCurve = const [],
   });
 
   final List<QuantBacktestTrade> trades;
@@ -93,7 +107,12 @@ class QuantFactorBacktestResult {
   final int minimumLookback;
   final QuantBacktestCostSettings costSettings;
 
+  /// 策略净值与买入持有基准净值的对比数据。
+  final List<QuantBacktestEquityPoint> equityCurve;
+
   int get tradeCount => trades.length;
+
+  bool get hasEquityComparison => equityCurve.length >= 2;
 
   double get winRate {
     if (trades.isEmpty) {
@@ -170,6 +189,20 @@ class QuantFactorBacktestResult {
 
   double get cumulativeCostImpact {
     return grossCumulativeReturn - cumulativeReturn;
+  }
+
+  /// 同一回测区间内，买入并持有股票的收益。
+  double get benchmarkReturn {
+    if (!hasEquityComparison) {
+      return 0;
+    }
+
+    return equityCurve.last.benchmarkValue - 1;
+  }
+
+  /// 策略累计净收益减去基准收益。
+  double get excessReturn {
+    return cumulativeReturn - benchmarkReturn;
   }
 
   /// 基于净收益曲线计算最大回撤。
