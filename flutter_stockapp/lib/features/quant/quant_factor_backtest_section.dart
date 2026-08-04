@@ -17,6 +17,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final costs = result.costSettings;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +37,20 @@ class QuantFactorBacktestSection extends StatelessWidget {
           '${result.holdingPeriod} 个交易日',
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ).textTheme.bodyMedium?.copyWith(
+            color: palette.secondaryText,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '成本假设：佣金双向 '
+          '${_percent(costs.commissionRate)}，'
+          '卖出印花税 ${_percent(costs.stampDutyRate)}，'
+          '单边滑点 ${_percent(costs.slippageRate)}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (result.trades.isEmpty)
@@ -59,7 +73,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
               const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: _BacktestMetric(
-                  label: '胜率',
+                  label: '净胜率',
                   value: _percent(result.winRate),
                 ),
               ),
@@ -70,15 +84,51 @@ class QuantFactorBacktestSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _BacktestMetric(
-                  label: '平均收益',
-                  value: _signedPercent(result.averageReturn),
+                  label: '平均毛收益',
+                  value: _signedPercent(result.averageGrossReturn),
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: _BacktestMetric(
-                  label: '累计收益',
+                  label: '平均净收益',
+                  value: _signedPercent(result.averageReturn),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _BacktestMetric(
+                  label: '累计毛收益',
+                  value: _signedPercent(result.grossCumulativeReturn),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _BacktestMetric(
+                  label: '累计净收益',
                   value: _signedPercent(result.cumulativeReturn),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _BacktestMetric(
+                  label: '平均成本影响',
+                  value: _percent(result.averageCostRate),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _BacktestMetric(
+                  label: '累计成本影响',
+                  value: _percent(result.cumulativeCostImpact),
                 ),
               ),
             ],
@@ -103,7 +153,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
               child: Text(
                 isSimulated
                     ? '当前回测基于内置模拟数据，只用于验证功能流程，不能用于判断策略真实效果。'
-                    : '回测结果基于历史行情，不代表未来收益，暂未计入手续费、滑点和涨跌停限制。',
+                    : '回测已估算佣金、印花税和滑点，不代表未来收益；暂未考虑最低佣金、涨跌停及停牌限制。',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: palette.secondaryText,
                   height: 1.5,
@@ -135,9 +185,9 @@ class _BacktestMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: palette.secondaryText,
+          ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
