@@ -60,17 +60,35 @@ class QuantFactorScore {
     required this.risk,
     required this.summary,
     required this.hasSufficientData,
+    this.riskAdjustedScore,
+    this.riskPenalty,
+    this.riskAdjustedRating,
   });
 
-  /// 技术状态综合分，范围为 0～100。
+  /// 原始技术状态综合分，范围为 0～100。
   final double technicalScore;
+
+  /// 根据波动率和最大回撤扣分后的参考分。
+  /// 风险数据不足时为 null，不强行生成结果。
+  final double? riskAdjustedScore;
+
+  /// 风险扣分，范围为 0～20。
+  final double? riskPenalty;
+
+  /// 风险调整后的参考等级。
+  final QuantTechnicalRating? riskAdjustedRating;
 
   final QuantTechnicalRating rating;
   final List<QuantFactorItem> factors;
 
-  /// 风险独立展示，不直接作为上涨信号加入技术得分。
+  /// 风险独立展示，不作为上涨信号加入原始技术得分。
   final QuantRiskAssessment risk;
 
   final String summary;
   final bool hasSufficientData;
+
+  bool get hasRiskAdjustment =>
+      riskAdjustedScore != null &&
+      riskPenalty != null &&
+      riskAdjustedRating != null;
 }

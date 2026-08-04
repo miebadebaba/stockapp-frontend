@@ -84,6 +84,38 @@ class QuantFactorScoreSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
+          if (result.hasRiskAdjustment) ...[
+            Row(
+              children: [
+                Icon(
+                  Icons.tune_rounded,
+                  size: 20,
+                  color: palette.secondaryText,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    '风险调整参考分：'
+                    '${result.riskAdjustedScore!.toStringAsFixed(0)}'
+                    '（风险扣分 '
+                    '${result.riskPenalty!.toStringAsFixed(1)}）',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: palette.primaryText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  _ratingLabel(result.riskAdjustedRating!),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: palette.secondaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+          ],
           for (var index = 0; index < result.factors.length; index++) ...[
             _FactorRow(factor: result.factors[index]),
             if (index < result.factors.length - 1)
