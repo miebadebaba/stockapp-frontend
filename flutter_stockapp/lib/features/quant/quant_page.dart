@@ -22,6 +22,8 @@ import 'quant_risk_metrics_section.dart';
 import 'quant_ai_analysis_section.dart';
 import 'quant_factor_score_calculator.dart';
 import 'quant_factor_score_section.dart';
+import 'quant_factor_backtest_calculator.dart';
+import 'quant_factor_backtest_section.dart';
 
 class QuantPage extends StatefulWidget {
   const QuantPage({this.getJson, super.key});
@@ -235,6 +237,10 @@ class _SelectedStockState extends StatelessWidget {
       ma20: ma20,
     );
     final factorScore = calculateQuantFactorScore(analysis: analysis);
+    final factorBacktest = calculateQuantFactorBacktest(
+      symbol: analysis.symbol,
+      bars: analysis.bars,
+    );
     final metadata = quote == null
         ? null
         : QuantDataMetadata(
@@ -364,6 +370,11 @@ class _SelectedStockState extends StatelessWidget {
         QuantPriceChart(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
         QuantFactorScoreSection(result: factorScore),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantFactorBacktestSection(
+          result: factorBacktest,
+          isSimulated: analysis.isSimulated,
+        ),
         const SizedBox(height: AppSpacing.xxl),
         TechnicalSummarySection(result: analysis.technicalSummary),
         const SizedBox(height: AppSpacing.xxl),

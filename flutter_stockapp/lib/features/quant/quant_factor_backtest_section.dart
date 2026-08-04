@@ -1,0 +1,162 @@
+import 'package:flutter/material.dart';
+
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme_palette.dart';
+import 'quant_factor_backtest.dart';
+
+class QuantFactorBacktestSection extends StatelessWidget {
+  const QuantFactorBacktestSection({
+    required this.result,
+    required this.isSimulated,
+    super.key,
+  });
+
+  final QuantFactorBacktestResult result;
+  final bool isSimulated;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '多因子历史回测',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '风险调整分达到 '
+          '${result.signalThreshold.toStringAsFixed(0)} '
+          '后，于下一交易日开盘买入并持有 '
+          '${result.holdingPeriod} 个交易日',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (result.trades.isEmpty)
+          Text(
+            '当前历史区间内没有满足条件的完整交易。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          )
+        else ...[
+          Row(
+            children: [
+              Expanded(
+                child: _BacktestMetric(
+                  label: '交易次数',
+                  value: '${result.tradeCount}',
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _BacktestMetric(
+                  label: '胜率',
+                  value: _percent(result.winRate),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _BacktestMetric(
+                  label: '平均收益',
+                  value: _signedPercent(result.averageReturn),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: _BacktestMetric(
+                  label: '累计收益',
+                  value: _signedPercent(result.cumulativeReturn),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _BacktestMetric(
+            label: '策略最大回撤',
+            value: _percent(result.maximumDrawdown),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: palette.secondaryText,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                isSimulated
+                    ? '当前回测基于内置模拟数据，只用于验证功能流程，不能用于判断策略真实效果。'
+                    : '回测结果基于历史行情，不代表未来收益，暂未计入手续费、滑点和涨跌停限制。',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _BacktestMetric extends StatelessWidget {
+  const _BacktestMetric({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _percent(double value) {
+  return '${(value * 100).toStringAsFixed(2)}%';
+}
+
+String _signedPercent(double value) {
+  final sign = value > 0 ? '+' : '';
+  return '$sign${(value * 100).toStringAsFixed(2)}%';
+}
