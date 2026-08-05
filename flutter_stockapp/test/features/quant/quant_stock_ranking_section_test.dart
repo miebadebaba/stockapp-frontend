@@ -7,6 +7,7 @@ import 'package:flutter_stockapp/features/quant/quant_stock_ranking.dart';
 import 'package:flutter_stockapp/features/quant/quant_stock_ranking_section.dart';
 import 'package:flutter_stockapp/features/quant/selected_stock.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_stockapp/features/quant/quant_factor_preset.dart';
 
 void main() {
   testWidgets('显示市场、排序方式和股票排名', (tester) async {
@@ -34,6 +35,7 @@ void main() {
     );
 
     SelectedStock? selectedStock;
+    QuantFactorPresetType? selectedPresetType;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -43,8 +45,12 @@ void main() {
             child: QuantStockRankingSection(
               result: result,
               market: QuantMarket.aShare,
+              presetType: QuantFactorPresetType.balanced,
               isLoading: false,
               onMarketChanged: (_) {},
+              onPresetChanged: (presetType) {
+                selectedPresetType = presetType;
+              },
               onSortChanged: (_) {},
               onRefresh: () {},
               onStockSelected: (stock) {
@@ -63,6 +69,15 @@ void main() {
     expect(find.text(secondStock.name), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
+    expect(find.text('策略偏好'), findsOneWidget);
+    expect(find.text('稳健型'), findsOneWidget);
+    expect(find.text('均衡型'), findsOneWidget);
+    expect(find.text('进取型'), findsOneWidget);
+
+    await tester.tap(find.text('进取型'));
+    await tester.pump();
+
+    expect(selectedPresetType, QuantFactorPresetType.aggressive);
 
     await tester.tap(find.text(firstStock.name));
     await tester.pump();
@@ -78,8 +93,10 @@ void main() {
           body: QuantStockRankingSection(
             result: null,
             market: QuantMarket.aShare,
+            presetType: QuantFactorPresetType.balanced,
             isLoading: true,
             onMarketChanged: (_) {},
+            onPresetChanged: (_) {},
             onSortChanged: (_) {},
             onRefresh: () {},
             onStockSelected: (_) {},

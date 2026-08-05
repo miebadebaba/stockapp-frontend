@@ -1,6 +1,7 @@
 import 'quant_factor_score.dart';
 import 'quant_stock_analysis.dart';
 import 'selected_stock.dart';
+import 'quant_factor_preset.dart';
 
 enum QuantRankingSort {
   riskAdjustedScore,
@@ -48,8 +49,13 @@ class QuantStockRankingItem {
 }
 
 class QuantStockRankingResult {
-  const QuantStockRankingResult({required this.items, required this.sortBy});
+  const QuantStockRankingResult({
+    required this.items,
+    required this.sortBy,
+    this.presetType = QuantFactorPresetType.balanced,
+  });
 
   final List<QuantStockRankingItem> items;
   final QuantRankingSort sortBy;
+  final QuantFactorPresetType presetType;
 }

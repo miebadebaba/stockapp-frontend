@@ -26,6 +26,7 @@ import 'quant_factor_comparison_section.dart';
 import 'quant_factor_backtest_calculator.dart';
 import 'quant_factor_backtest_section.dart';
 import 'quant_stock_catalog.dart';
+import 'quant_factor_preset.dart';
 import 'quant_stock_ranking.dart';
 import 'quant_stock_ranking_calculator.dart';
 import 'quant_stock_ranking_section.dart';
@@ -50,6 +51,7 @@ class _QuantPageState extends State<QuantPage> {
   QuantStockAnalysis? comparisonAnalysis;
   QuantMarket _rankingMarket = QuantMarket.aShare;
   QuantRankingSort _rankingSort = QuantRankingSort.riskAdjustedScore;
+  QuantFactorPresetType _rankingPresetType = QuantFactorPresetType.balanced;
   QuantStockRankingResult? _rankingResult;
   bool _isRankingLoading = false;
 
@@ -155,6 +157,7 @@ class _QuantPageState extends State<QuantPage> {
   Future<void> _loadRanking() async {
     final market = _rankingMarket;
     final sortBy = _rankingSort;
+    final presetType = _rankingPresetType;
 
     final stocks = quantStockCatalog
         .where((stock) => stock.market == market)
@@ -170,9 +173,13 @@ class _QuantPageState extends State<QuantPage> {
           widget.rankingAnalyze ??
           (symbol) => _stockAnalysisController.api.analyze(symbol),
       sortBy: sortBy,
+      presetType: presetType,
     );
 
-    if (!mounted || market != _rankingMarket || sortBy != _rankingSort) {
+    if (!mounted ||
+        market != _rankingMarket ||
+        sortBy != _rankingSort ||
+        presetType != _rankingPresetType) {
       return;
     }
 
@@ -194,6 +201,15 @@ class _QuantPageState extends State<QuantPage> {
   void _onRankingSortChanged(QuantRankingSort sortBy) {
     setState(() {
       _rankingSort = sortBy;
+      _rankingResult = null;
+    });
+
+    _loadRanking();
+  }
+
+  void _onRankingPresetChanged(QuantFactorPresetType presetType) {
+    setState(() {
+      _rankingPresetType = presetType;
       _rankingResult = null;
     });
 
@@ -257,8 +273,10 @@ class _QuantPageState extends State<QuantPage> {
                     QuantStockRankingSection(
                       result: _rankingResult,
                       market: _rankingMarket,
+                      presetType: _rankingPresetType,
                       isLoading: _isRankingLoading,
                       onMarketChanged: _onRankingMarketChanged,
+                      onPresetChanged: _onRankingPresetChanged,
                       onSortChanged: _onRankingSortChanged,
                       onRefresh: _loadRanking,
                       onStockSelected: _onRankingStockSelected,
