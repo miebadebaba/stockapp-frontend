@@ -17,7 +17,7 @@ class QuantFactorScoreSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '多因子技术评分',
+          '当前股票因子解析',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: palette.primaryText,
             fontWeight: FontWeight.w800,

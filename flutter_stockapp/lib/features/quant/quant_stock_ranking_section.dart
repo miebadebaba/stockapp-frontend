@@ -1,0 +1,254 @@
+import 'package:flutter/material.dart';
+
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme_palette.dart';
+import 'quant_factor_score.dart';
+import 'quant_stock_ranking.dart';
+import 'selected_stock.dart';
+
+class QuantStockRankingSection extends StatelessWidget {
+  const QuantStockRankingSection({
+    required this.result,
+    required this.market,
+    required this.isLoading,
+    required this.onMarketChanged,
+    required this.onSortChanged,
+    required this.onRefresh,
+    required this.onStockSelected,
+    super.key,
+  });
+
+  final QuantStockRankingResult? result;
+  final QuantMarket market;
+  final bool isLoading;
+  final ValueChanged<QuantMarket> onMarketChanged;
+  final ValueChanged<QuantRankingSort> onSortChanged;
+  final VoidCallback onRefresh;
+  final ValueChanged<SelectedStock> onStockSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Material(
+      color: Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '股票池筛选',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: '刷新排名',
+                onPressed: isLoading ? null : onRefresh,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '按市场和因子评分筛选并排序股票',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<QuantMarket>(
+              segments: QuantMarket.values
+                  .map(
+                    (value) => ButtonSegment<QuantMarket>(
+                      value: value,
+                      label: Text(value.label),
+                    ),
+                  )
+                  .toList(),
+              selected: {market},
+              onSelectionChanged: isLoading
+                  ? null
+                  : (selection) => onMarketChanged(selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          DropdownButtonFormField<QuantRankingSort>(
+            initialValue: result?.sortBy ?? QuantRankingSort.riskAdjustedScore,
+            decoration: const InputDecoration(
+              labelText: '排序方式',
+              border: OutlineInputBorder(),
+            ),
+            items: QuantRankingSort.values
+                .map(
+                  (value) => DropdownMenuItem<QuantRankingSort>(
+                    value: value,
+                    child: Text(value.label),
+                  ),
+                )
+                .toList(),
+            onChanged: isLoading
+                ? null
+                : (value) {
+                    if (value != null) {
+                      onSortChanged(value);
+                    }
+                  },
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+              child: Center(
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: AppSpacing.md),
+                    Text('正在计算股票池排名...'),
+                  ],
+                ),
+              ),
+            )
+          else if (result == null || result!.items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: Text(
+                '当前市场暂无可用于排名的股票数据。',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+              ),
+            )
+          else
+            ...result!.items.map(
+              (item) => _RankingRow(
+                item: item,
+                sortBy: result!.sortBy,
+                onPressed: () => onStockSelected(item.stock),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '排名仅描述当前数据周期内的相对技术状态，不代表未来收益。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankingRow extends StatelessWidget {
+  const _RankingRow({
+    required this.item,
+    required this.sortBy,
+    required this.onPressed,
+  });
+
+  final QuantStockRankingItem item;
+  final QuantRankingSort sortBy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        overlayColor: WidgetStatePropertyAll(palette.rowPressedOverlay),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 34,
+                child: Text(
+                  '${item.rank}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.stock.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: palette.primaryText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '${item.stock.code} · ${_riskLabel(item.score.risk.level)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: palette.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _displayScore(item, sortBy).toStringAsFixed(0),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: palette.primaryText,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    sortBy.label,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: palette.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Icon(Icons.chevron_right_rounded, color: palette.secondaryText),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+double _displayScore(QuantStockRankingItem item, QuantRankingSort sortBy) {
+  return switch (sortBy) {
+    QuantRankingSort.riskAdjustedScore => item.rankingScore,
+    QuantRankingSort.technicalScore => item.score.technicalScore,
+    QuantRankingSort.trend => item.factorScore('trend') ?? 0,
+    QuantRankingSort.momentum => item.factorScore('momentum') ?? 0,
+    QuantRankingSort.volume => item.factorScore('volume') ?? 0,
+  };
+}
+
+String _riskLabel(QuantRiskLevel level) {
+  return switch (level) {
+    QuantRiskLevel.low => '风险较低',
+    QuantRiskLevel.medium => '风险中等',
+    QuantRiskLevel.high => '风险较高',
+    QuantRiskLevel.unavailable => '风险未知',
+  };
+}

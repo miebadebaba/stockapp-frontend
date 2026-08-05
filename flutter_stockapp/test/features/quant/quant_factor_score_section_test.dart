@@ -66,7 +66,7 @@ void main() {
       ),
     );
 
-    expect(find.text('多因子技术评分'), findsOneWidget);
+    expect(find.text('当前股票因子解析'), findsOneWidget);
     expect(find.text('78'), findsOneWidget);
     expect(find.text('/ 100'), findsOneWidget);
     expect(find.text('偏强'), findsNWidgets(2));
@@ -96,7 +96,7 @@ void main() {
       ),
     );
 
-    expect(find.text('多因子技术评分'), findsOneWidget);
+    expect(find.text('当前股票因子解析'), findsOneWidget);
     expect(find.text('部分技术指标数据不足，暂时无法生成完整评分。'), findsOneWidget);
     expect(find.text('风险等级：暂不可用'), findsOneWidget);
     expect(find.text('/ 100'), findsNothing);

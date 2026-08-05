@@ -105,7 +105,7 @@ void main() {
       ),
     );
 
-    expect(find.text('多股票因子对比'), findsOneWidget);
+    expect(find.text('对比股票分析'), findsOneWidget);
     expect(find.text('贵州茅台'), findsOneWidget);
     expect(find.text('平安银行'), findsOneWidget);
     expect(find.text('综合评分'), findsOneWidget);

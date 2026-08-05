@@ -25,11 +25,16 @@ import 'quant_factor_score_section.dart';
 import 'quant_factor_comparison_section.dart';
 import 'quant_factor_backtest_calculator.dart';
 import 'quant_factor_backtest_section.dart';
+import 'quant_stock_catalog.dart';
+import 'quant_stock_ranking.dart';
+import 'quant_stock_ranking_calculator.dart';
+import 'quant_stock_ranking_section.dart';
 
 class QuantPage extends StatefulWidget {
-  const QuantPage({this.getJson, super.key});
+  const QuantPage({this.getJson, this.rankingAnalyze, super.key});
 
   final JsonGet? getJson;
+  final Future<QuantStockAnalysis> Function(String symbol)? rankingAnalyze;
 
   @override
   State<QuantPage> createState() => _QuantPageState();
@@ -43,6 +48,10 @@ class _QuantPageState extends State<QuantPage> {
   QuantAnalysisStatus _comparisonAnalysisStatus = QuantAnalysisStatus.idle;
 
   QuantStockAnalysis? comparisonAnalysis;
+  QuantMarket _rankingMarket = QuantMarket.aShare;
+  QuantRankingSort _rankingSort = QuantRankingSort.riskAdjustedScore;
+  QuantStockRankingResult? _rankingResult;
+  bool _isRankingLoading = false;
 
   late final QuantStockAnalysisController _stockAnalysisController;
   late final QuantStockAnalysisController _comparisonStockAnalysisController;
@@ -60,6 +69,7 @@ class _QuantPageState extends State<QuantPage> {
         getJson: widget.getJson ?? ApiClient().getJson,
       ),
     );
+    _loadRanking();
   }
 
   @override
@@ -142,6 +152,59 @@ class _QuantPageState extends State<QuantPage> {
     });
   }
 
+  Future<void> _loadRanking() async {
+    final market = _rankingMarket;
+    final sortBy = _rankingSort;
+
+    final stocks = quantStockCatalog
+        .where((stock) => stock.market == market)
+        .toList();
+
+    setState(() {
+      _isRankingLoading = true;
+    });
+
+    final result = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze:
+          widget.rankingAnalyze ??
+          (symbol) => _stockAnalysisController.api.analyze(symbol),
+      sortBy: sortBy,
+    );
+
+    if (!mounted || market != _rankingMarket || sortBy != _rankingSort) {
+      return;
+    }
+
+    setState(() {
+      _rankingResult = result;
+      _isRankingLoading = false;
+    });
+  }
+
+  void _onRankingMarketChanged(QuantMarket market) {
+    setState(() {
+      _rankingMarket = market;
+      _rankingResult = null;
+    });
+
+    _loadRanking();
+  }
+
+  void _onRankingSortChanged(QuantRankingSort sortBy) {
+    setState(() {
+      _rankingSort = sortBy;
+      _rankingResult = null;
+    });
+
+    _loadRanking();
+  }
+
+  void _onRankingStockSelected(SelectedStock stock) {
+    selectedStock = stock;
+    _loadAnalysis(stock);
+  }
+
   void _retryAnalysis() {
     final stock = selectedStock;
 
@@ -190,6 +253,19 @@ class _QuantPageState extends State<QuantPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
+
+                    QuantStockRankingSection(
+                      result: _rankingResult,
+                      market: _rankingMarket,
+                      isLoading: _isRankingLoading,
+                      onMarketChanged: _onRankingMarketChanged,
+                      onSortChanged: _onRankingSortChanged,
+                      onRefresh: _loadRanking,
+                      onStockSelected: _onRankingStockSelected,
+                    ),
+
+                    const SizedBox(height: AppSpacing.xxl),
+
                     if (!hasSelectedStock)
                       _EmptyStockState(onChooseStock: _chooseStock)
                     else if (_analysisStatus == QuantAnalysisStatus.success)
