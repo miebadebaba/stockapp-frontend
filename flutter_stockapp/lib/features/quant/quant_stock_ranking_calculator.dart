@@ -1,3 +1,5 @@
+import 'quant_factor_preset.dart';
+import 'quant_factor_preset_calculator.dart';
 import 'quant_factor_score_calculator.dart';
 import 'quant_stock_analysis.dart';
 import 'quant_stock_ranking.dart';
@@ -7,7 +9,10 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
   required List<SelectedStock> stocks,
   required Future<QuantStockAnalysis> Function(String symbol) analyze,
   QuantRankingSort sortBy = QuantRankingSort.riskAdjustedScore,
+  QuantFactorPresetType presetType = QuantFactorPresetType.balanced,
 }) async {
+  final preset = quantFactorPresetByType(presetType);
+
   final analyzedItems = await Future.wait(
     stocks.map((stock) async {
       final analysis = await analyze(stock.code);
@@ -27,8 +32,11 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
   ).then((items) => items.whereType<QuantStockRankingItem>().toList());
 
   analyzedItems.sort(
-    (left, right) =>
-        _sortValue(right, sortBy).compareTo(_sortValue(left, sortBy)),
+    (left, right) => _sortValue(
+      right,
+      sortBy,
+      preset,
+    ).compareTo(_sortValue(left, sortBy, preset)),
   );
 
   final rankedItems = <QuantStockRankingItem>[
@@ -44,14 +52,23 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
   return QuantStockRankingResult(
     items: List.unmodifiable(rankedItems),
     sortBy: sortBy,
+    presetType: presetType,
   );
 }
 
-double _sortValue(QuantStockRankingItem item, QuantRankingSort sortBy) {
+double _sortValue(
+  QuantStockRankingItem item,
+  QuantRankingSort sortBy,
+  QuantFactorPreset preset,
+) {
   return switch (sortBy) {
     QuantRankingSort.riskAdjustedScore =>
-      item.score.riskAdjustedScore ?? item.score.technicalScore,
-    QuantRankingSort.technicalScore => item.score.technicalScore,
+      calculatePresetRiskAdjustedScore(score: item.score, preset: preset) ??
+          calculatePresetTechnicalScore(score: item.score, preset: preset),
+    QuantRankingSort.technicalScore => calculatePresetTechnicalScore(
+      score: item.score,
+      preset: preset,
+    ),
     QuantRankingSort.trend => item.factorScore('trend') ?? 0,
     QuantRankingSort.momentum => item.factorScore('momentum') ?? 0,
     QuantRankingSort.volume => item.factorScore('volume') ?? 0,

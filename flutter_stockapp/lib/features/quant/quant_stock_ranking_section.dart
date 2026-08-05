@@ -5,13 +5,17 @@ import '../../core/theme/app_theme_palette.dart';
 import 'quant_factor_score.dart';
 import 'quant_stock_ranking.dart';
 import 'selected_stock.dart';
+import 'quant_factor_preset.dart';
+import 'quant_factor_preset_calculator.dart';
 
 class QuantStockRankingSection extends StatelessWidget {
   const QuantStockRankingSection({
     required this.result,
     required this.market,
+    required this.presetType,
     required this.isLoading,
     required this.onMarketChanged,
+    required this.onPresetChanged,
     required this.onSortChanged,
     required this.onRefresh,
     required this.onStockSelected,
@@ -25,6 +29,8 @@ class QuantStockRankingSection extends StatelessWidget {
   final ValueChanged<QuantRankingSort> onSortChanged;
   final VoidCallback onRefresh;
   final ValueChanged<SelectedStock> onStockSelected;
+  final QuantFactorPresetType presetType;
+  final ValueChanged<QuantFactorPresetType> onPresetChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +85,39 @@ class QuantStockRankingSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
+          Text(
+            '策略偏好',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.secondaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<QuantFactorPresetType>(
+              segments: quantFactorPresets
+                  .map(
+                    (preset) => ButtonSegment<QuantFactorPresetType>(
+                      value: preset.type,
+                      label: Text(preset.label),
+                    ),
+                  )
+                  .toList(),
+              selected: {presetType},
+              onSelectionChanged: isLoading
+                  ? null
+                  : (selection) => onPresetChanged(selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            quantFactorPresetByType(presetType).description,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.md),
           DropdownButtonFormField<QuantRankingSort>(
             initialValue: result?.sortBy ?? QuantRankingSort.riskAdjustedScore,
             decoration: const InputDecoration(
@@ -130,6 +169,7 @@ class QuantStockRankingSection extends StatelessWidget {
               (item) => _RankingRow(
                 item: item,
                 sortBy: result!.sortBy,
+                presetType: result!.presetType,
                 onPressed: () => onStockSelected(item.stock),
               ),
             ),
@@ -151,11 +191,13 @@ class _RankingRow extends StatelessWidget {
   const _RankingRow({
     required this.item,
     required this.sortBy,
+    required this.presetType,
     required this.onPressed,
   });
 
   final QuantStockRankingItem item;
   final QuantRankingSort sortBy;
+  final QuantFactorPresetType presetType;
   final VoidCallback onPressed;
 
   @override
@@ -209,7 +251,7 @@ class _RankingRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _displayScore(item, sortBy).toStringAsFixed(0),
+                    _displayScore(item, sortBy, presetType).toStringAsFixed(0),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: palette.primaryText,
                       fontWeight: FontWeight.w800,
@@ -234,10 +276,21 @@ class _RankingRow extends StatelessWidget {
   }
 }
 
-double _displayScore(QuantStockRankingItem item, QuantRankingSort sortBy) {
+double _displayScore(
+  QuantStockRankingItem item,
+  QuantRankingSort sortBy,
+  QuantFactorPresetType presetType,
+) {
+  final preset = quantFactorPresetByType(presetType);
+
   return switch (sortBy) {
-    QuantRankingSort.riskAdjustedScore => item.rankingScore,
-    QuantRankingSort.technicalScore => item.score.technicalScore,
+    QuantRankingSort.riskAdjustedScore =>
+      calculatePresetRiskAdjustedScore(score: item.score, preset: preset) ??
+          calculatePresetTechnicalScore(score: item.score, preset: preset),
+    QuantRankingSort.technicalScore => calculatePresetTechnicalScore(
+      score: item.score,
+      preset: preset,
+    ),
     QuantRankingSort.trend => item.factorScore('trend') ?? 0,
     QuantRankingSort.momentum => item.factorScore('momentum') ?? 0,
     QuantRankingSort.volume => item.factorScore('volume') ?? 0,
