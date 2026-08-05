@@ -27,7 +27,7 @@ class QuantFactorComparisonSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '多股票因子对比',
+          '对比股票分析',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: palette.primaryText,
             fontWeight: FontWeight.w800,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stockapp/core/network/api_exception.dart';
 import 'package:flutter_stockapp/core/theme/app_theme.dart';
 import 'package:flutter_stockapp/features/quant/quant_page.dart';
+import 'package:flutter_stockapp/features/quant/quant_stock_analysis_mock.dart';
 import 'package:flutter_stockapp/features/quant/technical_summary_section.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,6 +21,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: QuantPage(
+          rankingAnalyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
           getJson:
               ({
                 required String path,
@@ -35,7 +37,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.search_rounded));
+    final chooseStockButton = find.widgetWithText(FilledButton, '选择股票');
+    await tester.ensureVisible(chooseStockButton);
+    await tester.pumpAndSettle();
+    await tester.tap(chooseStockButton);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
@@ -59,6 +64,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: QuantPage(
+          rankingAnalyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
           getJson:
               ({
                 required String path,
@@ -73,7 +79,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.search_rounded));
+    final chooseStockButton = find.widgetWithText(FilledButton, '选择股票');
+    await tester.ensureVisible(chooseStockButton);
+    await tester.pumpAndSettle();
+    await tester.tap(chooseStockButton);
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '000333');
@@ -100,6 +109,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: QuantPage(
+          rankingAnalyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
           getJson:
               ({
                 required String path,
@@ -113,7 +123,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.search_rounded));
+    final chooseStockButton = find.widgetWithText(FilledButton, '选择股票');
+    await tester.ensureVisible(chooseStockButton);
+    await tester.pumpAndSettle();
+    await tester.tap(chooseStockButton);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
@@ -134,6 +147,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: QuantPage(
+          rankingAnalyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
           getJson:
               ({
                 required String path,
@@ -150,7 +164,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.search_rounded));
+    final chooseStockButton = find.widgetWithText(FilledButton, '选择股票');
+    await tester.ensureVisible(chooseStockButton);
+    await tester.pumpAndSettle();
+    await tester.tap(chooseStockButton);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
