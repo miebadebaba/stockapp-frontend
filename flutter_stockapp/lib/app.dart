@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_session.dart';
+import 'features/auth/auth_remote_service.dart';
 import 'features/auth/login_page.dart';
+import 'features/auth/token_storage.dart';
 import 'features/navigation/root_shell.dart';
 
 class AppNameDemo extends StatefulWidget {
-  const AppNameDemo({super.key});
+  const AppNameDemo({this.authApi, this.tokenStorage, super.key});
+
+  final AuthApi? authApi;
+  final TokenStorage? tokenStorage;
 
   @override
   State<AppNameDemo> createState() => _AppNameDemoState();
@@ -31,16 +36,25 @@ class _AppNameDemoState extends State<AppNameDemo> {
       home: _AuthGate(
         themeMode: _themeMode,
         onThemeModeChanged: _handleThemeModeChanged,
+        authApi: widget.authApi,
+        tokenStorage: widget.tokenStorage,
       ),
     );
   }
 }
 
 class _AuthGate extends StatefulWidget {
-  const _AuthGate({required this.themeMode, required this.onThemeModeChanged});
+  const _AuthGate({
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    this.authApi,
+    this.tokenStorage,
+  });
 
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final AuthApi? authApi;
+  final TokenStorage? tokenStorage;
 
   @override
   State<_AuthGate> createState() => _AuthGateState();
@@ -56,7 +70,10 @@ class _AuthGateState extends State<_AuthGate> {
   }
 
   Future<AuthSession> _loadSession() {
-    return AuthSession.load();
+    return AuthSession.load(
+      api: widget.authApi,
+      tokenStorage: widget.tokenStorage,
+    );
   }
 
   void _retryLoadSession() {
@@ -87,6 +104,9 @@ class _AuthGateState extends State<_AuthGate> {
                 username: session.username,
                 themeMode: widget.themeMode,
                 onThemeModeChanged: widget.onThemeModeChanged,
+                onSignOut: () {
+                  session.signOut();
+                },
               );
             }
 

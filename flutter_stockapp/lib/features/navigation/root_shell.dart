@@ -19,12 +19,14 @@ import 'idea_builder_sheet.dart';
 class RootShell extends StatefulWidget {
   const RootShell({
     this.username,
+    this.onSignOut,
     required this.themeMode,
     required this.onThemeModeChanged,
     super.key,
   });
 
   final String? username;
+  final VoidCallback? onSignOut;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
 
@@ -243,6 +245,7 @@ class _RootShellState extends State<RootShell> {
             if (_isAccountPageOpen)
               Positioned.fill(
                 child: AccountPage(
+                  userName: widget.username ?? 'Account',
                   onRateUsTap: () {},
                   onHelpCenterTap: () {},
                   onPreferencesTap: () {},
@@ -252,7 +255,7 @@ class _RootShellState extends State<RootShell> {
                   onProfileTap: () {},
                   onSettingsTap: _openSettingsPage,
                   onTopProfileTap: _closeAccountPage,
-                  onSignOutTap: () {},
+                  onSignOutTap: widget.onSignOut,
                 ),
               ),
             if (!_isAccountPageOpen && !_isSettingsPageOpen && !_isNewsPageOpen)

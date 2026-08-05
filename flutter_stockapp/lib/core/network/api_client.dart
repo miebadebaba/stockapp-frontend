@@ -27,11 +27,13 @@ class ApiClient {
   Future<Map<String, dynamic>> getJson({
     required String path,
     Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
   }) async {
     try {
       final response = await _dio.get<Object?>(
         path,
         queryParameters: queryParameters,
+        options: headers == null ? null : Options(headers: headers),
       );
 
       return _requireJsonObject(response.data);
@@ -68,6 +70,10 @@ class ApiClient {
         message: '请求处理失败，请稍后重试。',
       );
     }
+  }
+
+  void close({bool force = false}) {
+    _dio.close(force: force);
   }
 
   static Map<String, dynamic> _requireJsonObject(Object? data) {
@@ -118,7 +124,10 @@ class ApiClient {
         );
 
       case DioExceptionType.badResponse:
-        return _mapStatusCode(error.response?.statusCode);
+        return _mapStatusCode(
+          error.response?.statusCode,
+          error.response?.data,
+        );
 
       case DioExceptionType.badCertificate:
         return const ApiException(
@@ -134,27 +143,31 @@ class ApiClient {
     }
   }
 
-  static ApiException _mapStatusCode(int? statusCode) {
+  static ApiException _mapStatusCode(int? statusCode, Object? data) {
+    final detail = data is Map ? data['detail'] : null;
     switch (statusCode) {
       case 401:
-        return const ApiException(
+        return ApiException(
           type: ApiErrorType.unauthorized,
           message: '登录状态已失效，请重新登录。',
           statusCode: 401,
+          detail: detail,
         );
 
       case 403:
-        return const ApiException(
+        return ApiException(
           type: ApiErrorType.forbidden,
           message: '当前账号无权执行此操作。',
           statusCode: 403,
+          detail: detail,
         );
 
       case 404:
-        return const ApiException(
+        return ApiException(
           type: ApiErrorType.notFound,
           message: '请求的内容不存在。',
           statusCode: 404,
+          detail: detail,
         );
 
       default:
@@ -163,6 +176,7 @@ class ApiClient {
             type: ApiErrorType.server,
             message: '服务器暂时不可用，请稍后重试。',
             statusCode: statusCode,
+            detail: detail,
           );
         }
 
@@ -170,6 +184,7 @@ class ApiClient {
           type: ApiErrorType.unknown,
           message: '请求失败，请稍后重试。',
           statusCode: statusCode,
+          detail: detail,
         );
     }
   }
