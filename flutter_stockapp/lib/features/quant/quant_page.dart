@@ -22,6 +22,7 @@ import 'quant_risk_metrics_section.dart';
 import 'quant_ai_analysis_section.dart';
 import 'quant_factor_score_calculator.dart';
 import 'quant_factor_score_section.dart';
+import 'quant_factor_comparison_section.dart';
 import 'quant_factor_backtest_calculator.dart';
 import 'quant_factor_backtest_section.dart';
 
@@ -36,8 +37,15 @@ class QuantPage extends StatefulWidget {
 
 class _QuantPageState extends State<QuantPage> {
   SelectedStock? selectedStock;
+  SelectedStock? comparisonStock;
+
   QuantAnalysisStatus _analysisStatus = QuantAnalysisStatus.idle;
+  QuantAnalysisStatus _comparisonAnalysisStatus = QuantAnalysisStatus.idle;
+
+  QuantStockAnalysis? comparisonAnalysis;
+
   late final QuantStockAnalysisController _stockAnalysisController;
+  late final QuantStockAnalysisController _comparisonStockAnalysisController;
 
   @override
   void initState() {
@@ -47,11 +55,17 @@ class _QuantPageState extends State<QuantPage> {
         getJson: widget.getJson ?? ApiClient().getJson,
       ),
     );
+    _comparisonStockAnalysisController = QuantStockAnalysisController(
+      api: QuantStockAnalysisApi(
+        getJson: widget.getJson ?? ApiClient().getJson,
+      ),
+    );
   }
 
   @override
   void dispose() {
     _stockAnalysisController.dispose();
+    _comparisonStockAnalysisController.dispose();
     super.dispose();
   }
 
@@ -71,6 +85,45 @@ class _QuantPageState extends State<QuantPage> {
 
     selectedStock = stock;
     await _loadAnalysis(stock);
+  }
+
+  Future<void> _chooseComparisonStock() async {
+    final stock = await showModalBottomSheet<SelectedStock>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const FractionallySizedBox(
+        heightFactor: 0.75,
+        child: QuantStockSearchSheet(),
+      ),
+    );
+
+    if (stock == null || !mounted) {
+      return;
+    }
+
+    if (selectedStock?.code == stock.code) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('对比股票不能与当前股票相同')));
+      return;
+    }
+
+    setState(() {
+      comparisonStock = stock;
+      comparisonAnalysis = null;
+      _comparisonAnalysisStatus = QuantAnalysisStatus.loading;
+    });
+
+    await _comparisonStockAnalysisController.analyze(stock.code);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      comparisonAnalysis = _comparisonStockAnalysisController.result;
+      _comparisonAnalysisStatus = _comparisonStockAnalysisController.status;
+    });
   }
 
   Future<void> _loadAnalysis(SelectedStock stock) async {
@@ -144,6 +197,10 @@ class _QuantPageState extends State<QuantPage> {
                         stock: selectedStock!,
                         analysis: _stockAnalysisController.result!,
                         onChooseStock: _chooseStock,
+                        comparisonStock: comparisonStock,
+                        comparisonAnalysis: comparisonAnalysis,
+                        comparisonStatus: _comparisonAnalysisStatus,
+                        onChooseComparisonStock: _chooseComparisonStock,
                       )
                     else
                       QuantAnalysisStateView(
@@ -211,11 +268,19 @@ class _SelectedStockState extends StatelessWidget {
     required this.stock,
     required this.analysis,
     required this.onChooseStock,
+    required this.comparisonStock,
+    required this.comparisonAnalysis,
+    required this.comparisonStatus,
+    required this.onChooseComparisonStock,
   });
 
   final SelectedStock stock;
   final QuantStockAnalysis analysis;
   final VoidCallback onChooseStock;
+  final SelectedStock? comparisonStock;
+  final QuantStockAnalysis? comparisonAnalysis;
+  final QuantAnalysisStatus comparisonStatus;
+  final VoidCallback onChooseComparisonStock;
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +302,9 @@ class _SelectedStockState extends StatelessWidget {
       ma20: ma20,
     );
     final factorScore = calculateQuantFactorScore(analysis: analysis);
+    final comparisonFactorScore = comparisonAnalysis == null
+        ? null
+        : calculateQuantFactorScore(analysis: comparisonAnalysis!);
     final factorBacktest = calculateQuantFactorBacktest(
       symbol: analysis.symbol,
       bars: analysis.bars,
@@ -370,6 +438,51 @@ class _SelectedStockState extends StatelessWidget {
         QuantPriceChart(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
         QuantFactorScoreSection(result: factorScore),
+        const SizedBox(height: AppSpacing.lg),
+        if (comparisonStatus == QuantAnalysisStatus.loading)
+          const Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Text('正在分析对比股票...'),
+            ],
+          )
+        else if (comparisonStock != null &&
+            comparisonAnalysis != null &&
+            comparisonFactorScore != null) ...[
+          QuantFactorComparisonSection(
+            firstStock: stock,
+            firstScore: factorScore,
+            secondStock: comparisonStock!,
+            secondScore: comparisonFactorScore,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: onChooseComparisonStock,
+            icon: const Icon(Icons.swap_horiz_rounded),
+            label: const Text('更换对比股票'),
+          ),
+        ] else ...[
+          if (comparisonStock != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                '对比股票分析失败，请重新选择。',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+              ),
+            ),
+          OutlinedButton.icon(
+            onPressed: onChooseComparisonStock,
+            icon: const Icon(Icons.compare_arrows_rounded),
+            label: Text(comparisonStock == null ? '添加对比股票' : '重新选择对比股票'),
+          ),
+        ],
         const SizedBox(height: AppSpacing.xxl),
         QuantFactorBacktestSection(
           result: factorBacktest,
