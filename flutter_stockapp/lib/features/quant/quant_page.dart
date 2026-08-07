@@ -24,6 +24,10 @@ import 'quant_factor_score_calculator.dart';
 import 'quant_factor_score_section.dart';
 import 'quant_factor_comparison_section.dart';
 import 'quant_factor_backtest_calculator.dart';
+import 'quant_backtest_parameters.dart';
+import 'quant_backtest_parameters_section.dart';
+import 'quant_backtest_comparison.dart';
+import 'quant_backtest_comparison_section.dart';
 import 'quant_factor_backtest_section.dart';
 import 'quant_stock_catalog.dart';
 import 'quant_factor_preset.dart';
@@ -54,6 +58,7 @@ class _QuantPageState extends State<QuantPage> {
   QuantFactorPresetType _rankingPresetType = QuantFactorPresetType.balanced;
   QuantStockRankingResult? _rankingResult;
   bool _isRankingLoading = false;
+  QuantBacktestParameters _backtestParameters = const QuantBacktestParameters();
 
   late final QuantStockAnalysisController _stockAnalysisController;
   late final QuantStockAnalysisController _comparisonStockAnalysisController;
@@ -229,6 +234,12 @@ class _QuantPageState extends State<QuantPage> {
     }
   }
 
+  void _onBacktestParametersChanged(QuantBacktestParameters parameters) {
+    setState(() {
+      _backtestParameters = parameters;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
@@ -290,6 +301,9 @@ class _QuantPageState extends State<QuantPage> {
                       _SelectedStockState(
                         stock: selectedStock!,
                         analysis: _stockAnalysisController.result!,
+                        backtestParameters: _backtestParameters,
+                        onBacktestParametersChanged:
+                            _onBacktestParametersChanged,
                         presetType: _rankingPresetType,
                         onChooseStock: _chooseStock,
                         comparisonStock: comparisonStock,
@@ -368,6 +382,8 @@ class _SelectedStockState extends StatelessWidget {
     required this.comparisonAnalysis,
     required this.comparisonStatus,
     required this.onChooseComparisonStock,
+    required this.backtestParameters,
+    required this.onBacktestParametersChanged,
   });
 
   final SelectedStock stock;
@@ -378,6 +394,8 @@ class _SelectedStockState extends StatelessWidget {
   final QuantStockAnalysis? comparisonAnalysis;
   final QuantAnalysisStatus comparisonStatus;
   final VoidCallback onChooseComparisonStock;
+  final QuantBacktestParameters backtestParameters;
+  final ValueChanged<QuantBacktestParameters> onBacktestParametersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +423,13 @@ class _SelectedStockState extends StatelessWidget {
     final factorBacktest = calculateQuantFactorBacktest(
       symbol: analysis.symbol,
       bars: analysis.bars,
+      parameters: backtestParameters,
+    );
+
+    final comparisonResult = calculateQuantBacktestComparison(
+      symbol: analysis.symbol,
+      bars: analysis.bars,
+      cases: defaultQuantBacktestComparisonCases(),
     );
     final metadata = quote == null
         ? null
@@ -581,10 +606,17 @@ class _SelectedStockState extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.xxl),
+        QuantBacktestParametersSection(
+          parameters: backtestParameters,
+          onChanged: onBacktestParametersChanged,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
         QuantFactorBacktestSection(
           result: factorBacktest,
           isSimulated: analysis.isSimulated,
         ),
+        const SizedBox(height: AppSpacing.xxl),
+        QuantBacktestComparisonSection(result: comparisonResult),
         const SizedBox(height: AppSpacing.xxl),
         TechnicalSummarySection(result: analysis.technicalSummary),
         const SizedBox(height: AppSpacing.xxl),
