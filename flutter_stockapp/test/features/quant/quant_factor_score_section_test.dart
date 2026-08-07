@@ -20,8 +20,8 @@ void main() {
     await tester.pumpWidget(
       buildSubject(
         const QuantFactorScore(
-          technicalScore: 78,
-          riskAdjustedScore: 74,
+          technicalScore: 76.7,
+          riskAdjustedScore: 72.7,
           riskPenalty: 4,
           riskAdjustedRating: QuantTechnicalRating.positive,
           rating: QuantTechnicalRating.positive,
@@ -67,10 +67,10 @@ void main() {
     );
 
     expect(find.text('当前股票因子解析'), findsOneWidget);
-    expect(find.text('78'), findsOneWidget);
+    expect(find.text('77'), findsOneWidget);
     expect(find.text('/ 100'), findsOneWidget);
     expect(find.text('偏强'), findsNWidgets(2));
-    expect(find.text('风险调整参考分：74（风险扣分 4.0）'), findsOneWidget);
+    expect(find.text('风险调整参考分：73（风险扣分 4.0）'), findsOneWidget);
     expect(find.text('趋势'), findsOneWidget);
     expect(find.text('动量'), findsOneWidget);
     expect(find.text('量价'), findsOneWidget);
