@@ -1,8 +1,9 @@
 import 'macd_calculator.dart';
 import 'moving_average_calculator.dart';
+import 'quant_backtest_parameters.dart';
 import 'quant_factor_backtest.dart';
-import 'quant_factor_score_calculator.dart';
 import 'quant_factor_score.dart';
+import 'quant_factor_score_calculator.dart';
 import 'quant_stock_analysis.dart';
 import 'rsi_calculator.dart';
 import 'stock_daily_bar.dart';
@@ -13,59 +14,85 @@ import 'volume_analyzer.dart';
 QuantFactorBacktestResult calculateQuantFactorBacktest({
   required String symbol,
   required List<StockDailyBar> bars,
-  double signalThreshold = 60,
-  int holdingPeriod = 5,
-  int minimumLookback = 35,
-  QuantBacktestCostSettings costSettings = const QuantBacktestCostSettings(),
+  double? signalThreshold,
+  int? holdingPeriod,
+  int? minimumLookback,
+  QuantBacktestCostSettings? costSettings,
+  QuantBacktestParameters? parameters,
 }) {
-  if (signalThreshold < 0 || signalThreshold > 100) {
+  final effectiveParameters =
+      parameters ??
+      QuantBacktestParameters(
+        signalThreshold: signalThreshold ?? 60,
+        holdingPeriod: holdingPeriod ?? 5,
+        minimumLookback: minimumLookback ?? 35,
+        costSettings: costSettings ?? const QuantBacktestCostSettings(),
+      );
+
+  final effectiveSignalThreshold = effectiveParameters.signalThreshold;
+  final effectiveHoldingPeriod = effectiveParameters.holdingPeriod;
+  final effectiveMinimumLookback = effectiveParameters.minimumLookback;
+  final effectiveCostSettings = effectiveParameters.costSettings;
+
+  if (effectiveSignalThreshold < 0 || effectiveSignalThreshold > 100) {
     throw ArgumentError.value(
-      signalThreshold,
+      effectiveSignalThreshold,
       'signalThreshold',
       '信号阈值必须在 0～100 之间',
     );
   }
 
-  if (holdingPeriod <= 0) {
-    throw ArgumentError.value(holdingPeriod, 'holdingPeriod', '持有周期必须大于 0');
+  if (effectiveHoldingPeriod <= 0) {
+    throw ArgumentError.value(
+      effectiveHoldingPeriod,
+      'holdingPeriod',
+      '持有周期必须大于 0',
+    );
   }
 
-  if (minimumLookback < 35) {
+  if (effectiveMinimumLookback < 35) {
     throw ArgumentError.value(
-      minimumLookback,
+      effectiveMinimumLookback,
       'minimumLookback',
       '观察窗口不能少于 35 个交易日',
     );
   }
 
-  if (costSettings.commissionRate < 0 ||
-      costSettings.stampDutyRate < 0 ||
-      costSettings.slippageRate < 0 ||
-      costSettings.commissionRate >= 1 ||
-      costSettings.stampDutyRate >= 1 ||
-      costSettings.slippageRate >= 1) {
-    throw ArgumentError.value(costSettings, 'costSettings', '交易成本率必须在 0～1 之间');
+  if (effectiveCostSettings.commissionRate < 0 ||
+      effectiveCostSettings.stampDutyRate < 0 ||
+      effectiveCostSettings.slippageRate < 0 ||
+      effectiveCostSettings.commissionRate >= 1 ||
+      effectiveCostSettings.stampDutyRate >= 1 ||
+      effectiveCostSettings.slippageRate >= 1) {
+    throw ArgumentError.value(
+      effectiveCostSettings,
+      'costSettings',
+      '交易成本率必须在 0～1 之间',
+    );
   }
 
   final orderedBars = [...bars]
     ..sort((left, right) => left.tradingDate.compareTo(right.tradingDate));
 
   final trades = <QuantBacktestTrade>[];
+
   final factorTrades = <String, List<QuantBacktestTrade>>{
     'trend': [],
     'momentum': [],
     'volume': [],
   };
+
   final factorNextAvailableIndex = <String, int>{
-    'trend': minimumLookback - 1,
-    'momentum': minimumLookback - 1,
-    'volume': minimumLookback - 1,
+    'trend': effectiveMinimumLookback - 1,
+    'momentum': effectiveMinimumLookback - 1,
+    'volume': effectiveMinimumLookback - 1,
   };
-  var signalIndex = minimumLookback - 1;
+
+  var signalIndex = effectiveMinimumLookback - 1;
 
   while (signalIndex < orderedBars.length) {
     final entryIndex = signalIndex + 1;
-    final exitIndex = entryIndex + holdingPeriod - 1;
+    final exitIndex = entryIndex + effectiveHoldingPeriod - 1;
 
     if (exitIndex >= orderedBars.length) {
       break;
@@ -94,28 +121,32 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
 
     for (final factor in factorScore.factors) {
       final factorId = factor.id;
-      final nextAvailableIndex = factorNextAvailableIndex[factorId]!;
+      final nextAvailableIndex = factorNextAvailableIndex[factorId];
+      final factorTradeList = factorTrades[factorId];
 
-      if (factor.signal == QuantFactorSignal.unavailable ||
-          factor.score < signalThreshold ||
+      if (nextAvailableIndex == null ||
+          factorTradeList == null ||
+          factor.signal == QuantFactorSignal.unavailable ||
+          factor.score < effectiveSignalThreshold ||
           signalIndex < nextAvailableIndex) {
         continue;
       }
 
-      factorTrades[factorId]!.add(
+      factorTradeList.add(
         QuantBacktestTrade(
           entryDate: entryBar.tradingDate,
           exitDate: exitBar.tradingDate,
           entryPrice: entryBar.open,
           exitPrice: exitBar.close,
           signalScore: factor.score,
-          costSettings: costSettings,
+          costSettings: effectiveCostSettings,
         ),
       );
+
       factorNextAvailableIndex[factorId] = exitIndex;
     }
 
-    if (signalScore == null || signalScore < signalThreshold) {
+    if (signalScore == null || signalScore < effectiveSignalThreshold) {
       signalIndex++;
       continue;
     }
@@ -126,26 +157,27 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
       entryPrice: entryBar.open,
       exitPrice: exitBar.close,
       signalScore: signalScore,
-      costSettings: costSettings,
+      costSettings: effectiveCostSettings,
     );
+
     trades.add(trade);
 
-    // 当前交易结束前不再产生新交易，避免持仓重叠。
+    // 当前交易结束前不再产生新交易，避免持仓时间重叠。
     signalIndex = exitIndex;
   }
 
   final equityCurve = _buildEquityCurve(
     bars: orderedBars,
     trades: trades,
-    minimumLookback: minimumLookback,
+    minimumLookback: effectiveMinimumLookback,
   );
 
   return QuantFactorBacktestResult(
     trades: List.unmodifiable(trades),
-    signalThreshold: signalThreshold,
-    holdingPeriod: holdingPeriod,
-    minimumLookback: minimumLookback,
-    costSettings: costSettings,
+    signalThreshold: effectiveSignalThreshold,
+    holdingPeriod: effectiveHoldingPeriod,
+    minimumLookback: effectiveMinimumLookback,
+    costSettings: effectiveCostSettings,
     equityCurve: List.unmodifiable(equityCurve),
     factorPerformances: List.unmodifiable([
       QuantFactorHistoricalPerformance(
@@ -198,6 +230,7 @@ List<QuantBacktestEquityPoint> _buildEquityCurve({
 
       if (isEntryOrLater && isBeforeExit) {
         final units = settledEquity / trade.totalEntryCost;
+
         strategyValue = _isValidPrice(bar.close)
             ? units * bar.close
             : settledEquity;
