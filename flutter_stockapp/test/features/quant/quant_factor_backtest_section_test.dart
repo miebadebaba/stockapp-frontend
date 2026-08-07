@@ -155,4 +155,40 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets('显示三个因子的历史表现摘要', (tester) async {
+    const result = QuantFactorBacktestResult(
+      trades: [],
+      signalThreshold: 60,
+      holdingPeriod: 5,
+      minimumLookback: 35,
+      factorPerformances: [
+        QuantFactorHistoricalPerformance(
+          factorId: 'trend',
+          label: '趋势因子',
+          trades: [],
+        ),
+        QuantFactorHistoricalPerformance(
+          factorId: 'momentum',
+          label: '动量因子',
+          trades: [],
+        ),
+        QuantFactorHistoricalPerformance(
+          factorId: 'volume',
+          label: '量价因子',
+          trades: [],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(buildSubject(result: result));
+
+    expect(find.text('因子历史表现'), findsOneWidget);
+    expect(find.text('趋势因子'), findsOneWidget);
+    expect(find.text('动量因子'), findsOneWidget);
+    expect(find.text('量价因子'), findsOneWidget);
+    expect(find.text('信号次数'), findsNWidgets(3));
+    expect(find.text('胜率'), findsNWidgets(3));
+    expect(find.text('--'), findsNWidgets(12));
+  });
 }

@@ -28,6 +28,55 @@ void main() {
       expect(firstTrade.netReturnRate, lessThan(firstTrade.grossReturnRate));
     });
 
+    test('分别统计趋势、动量和量价因子的历史表现', () {
+      final result = calculateQuantFactorBacktest(
+        symbol: '600519',
+        bars: _buildBars(60),
+        signalThreshold: 0,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+
+      expect(
+        result.factorPerformances.map((item) => item.factorId),
+        orderedEquals(['trend', 'momentum', 'volume']),
+      );
+      expect(
+        result.factorPerformances.map((item) => item.label),
+        orderedEquals(['趋势因子', '动量因子', '量价因子']),
+      );
+      expect(
+        result.factorPerformances.every(
+          (item) => item.signalCount == result.tradeCount,
+        ),
+        isTrue,
+      );
+      expect(
+        result.factorPerformances.first.averageReturn,
+        closeTo(result.averageReturn, 0.000001),
+      );
+    });
+
+    test('因子历史表现没有信号时返回零值而不是制造交易', () {
+      final result = calculateQuantFactorBacktest(
+        symbol: '600519',
+        bars: _buildBars(60),
+        signalThreshold: 100,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+
+      expect(result.tradeCount, 0);
+      expect(result.factorPerformances, hasLength(3));
+      for (final performance in result.factorPerformances) {
+        expect(performance.signalCount, 0);
+        expect(performance.winRate, 0);
+        expect(performance.averageReturn, 0);
+        expect(performance.cumulativeReturn, 0);
+        expect(performance.maximumDrawdown, 0);
+      }
+    });
+
     test('连续信号不会生成时间重叠的交易', () {
       final result = calculateQuantFactorBacktest(
         symbol: '600519',
