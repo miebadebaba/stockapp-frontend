@@ -3,15 +3,34 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'quant_factor_score.dart';
+import 'quant_factor_preset.dart';
+import 'quant_factor_preset_calculator.dart';
 
 class QuantFactorScoreSection extends StatelessWidget {
-  const QuantFactorScoreSection({required this.result, super.key});
+  const QuantFactorScoreSection({
+    required this.result,
+    this.presetType = QuantFactorPresetType.balanced,
+    super.key,
+  });
 
   final QuantFactorScore result;
+  final QuantFactorPresetType presetType;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final preset = quantFactorPresetByType(presetType);
+    final technicalScore = calculatePresetTechnicalScore(
+      score: result,
+      preset: preset,
+    );
+    final riskAdjustedScore = calculatePresetRiskAdjustedScore(
+      score: result,
+      preset: preset,
+    );
+    final adjustedRiskPenalty = result.riskPenalty == null
+        ? null
+        : result.riskPenalty! * preset.riskPenaltyMultiplier;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +57,7 @@ class QuantFactorScoreSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                result.technicalScore.toStringAsFixed(0),
+                technicalScore.toStringAsFixed(0),
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: palette.primaryText,
                   fontWeight: FontWeight.w800,
@@ -69,7 +88,7 @@ class QuantFactorScoreSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           LinearProgressIndicator(
-            value: result.technicalScore / 100,
+            value: technicalScore / 100,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
             backgroundColor: palette.segmentBackground,
@@ -84,7 +103,7 @@ class QuantFactorScoreSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          if (result.hasRiskAdjustment) ...[
+          if (riskAdjustedScore != null && result.riskPenalty != null) ...[
             Row(
               children: [
                 Icon(
@@ -96,9 +115,9 @@ class QuantFactorScoreSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '风险调整参考分：'
-                    '${result.riskAdjustedScore!.toStringAsFixed(0)}'
+                    '${riskAdjustedScore.toStringAsFixed(0)}'
                     '（风险扣分 '
-                    '${result.riskPenalty!.toStringAsFixed(1)}）',
+                    '${adjustedRiskPenalty!.toStringAsFixed(1)}）',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: palette.primaryText,
                       fontWeight: FontWeight.w700,
@@ -117,7 +136,10 @@ class QuantFactorScoreSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
           ],
           for (var index = 0; index < result.factors.length; index++) ...[
-            _FactorRow(factor: result.factors[index]),
+            _FactorRow(
+              factor: result.factors[index],
+              weight: preset.weightFor(result.factors[index].id),
+            ),
             if (index < result.factors.length - 1)
               const SizedBox(height: AppSpacing.lg),
           ],
@@ -153,13 +175,15 @@ class QuantFactorScoreSection extends StatelessWidget {
 }
 
 class _FactorRow extends StatelessWidget {
-  const _FactorRow({required this.factor});
+  const _FactorRow({required this.factor, required this.weight});
 
   final QuantFactorItem factor;
+  final double weight;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final contribution = factor.score * weight;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +202,7 @@ class _FactorRow extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '权重 ${(factor.weight * 100).toStringAsFixed(0)}%',
+                '权重 ${(weight * 100).toStringAsFixed(0)}%',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
@@ -215,6 +239,14 @@ class _FactorRow extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '加权贡献 ${contribution.toStringAsFixed(1)} 分',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(

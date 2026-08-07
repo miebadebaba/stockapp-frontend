@@ -290,6 +290,7 @@ class _QuantPageState extends State<QuantPage> {
                       _SelectedStockState(
                         stock: selectedStock!,
                         analysis: _stockAnalysisController.result!,
+                        presetType: _rankingPresetType,
                         onChooseStock: _chooseStock,
                         comparisonStock: comparisonStock,
                         comparisonAnalysis: comparisonAnalysis,
@@ -361,6 +362,7 @@ class _SelectedStockState extends StatelessWidget {
   const _SelectedStockState({
     required this.stock,
     required this.analysis,
+    required this.presetType,
     required this.onChooseStock,
     required this.comparisonStock,
     required this.comparisonAnalysis,
@@ -370,6 +372,7 @@ class _SelectedStockState extends StatelessWidget {
 
   final SelectedStock stock;
   final QuantStockAnalysis analysis;
+  final QuantFactorPresetType presetType;
   final VoidCallback onChooseStock;
   final SelectedStock? comparisonStock;
   final QuantStockAnalysis? comparisonAnalysis;
@@ -531,7 +534,7 @@ class _SelectedStockState extends StatelessWidget {
         const SizedBox(height: AppSpacing.xxl),
         QuantPriceChart(bars: analysis.bars),
         const SizedBox(height: AppSpacing.xxl),
-        QuantFactorScoreSection(result: factorScore),
+        QuantFactorScoreSection(result: factorScore, presetType: presetType),
         const SizedBox(height: AppSpacing.lg),
         if (comparisonStatus == QuantAnalysisStatus.loading)
           const Row(
