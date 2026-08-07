@@ -91,6 +91,73 @@ class QuantBacktestEquityPoint {
   final double benchmarkValue;
 }
 
+/// 单个因子独立发出信号后的历史表现摘要。
+///
+/// 该结果用于观察因子过去的区分度，不代表未来收益承诺。
+class QuantFactorHistoricalPerformance {
+  const QuantFactorHistoricalPerformance({
+    required this.factorId,
+    required this.label,
+    required this.trades,
+  });
+
+  final String factorId;
+  final String label;
+  final List<QuantBacktestTrade> trades;
+
+  int get signalCount => trades.length;
+
+  double get winRate {
+    if (trades.isEmpty) {
+      return 0;
+    }
+
+    return trades.where((trade) => trade.isWinning).length / trades.length;
+  }
+
+  double get averageReturn {
+    if (trades.isEmpty) {
+      return 0;
+    }
+
+    return trades.fold<double>(
+          0,
+          (total, trade) => total + trade.netReturnRate,
+        ) /
+        trades.length;
+  }
+
+  double get cumulativeReturn {
+    var equity = 1.0;
+
+    for (final trade in trades) {
+      equity *= 1 + trade.netReturnRate;
+    }
+
+    return equity - 1;
+  }
+
+  double get maximumDrawdown {
+    var equity = 1.0;
+    var peak = equity;
+    var maximumDrawdown = 0.0;
+
+    for (final trade in trades) {
+      equity *= 1 + trade.netReturnRate;
+      if (equity > peak) {
+        peak = equity;
+      }
+
+      final drawdown = (peak - equity) / peak;
+      if (drawdown > maximumDrawdown) {
+        maximumDrawdown = drawdown;
+      }
+    }
+
+    return maximumDrawdown;
+  }
+}
+
 class QuantFactorBacktestResult {
   const QuantFactorBacktestResult({
     required this.trades,
@@ -99,6 +166,7 @@ class QuantFactorBacktestResult {
     required this.minimumLookback,
     this.costSettings = const QuantBacktestCostSettings(),
     this.equityCurve = const [],
+    this.factorPerformances = const [],
   });
 
   final List<QuantBacktestTrade> trades;
@@ -109,6 +177,9 @@ class QuantFactorBacktestResult {
 
   /// 策略净值与买入持有基准净值的对比数据。
   final List<QuantBacktestEquityPoint> equityCurve;
+
+  /// 各单项因子独立发出信号时的历史表现。
+  final List<QuantFactorHistoricalPerformance> factorPerformances;
 
   int get tradeCount => trades.length;
 

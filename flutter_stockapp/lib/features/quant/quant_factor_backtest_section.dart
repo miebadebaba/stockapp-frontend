@@ -175,6 +175,35 @@ class QuantFactorBacktestSection extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           QuantBacktestEquityChart(points: result.equityCurve),
         ],
+        if (result.factorPerformances.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            '因子历史表现',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '分别统计单项因子达到同一阈值后，未来 ${result.holdingPeriod} 个交易日的表现',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          for (
+            var index = 0;
+            index < result.factorPerformances.length;
+            index++
+          ) ...[
+            _FactorPerformanceRow(
+              performance: result.factorPerformances[index],
+            ),
+            if (index < result.factorPerformances.length - 1)
+              const Divider(height: AppSpacing.xxl),
+          ],
+        ],
         const SizedBox(height: AppSpacing.md),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,6 +223,80 @@ class QuantFactorBacktestSection extends StatelessWidget {
                   color: palette.secondaryText,
                   height: 1.5,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FactorPerformanceRow extends StatelessWidget {
+  const _FactorPerformanceRow({required this.performance});
+
+  final QuantFactorHistoricalPerformance performance;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final hasSignals = performance.signalCount > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          performance.label,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: _BacktestMetric(
+                label: '信号次数',
+                value: '${performance.signalCount}',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _BacktestMetric(
+                label: '胜率',
+                value: hasSignals ? _percent(performance.winRate) : '--',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _BacktestMetric(
+                label: '平均净收益',
+                value: hasSignals
+                    ? _signedPercent(performance.averageReturn)
+                    : '--',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: _BacktestMetric(
+                label: '累计净收益',
+                value: hasSignals
+                    ? _signedPercent(performance.cumulativeReturn)
+                    : '--',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _BacktestMetric(
+                label: '最大回撤',
+                value: hasSignals
+                    ? _percent(performance.maximumDrawdown)
+                    : '--',
               ),
             ),
           ],

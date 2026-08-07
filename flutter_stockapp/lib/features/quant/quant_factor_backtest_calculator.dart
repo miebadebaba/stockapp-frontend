@@ -2,6 +2,7 @@ import 'macd_calculator.dart';
 import 'moving_average_calculator.dart';
 import 'quant_factor_backtest.dart';
 import 'quant_factor_score_calculator.dart';
+import 'quant_factor_score.dart';
 import 'quant_stock_analysis.dart';
 import 'rsi_calculator.dart';
 import 'stock_daily_bar.dart';
@@ -50,6 +51,16 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     ..sort((left, right) => left.tradingDate.compareTo(right.tradingDate));
 
   final trades = <QuantBacktestTrade>[];
+  final factorTrades = <String, List<QuantBacktestTrade>>{
+    'trend': [],
+    'momentum': [],
+    'volume': [],
+  };
+  final factorNextAvailableIndex = <String, int>{
+    'trend': minimumLookback - 1,
+    'momentum': minimumLookback - 1,
+    'volume': minimumLookback - 1,
+  };
   var signalIndex = minimumLookback - 1;
 
   while (signalIndex < orderedBars.length) {
@@ -73,11 +84,6 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
 
     final signalScore = factorScore.riskAdjustedScore;
 
-    if (signalScore == null || signalScore < signalThreshold) {
-      signalIndex++;
-      continue;
-    }
-
     final entryBar = orderedBars[entryIndex];
     final exitBar = orderedBars[exitIndex];
 
@@ -86,16 +92,43 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
       continue;
     }
 
-    trades.add(
-      QuantBacktestTrade(
-        entryDate: entryBar.tradingDate,
-        exitDate: exitBar.tradingDate,
-        entryPrice: entryBar.open,
-        exitPrice: exitBar.close,
-        signalScore: signalScore,
-        costSettings: costSettings,
-      ),
+    for (final factor in factorScore.factors) {
+      final factorId = factor.id;
+      final nextAvailableIndex = factorNextAvailableIndex[factorId]!;
+
+      if (factor.signal == QuantFactorSignal.unavailable ||
+          factor.score < signalThreshold ||
+          signalIndex < nextAvailableIndex) {
+        continue;
+      }
+
+      factorTrades[factorId]!.add(
+        QuantBacktestTrade(
+          entryDate: entryBar.tradingDate,
+          exitDate: exitBar.tradingDate,
+          entryPrice: entryBar.open,
+          exitPrice: exitBar.close,
+          signalScore: factor.score,
+          costSettings: costSettings,
+        ),
+      );
+      factorNextAvailableIndex[factorId] = exitIndex;
+    }
+
+    if (signalScore == null || signalScore < signalThreshold) {
+      signalIndex++;
+      continue;
+    }
+
+    final trade = QuantBacktestTrade(
+      entryDate: entryBar.tradingDate,
+      exitDate: exitBar.tradingDate,
+      entryPrice: entryBar.open,
+      exitPrice: exitBar.close,
+      signalScore: signalScore,
+      costSettings: costSettings,
     );
+    trades.add(trade);
 
     // 当前交易结束前不再产生新交易，避免持仓重叠。
     signalIndex = exitIndex;
@@ -114,6 +147,23 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     minimumLookback: minimumLookback,
     costSettings: costSettings,
     equityCurve: List.unmodifiable(equityCurve),
+    factorPerformances: List.unmodifiable([
+      QuantFactorHistoricalPerformance(
+        factorId: 'trend',
+        label: '趋势因子',
+        trades: List.unmodifiable(factorTrades['trend']!),
+      ),
+      QuantFactorHistoricalPerformance(
+        factorId: 'momentum',
+        label: '动量因子',
+        trades: List.unmodifiable(factorTrades['momentum']!),
+      ),
+      QuantFactorHistoricalPerformance(
+        factorId: 'volume',
+        label: '量价因子',
+        trades: List.unmodifiable(factorTrades['volume']!),
+      ),
+    ]),
   );
 }
 
