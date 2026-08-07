@@ -184,6 +184,7 @@ class _FactorRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final contribution = factor.score * weight;
+    final signalColor = _signalColor(context, factor.signal);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,6 +208,26 @@ class _FactorRow extends StatelessWidget {
                   context,
                 ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
               ),
+              const SizedBox(height: AppSpacing.xs),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: signalColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: 2,
+                  ),
+                  child: Text(
+                    _signalLabel(factor.signal),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: signalColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -223,7 +244,7 @@ class _FactorRow extends StatelessWidget {
                       minHeight: 6,
                       borderRadius: BorderRadius.circular(3),
                       backgroundColor: palette.segmentBackground,
-                      color: palette.primaryText,
+                      color: signalColor,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -339,6 +360,28 @@ class _UnavailableResult extends StatelessWidget {
       ],
     );
   }
+}
+
+String _signalLabel(QuantFactorSignal signal) {
+  return switch (signal) {
+    QuantFactorSignal.strong => '强势',
+    QuantFactorSignal.positive => '偏强',
+    QuantFactorSignal.neutral => '中性',
+    QuantFactorSignal.negative => '偏弱',
+    QuantFactorSignal.unavailable => '暂无数据',
+  };
+}
+
+Color _signalColor(BuildContext context, QuantFactorSignal signal) {
+  final colorScheme = Theme.of(context).colorScheme;
+
+  return switch (signal) {
+    QuantFactorSignal.strong => const Color(0xFF0E8F73),
+    QuantFactorSignal.positive => const Color(0xFF16A085),
+    QuantFactorSignal.neutral => const Color(0xFFB7791F),
+    QuantFactorSignal.negative => const Color(0xFFE05A47),
+    QuantFactorSignal.unavailable => colorScheme.outline,
+  };
 }
 
 String _ratingLabel(QuantTechnicalRating rating) {
