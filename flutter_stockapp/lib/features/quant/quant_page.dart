@@ -19,7 +19,7 @@ import 'quant_stock_analysis_api.dart';
 import 'quant_stock_analysis_controller.dart';
 import 'quant_price_chart.dart';
 import 'quant_risk_metrics_section.dart';
-import 'quant_ai_analysis_section.dart';
+import 'quant_overview_section.dart';
 import 'quant_factor_score_calculator.dart';
 import 'quant_factor_score_section.dart';
 import 'quant_factor_comparison_section.dart';
@@ -659,13 +659,13 @@ class _SelectedStockState extends StatelessWidget {
           QuantBacktestComparisonSection(result: comparisonResult),
         ],
         if (selectedTab == QuantDetailTab.overview) ...[
+          QuantOverviewSection(result: factorScore),
+        ],
+        if (selectedTab == QuantDetailTab.technical) ...[
+          const SizedBox(height: AppSpacing.xxl),
           TechnicalSummarySection(result: analysis.technicalSummary),
           const SizedBox(height: AppSpacing.xxl),
           QuantRiskMetricsSection(bars: analysis.bars),
-          const SizedBox(height: AppSpacing.xxl),
-          QuantAiAnalysisSection(stock: stock, analysis: analysis),
-        ],
-        if (selectedTab == QuantDetailTab.technical) ...[
           const SizedBox(height: AppSpacing.xxl),
           Text(
             '移动平均线',
