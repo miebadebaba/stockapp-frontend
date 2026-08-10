@@ -186,108 +186,126 @@ class _FactorRow extends StatelessWidget {
     final contribution = factor.score * weight;
     final signalColor = _signalColor(context, factor.signal);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 72,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                factor.label,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: palette.primaryText,
+    return ExpansionTile(
+      key: ValueKey('quant-factor-${factor.id}'),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(
+        left: AppSpacing.md,
+        right: AppSpacing.md,
+        bottom: AppSpacing.md,
+      ),
+      leading: SizedBox(
+        width: 42,
+        child: Text(
+          factor.score.toStringAsFixed(0),
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: signalColor,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              factor.label,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: palette.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: signalColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 2,
+              ),
+              child: Text(
+                _signalLabel(factor.signal),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: signalColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '权重 ${(weight * 100).toStringAsFixed(0)}%',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(
+              value: factor.score / 100,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(3),
+              backgroundColor: palette.segmentBackground,
+              color: signalColor,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '权重 ${(weight * 100).toStringAsFixed(0)}% · '
+              '加权贡献 ${contribution.toStringAsFixed(1)} 分',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: AppSpacing.xs),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: signalColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                    vertical: 2,
-                  ),
-                  child: Text(
-                    _signalLabel(factor.signal),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: signalColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
+          ],
+        ),
+      ),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            factor.summary,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        if (factor.evidence.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '判断依据',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          for (final evidence in factor.evidence)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('• ', style: TextStyle(color: palette.secondaryText)),
                   Expanded(
-                    child: LinearProgressIndicator(
-                      value: factor.score / 100,
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
-                      backgroundColor: palette.segmentBackground,
-                      color: signalColor,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  SizedBox(
-                    width: 32,
                     child: Text(
-                      factor.score.toStringAsFixed(0),
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: palette.primaryText,
-                        fontWeight: FontWeight.w700,
+                      evidence,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: palette.secondaryText,
+                        height: 1.5,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '加权贡献 ${contribution.toStringAsFixed(1)} 分',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: palette.secondaryText,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                factor.summary,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: palette.secondaryText,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                factor.evidence.join('；'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: palette.secondaryText,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ],
     );
   }
