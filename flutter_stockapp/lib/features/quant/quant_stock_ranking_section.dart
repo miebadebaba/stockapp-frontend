@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'quant_factor_preset.dart';
+import 'quant_factor_preset_calculator.dart';
 import 'quant_factor_score.dart';
 import 'quant_stock_ranking.dart';
 import 'selected_stock.dart';
-import 'quant_factor_preset.dart';
-import 'quant_factor_preset_calculator.dart';
 
 class QuantStockRankingSection extends StatelessWidget {
   const QuantStockRankingSection({
@@ -24,17 +24,18 @@ class QuantStockRankingSection extends StatelessWidget {
 
   final QuantStockRankingResult? result;
   final QuantMarket market;
+  final QuantFactorPresetType presetType;
   final bool isLoading;
   final ValueChanged<QuantMarket> onMarketChanged;
+  final ValueChanged<QuantFactorPresetType> onPresetChanged;
   final ValueChanged<QuantRankingSort> onSortChanged;
   final VoidCallback onRefresh;
   final ValueChanged<SelectedStock> onStockSelected;
-  final QuantFactorPresetType presetType;
-  final ValueChanged<QuantFactorPresetType> onPresetChanged;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final selectedSort = result?.sortBy ?? QuantRankingSort.riskAdjustedScore;
 
     return Material(
       color: Colors.transparent,
@@ -81,7 +82,9 @@ class QuantStockRankingSection extends StatelessWidget {
               selected: {market},
               onSelectionChanged: isLoading
                   ? null
-                  : (selection) => onMarketChanged(selection.first),
+                  : (selection) {
+                      onMarketChanged(selection.first);
+                    },
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -107,7 +110,9 @@ class QuantStockRankingSection extends StatelessWidget {
               selected: {presetType},
               onSelectionChanged: isLoading
                   ? null
-                  : (selection) => onPresetChanged(selection.first),
+                  : (selection) {
+                      onPresetChanged(selection.first);
+                    },
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -119,7 +124,7 @@ class QuantStockRankingSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           DropdownButtonFormField<QuantRankingSort>(
-            initialValue: result?.sortBy ?? QuantRankingSort.riskAdjustedScore,
+            initialValue: selectedSort,
             decoration: const InputDecoration(
               labelText: '排序方式',
               border: OutlineInputBorder(),
@@ -139,6 +144,29 @@ class QuantStockRankingSection extends StatelessWidget {
                       onSortChanged(value);
                     }
                   },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                selectedSort.isCrossSectional
+                    ? Icons.compare_arrows_rounded
+                    : Icons.info_outline_rounded,
+                size: 18,
+                color: palette.secondaryText,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  selectedSort.explanation,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: palette.secondaryText,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
           if (isLoading)
@@ -238,7 +266,8 @@ class _RankingRow extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      '${item.stock.code} · ${_riskLabel(item.score.risk.level)}',
+                      '${item.stock.code} · '
+                      '${_riskLabel(item.score.risk.level)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: palette.secondaryText,
                       ),
@@ -284,6 +313,7 @@ double _displayScore(
   final preset = quantFactorPresetByType(presetType);
 
   return switch (sortBy) {
+    QuantRankingSort.poolCompositeScore => item.poolCompositeScore ?? 0,
     QuantRankingSort.riskAdjustedScore =>
       calculatePresetRiskAdjustedScore(score: item.score, preset: preset) ??
           calculatePresetTechnicalScore(score: item.score, preset: preset),
@@ -291,9 +321,9 @@ double _displayScore(
       score: item.score,
       preset: preset,
     ),
-    QuantRankingSort.trend => item.factorScore('trend') ?? 0,
-    QuantRankingSort.momentum => item.factorScore('momentum') ?? 0,
-    QuantRankingSort.volume => item.factorScore('volume') ?? 0,
+    QuantRankingSort.trend => item.factorPercentile('trend') ?? 0,
+    QuantRankingSort.momentum => item.factorPercentile('momentum') ?? 0,
+    QuantRankingSort.volume => item.factorPercentile('volume') ?? 0,
   };
 }
 
