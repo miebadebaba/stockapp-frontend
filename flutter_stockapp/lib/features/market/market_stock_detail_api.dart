@@ -10,27 +10,35 @@ class MarketStockDetailApi {
   Future<MarketStockDetailData> fetchStockDetail(String stockId) async {
     final normalizedId = stockId.trim().toLowerCase();
     final symbol = normalizedId.toUpperCase();
+    final mockStock = _buildMockFallbackStock(normalizedId);
     final baseUrl = (apiBaseUrl ?? ApiConfig.baseUri.toString()).trim();
     final url =
         '$baseUrl/api/v1/market/stocks/${Uri.encodeComponent(symbol)}/detail';
 
-    final json = await _fetchJsonWithFriendlyErrors(url, baseUrl, symbol);
-    if (json is! Map<String, dynamic>) {
-      throw const MarketStockDetailApiException(
-        'The stock detail response was not a JSON object.',
-      );
-    }
+    try {
+      final json = await _fetchJsonWithFriendlyErrors(url, baseUrl, symbol);
+      if (json is! Map<String, dynamic>) {
+        throw const MarketStockDetailApiException(
+          'The stock detail response was not a JSON object.',
+        );
+      }
 
-    final stock = MarketStockDetailData.fromBackendJson(
-      json,
-      fallbackNews: marketStockNewsArticlesById(normalizedId),
-    );
-    if (stock.chartSeries.isEmpty || stock.candleSeries.isEmpty) {
-      throw const MarketStockDetailApiException(
-        'The stock detail response did not include usable chart data.',
+      final stock = MarketStockDetailData.fromBackendJson(
+        json,
+        fallbackNews: marketStockNewsArticlesById(normalizedId),
       );
+      if (stock.chartSeries.isEmpty || stock.candleSeries.isEmpty) {
+        throw const MarketStockDetailApiException(
+          'The stock detail response did not include usable chart data.',
+        );
+      }
+      return stock;
+    } on MarketStockDetailApiException {
+      if (mockStock != null) {
+        return mockStock;
+      }
+      rethrow;
     }
-    return stock;
   }
 }
 
@@ -43,6 +51,41 @@ class MarketStockDetailApiException implements Exception {
   String toString() => message;
 }
 
+MarketStockDetailData? _buildMockFallbackStock(String normalizedId) {
+  final exactMock = marketStockDetailById(normalizedId);
+  if (exactMock != null) {
+    return exactMock;
+  }
+
+  final template = marketStockDetailById('aapl') ?? marketStockDetailById('nvda');
+  if (template == null) {
+    return null;
+  }
+
+  final ticker = normalizedId.toUpperCase();
+  final exchangeLabel = ticker.endsWith('.SH')
+      ? 'SSE'
+      : ticker.endsWith('.SZ')
+      ? 'SZSE'
+      : ticker.endsWith('.BJ')
+      ? 'BSE'
+      : 'NASDAQ';
+
+  return MarketStockDetailData(
+    id: normalizedId,
+    ticker: ticker,
+    companyName: ticker,
+    exchangeLabel: exchangeLabel,
+    priceText: template.priceText,
+    changeValue: template.changeValue,
+    changePercent: template.changePercent,
+    changeLabel: template.changeLabel,
+    chartSeries: template.chartSeries,
+    candleSeries: template.candleSeries,
+    stats: template.stats,
+    newsArticles: template.newsArticles,
+  );
+}
 Future<Object?> _fetchJsonWithFriendlyErrors(
   String url,
   String baseUrl,

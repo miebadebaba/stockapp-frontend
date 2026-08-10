@@ -14,6 +14,7 @@ class NewsListArticleData {
     required this.readTimeText,
     required this.thumbnailIcon,
     required this.thumbnailColors,
+    this.imageUrl,
     this.showListen = false,
     this.isBookmarked = false,
   });
@@ -25,6 +26,7 @@ class NewsListArticleData {
   final String readTimeText;
   final IconData thumbnailIcon;
   final List<Color> thumbnailColors;
+  final String? imageUrl;
   final bool showListen;
   final bool isBookmarked;
 }
@@ -437,11 +439,26 @@ class _NewsThumbnail extends StatelessWidget {
               ),
             ),
             Center(
-              child: Icon(
-                article.thumbnailIcon,
-                size: 30,
-                color: Colors.white.withValues(alpha: 0.95),
-              ),
+              child: article.imageUrl == null
+                  ? Icon(
+                      article.thumbnailIcon,
+                      size: 30,
+                      color: Colors.white.withValues(alpha: 0.95),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.network(
+                        article.imageUrl!,
+                        width: 84,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          article.thumbnailIcon,
+                          size: 30,
+                          color: Colors.white.withValues(alpha: 0.95),
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

@@ -35,7 +35,7 @@ void main() {
       controller.dispose();
     });
 
-    test('uses empty state when backend returns 404', () async {
+    test('uses mock success when backend returns 404', () async {
       final controller = QuantStockAnalysisController(
         api: QuantStockAnalysisApi(
           getJson:
@@ -54,13 +54,14 @@ void main() {
 
       await controller.analyze('000001');
 
-      expect(controller.status, QuantAnalysisStatus.empty);
-      expect(controller.result, isNull);
+      expect(controller.status, QuantAnalysisStatus.success);
+      expect(controller.result, isNotNull);
+      expect(controller.result?.isSimulated, isTrue);
 
       controller.dispose();
     });
 
-    test('uses failure state for unexpected errors', () async {
+    test('uses mock success for unexpected errors', () async {
       final controller = QuantStockAnalysisController(
         api: QuantStockAnalysisApi(
           getJson:
@@ -75,8 +76,9 @@ void main() {
 
       await controller.analyze('000001');
 
-      expect(controller.status, QuantAnalysisStatus.failure);
-      expect(controller.result, isNull);
+      expect(controller.status, QuantAnalysisStatus.success);
+      expect(controller.result, isNotNull);
+      expect(controller.result?.isSimulated, isTrue);
 
       controller.dispose();
     });

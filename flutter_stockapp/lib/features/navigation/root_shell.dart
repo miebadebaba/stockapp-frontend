@@ -7,7 +7,7 @@ import '../account/account_page.dart';
 import '../agent/agent_page.dart';
 import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
-import '../news/news_list_page.dart';
+import '../news/news_feed_page.dart';
 import '../paper_trading/paper_trading_page.dart';
 import '../quant/quant_page.dart';
 import '../settings/settings_preview_page.dart';
@@ -301,13 +301,7 @@ class _RootShellState extends State<RootShell> {
               ),
             if (_isNewsPageOpen)
               Positioned.fill(
-                child: NewsListPage.demo(
-                  onCloseTap: _closeNewsPage,
-                  onArticleTap: (_) {},
-                  onListenTap: (_) {},
-                  onShareTap: (_) {},
-                  onBookmarkTap: (_) {},
-                ),
+                child: NewsFeedPage(onCloseTap: _closeNewsPage),
               ),
           ],
         ),

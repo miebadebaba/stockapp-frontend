@@ -16,6 +16,8 @@ class QuantStockAnalysis {
     required this.rsi14,
     required this.volume,
     required this.technicalSummary,
+    this.dataSourceName = 'Market service',
+    this.isSimulated = false,
   });
 
   final String symbol;
@@ -28,4 +30,6 @@ class QuantStockAnalysis {
   final double? rsi14;
   final VolumeAnalysisResult? volume;
   final TechnicalSummaryResult technicalSummary;
+  final String dataSourceName;
+  final bool isSimulated;
 }

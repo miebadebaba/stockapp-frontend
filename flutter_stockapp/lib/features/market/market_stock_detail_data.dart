@@ -24,6 +24,8 @@ class MarketStockNewsArticleData {
     required this.thumbnailIcon,
     required this.thumbnailColors,
     required this.contentParagraphs,
+    this.articleUrl,
+    this.imageUrl,
   });
 
   final String id;
@@ -36,6 +38,8 @@ class MarketStockNewsArticleData {
   final IconData thumbnailIcon;
   final List<Color> thumbnailColors;
   final List<String> contentParagraphs;
+  final String? articleUrl;
+  final String? imageUrl;
 }
 
 class MarketStockDetailData {

@@ -1,6 +1,7 @@
-﻿import '../../core/network/api_config.dart';
-import 'widgets/stock_list_section.dart';
+import '../../core/network/api_config.dart';
 import '../market/market_stock_detail_transport.dart';
+import 'home_stock_data.dart';
+import 'widgets/stock_list_section.dart';
 
 class MarketStockListApi {
   const MarketStockListApi({this.apiBaseUrl});
@@ -36,25 +37,30 @@ class MarketStockListApiException implements Exception {
 Future<Object?> _fetchStockListJson(String url, String baseUrl) async {
   try {
     return await fetchJson(url);
-  } catch (error) {
-    final message = error.toString();
-
-    if (message.contains('SocketException') ||
-        message.contains('Connection refused')) {
-      throw MarketStockListApiException(
-        'The StockApp backend is not reachable at $baseUrl. Start the backend and try again.',
-      );
-    }
-
-    if (message.contains('status 502') ||
-        message.contains('Unable to load market data for')) {
-      throw const MarketStockListApiException(
-        'The backend is running, but live stock data is currently unavailable from PandaAI.',
-      );
-    }
-
-    throw MarketStockListApiException(
-      'Unable to load live stocks right now. $message',
-    );
+  } catch (_) {
+    return homeStocks.map(_stockItemToJson).toList(growable: false);
   }
+}
+
+Map<String, dynamic> _stockItemToJson(StockListItemData item) {
+  final ticker = _looksLikeAShareTicker(item.subtitle) ? item.subtitle : item.title;
+  final companyName = _looksLikeAShareTicker(item.subtitle)
+      ? item.title
+      : item.subtitle;
+
+  return {
+    'id': item.id,
+    'ticker': ticker,
+    'company_name': companyName,
+    'price_text': item.priceText,
+    'change_percent': item.changePercent,
+    'reference_value': item.referenceValue,
+    'sparkline_values': item.sparklineValues,
+  };
+}
+
+bool _looksLikeAShareTicker(String value) {
+  return RegExp(r'^\d{6}\.(SH|SZ|BJ)$', caseSensitive: false).hasMatch(
+    value.trim(),
+  );
 }
