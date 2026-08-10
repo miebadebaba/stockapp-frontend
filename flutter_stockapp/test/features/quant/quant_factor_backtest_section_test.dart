@@ -187,8 +187,38 @@ void main() {
     expect(find.text('趋势因子'), findsOneWidget);
     expect(find.text('动量因子'), findsOneWidget);
     expect(find.text('量价因子'), findsOneWidget);
-    expect(find.text('信号次数'), findsNWidgets(3));
-    expect(find.text('胜率'), findsNWidgets(3));
-    expect(find.text('--'), findsNWidgets(12));
+
+    expect(find.byType(ExpansionTile), findsNWidgets(3));
+    expect(
+      find.byKey(const ValueKey('quant-factor-performance-trend')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('quant-factor-performance-momentum')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('quant-factor-performance-volume')),
+      findsOneWidget,
+    );
+
+    // 默认折叠，只显示摘要。
+    expect(find.text('暂无满足条件的历史信号'), findsNWidgets(3));
+    expect(find.text('信号次数'), findsNothing);
+
+    // 展开趋势因子后显示完整统计。
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('quant-factor-performance-trend')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('quant-factor-performance-trend')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('信号次数'), findsOneWidget);
+    expect(find.text('胜率'), findsOneWidget);
+    expect(find.text('平均净收益'), findsOneWidget);
+    expect(find.text('累计净收益'), findsOneWidget);
+    expect(find.text('最大回撤'), findsOneWidget);
   });
 }

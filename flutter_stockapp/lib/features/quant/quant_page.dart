@@ -634,15 +634,39 @@ class _SelectedStockState extends StatelessWidget {
           ],
         ],
         if (selectedTab == QuantDetailTab.backtest) ...[
-          const SizedBox(height: AppSpacing.xxl),
-          QuantBacktestParametersSection(
-            parameters: backtestParameters,
-            onChanged: onBacktestParametersChanged,
-          ),
-          const SizedBox(height: AppSpacing.xxl),
           QuantFactorBacktestSection(
             result: factorBacktest,
             isSimulated: analysis.isSimulated,
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          ExpansionTile(
+            key: const ValueKey('quant-backtest-parameters'),
+            initiallyExpanded: false,
+            maintainState: true,
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: AppSpacing.md),
+            leading: Icon(Icons.tune_rounded, color: palette.primaryText),
+            title: Text(
+              '调整回测参数',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: palette.primaryText,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            subtitle: Text(
+              '阈值 ${backtestParameters.signalThreshold.toStringAsFixed(0)} 分'
+              ' · 持有 ${backtestParameters.holdingPeriod} 日',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+            ),
+            children: [
+              QuantBacktestParametersSection(
+                parameters: backtestParameters,
+                onChanged: onBacktestParametersChanged,
+                showHeader: false,
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.xxl),
           QuantBacktestComparisonSection(result: comparisonResult),

@@ -228,6 +228,17 @@ void main() {
     await tester.tap(find.text('回测'));
     await tester.pumpAndSettle();
 
+    final backtestParametersTile = find.byKey(
+      const ValueKey('quant-backtest-parameters'),
+    );
+
+    expect(backtestParametersTile, findsOneWidget);
+    expect(find.byType(QuantBacktestParametersSection), findsNothing);
+
+    await tester.ensureVisible(backtestParametersTile);
+    await tester.tap(backtestParametersTile);
+    await tester.pumpAndSettle();
+
     expect(find.byType(QuantBacktestParametersSection), findsOneWidget);
 
     final changeStockButton = find.widgetWithText(OutlinedButton, '更换股票');
