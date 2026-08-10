@@ -3,12 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
-import 'rsi_interpreter.dart';
 import 'quant_stock_search_sheet.dart';
 import 'selected_stock.dart';
-import 'macd_interpreter.dart';
-import 'moving_average_interpreter.dart';
-import 'volume_interpreter.dart';
 import 'technical_summary_section.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
@@ -34,6 +30,7 @@ import 'quant_factor_preset.dart';
 import 'quant_stock_ranking.dart';
 import 'quant_stock_ranking_calculator.dart';
 import 'quant_stock_ranking_section.dart';
+import 'quant_technical_overview_section.dart';
 
 enum QuantDetailTab { overview, technical, factors, backtest }
 
@@ -423,17 +420,9 @@ class _SelectedStockState extends StatelessWidget {
     final ma10 = analysis.ma10;
     final ma20 = analysis.ma20;
     final macd = analysis.macd;
-    final macdInsight = interpretMacd(macd);
     final rsi14 = analysis.rsi14;
-    final rsiInsight = interpretRsi(rsi14);
     final volumeAnalysis = analysis.volume;
-    final volumeInsight = interpretVolume(volumeAnalysis);
-    final insight = interpretMovingAverages(
-      close: quote?.close,
-      ma5: ma5,
-      ma10: ma10,
-      ma20: ma20,
-    );
+
     final factorScore = calculateQuantFactorScore(analysis: analysis);
     final comparisonFactorScore = comparisonAnalysis == null
         ? null
@@ -662,300 +651,18 @@ class _SelectedStockState extends StatelessWidget {
           QuantOverviewSection(result: factorScore),
         ],
         if (selectedTab == QuantDetailTab.technical) ...[
-          const SizedBox(height: AppSpacing.xxl),
           TechnicalSummarySection(result: analysis.technicalSummary),
           const SizedBox(height: AppSpacing.xxl),
           QuantRiskMetricsSection(bars: analysis.bars),
           const SizedBox(height: AppSpacing.xxl),
-          Text(
-            '移动平均线',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '根据最近交易日的收盘价计算',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'MA5',
-                  value: ma5?.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'MA10',
-                  value: ma10?.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'MA20',
-                  value: ma20?.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            '趋势动量指标',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'MACD用于观察短期与长期价格趋势的差异',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'DIF',
-                  value: macd?.dif.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'DEA',
-                  value: macd?.dea.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: _QuoteMetric(
-                  label: 'MACD柱',
-                  value: macd?.histogram.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            macdInsight.title,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            macdInsight.explanation,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.secondaryText,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 18,
-                color: palette.secondaryText,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  macdInsight.riskNotice,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: palette.secondaryText,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            '动量指标',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'RSI用于观察近期上涨和下跌力量的相对变化',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _QuoteMetric(
-            label: 'RSI14',
-            value: rsi14?.toStringAsFixed(2) ?? '--',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            rsiInsight.title,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            rsiInsight.explanation,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.secondaryText,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 18,
-                color: palette.secondaryText,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  rsiInsight.riskNotice,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: palette.secondaryText,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            '量价分析',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '比较最新成交量与此前5日平均成交量',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _QuoteMetric(
-                  label: '前5日均量',
-                  value: volumeAnalysis == null
-                      ? '--'
-                      : '${(volumeAnalysis.averageVolume / 10000).toStringAsFixed(2)} 万股',
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: _QuoteMetric(
-                  label: '量比',
-                  value: volumeAnalysis?.volumeRatio.toStringAsFixed(2) ?? '--',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            volumeInsight.title,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            volumeInsight.explanation,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.secondaryText,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 18,
-                color: palette.secondaryText,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  volumeInsight.riskNotice,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: palette.secondaryText,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            '均线解读',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            insight.title,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: palette.primaryText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            insight.explanation,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.secondaryText,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 18,
-                color: palette.secondaryText,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  insight.riskNotice,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: palette.secondaryText,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
+          QuantTechnicalOverviewSection(
+            close: quote?.close,
+            ma5: ma5,
+            ma10: ma10,
+            ma20: ma20,
+            macd: macd,
+            rsi14: rsi14,
+            volume: volumeAnalysis,
           ),
         ],
         const SizedBox(height: AppSpacing.xxl),
