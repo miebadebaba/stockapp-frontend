@@ -33,7 +33,27 @@ void main() {
           isA<AuthException>().having(
             (error) => error.message,
             'message',
-            'Username or password is incorrect.',
+            '用户名或密码错误',
+          ),
+        ),
+      );
+      expect(storage.token, isNull);
+    });
+
+    test('maps a disabled account code to a clear user-facing error', () async {
+      final api = FakeAuthApi(
+        loginError: _apiError(403, code: 'ACCOUNT_DISABLED'),
+      );
+      final storage = MemoryTokenStorage();
+      final session = await AuthSession.load(api: api, tokenStorage: storage);
+
+      await expectLater(
+        session.signIn('disabled-user', 'correct-password'),
+        throwsA(
+          isA<AuthException>().having(
+            (error) => error.message,
+            'message',
+            '该账号已被禁用，请联系管理员',
           ),
         ),
       );
@@ -252,11 +272,16 @@ ApiException _unauthorized() {
   );
 }
 
-ApiException _apiError(int statusCode, {Object? detail}) {
+ApiException _apiError(int statusCode, {String? code, Object? detail}) {
   return ApiException(
-    type: statusCode == 401 ? ApiErrorType.unauthorized : ApiErrorType.unknown,
+    type: statusCode == 401
+        ? ApiErrorType.unauthorized
+        : statusCode == 403
+        ? ApiErrorType.forbidden
+        : ApiErrorType.unknown,
     message: 'error',
     statusCode: statusCode,
+    code: code,
     detail: detail,
   );
 }

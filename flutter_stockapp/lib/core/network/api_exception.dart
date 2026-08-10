@@ -15,12 +15,14 @@ class ApiException implements Exception {
     required this.type,
     required this.message,
     this.statusCode,
+    this.code,
     this.detail,
   });
 
   final ApiErrorType type;
   final String message;
   final int? statusCode;
+  final String? code;
   final Object? detail;
 
   @override

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_stockapp/core/network/api_client.dart';
+import 'package:flutter_stockapp/core/network/api_exception.dart';
 import 'package:flutter_stockapp/features/auth/auth_remote_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +43,26 @@ void main() {
     expect(request.path, '/api/v1/auth/me');
     expect(request.headers['Authorization'], 'Bearer token-value');
   });
+
+  test('login preserves the machine-readable disabled account code', () async {
+    final api = HttpAuthApi(
+      apiClient: _client((_) async {
+        return _response(
+          {'code': 'ACCOUNT_DISABLED', 'detail': 'Account is disabled.'},
+          statusCode: 403,
+        );
+      }),
+    );
+
+    await expectLater(
+      api.login(username: 'disabled-user', password: 'correct-password'),
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 403)
+            .having((error) => error.code, 'code', 'ACCOUNT_DISABLED'),
+      ),
+    );
+  });
 }
 
 ApiClient _client(_RequestHandler handler) {
@@ -67,10 +88,10 @@ class _Adapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-ResponseBody _response(Object data) {
+ResponseBody _response(Object data, {int statusCode = 200}) {
   return ResponseBody.fromString(
     jsonEncode(data),
-    200,
+    statusCode,
     headers: {
       Headers.contentTypeHeader: [Headers.jsonContentType],
     },

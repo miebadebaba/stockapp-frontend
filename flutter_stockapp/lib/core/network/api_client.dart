@@ -145,12 +145,14 @@ class ApiClient {
 
   static ApiException _mapStatusCode(int? statusCode, Object? data) {
     final detail = data is Map ? data['detail'] : null;
+    final code = data is Map && data['code'] is String ? data['code'] as String : null;
     switch (statusCode) {
       case 401:
         return ApiException(
           type: ApiErrorType.unauthorized,
           message: '登录状态已失效，请重新登录。',
           statusCode: 401,
+          code: code,
           detail: detail,
         );
 
@@ -159,6 +161,7 @@ class ApiClient {
           type: ApiErrorType.forbidden,
           message: '当前账号无权执行此操作。',
           statusCode: 403,
+          code: code,
           detail: detail,
         );
 
@@ -176,6 +179,7 @@ class ApiClient {
             type: ApiErrorType.server,
             message: '服务器暂时不可用，请稍后重试。',
             statusCode: statusCode,
+            code: code,
             detail: detail,
           );
         }
@@ -184,6 +188,7 @@ class ApiClient {
           type: ApiErrorType.unknown,
           message: '请求失败，请稍后重试。',
           statusCode: statusCode,
+          code: code,
           detail: detail,
         );
     }

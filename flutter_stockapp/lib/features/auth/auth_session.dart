@@ -105,9 +105,15 @@ class AuthSession extends ChangeNotifier {
   }
 
   AuthException _authException(ApiException error, {required bool login}) {
+    if (login && error.code == 'ACCOUNT_DISABLED') {
+      return const AuthException(
+        '该账号已被禁用，请联系管理员',
+        statusCode: 403,
+      );
+    }
     if (login && error.statusCode == 401) {
       return const AuthException(
-        'Username or password is incorrect.',
+        '用户名或密码错误',
         statusCode: 401,
       );
     }
@@ -136,14 +142,20 @@ class AuthSession extends ChangeNotifier {
       );
     }
     if (error.type == ApiErrorType.connection) {
-      return const AuthException('Unable to connect to the server.');
+      return AuthException(
+        login ? '网络连接失败，请稍后重试' : 'Unable to connect to the server.',
+      );
     }
     if (error.type == ApiErrorType.timeout) {
-      return const AuthException('The request timed out. Please try again.');
+      return AuthException(
+        login ? '请求超时，请稍后重试' : 'The request timed out. Please try again.',
+      );
     }
     if (error.statusCode != null && error.statusCode! >= 500) {
       return const AuthException('The server is temporarily unavailable.');
     }
-    return const AuthException('Authentication failed. Please try again.');
+    return AuthException(
+      login ? '登录失败，请稍后重试' : 'Authentication failed. Please try again.',
+    );
   }
 }

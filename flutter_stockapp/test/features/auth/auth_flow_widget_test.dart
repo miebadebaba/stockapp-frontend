@@ -197,7 +197,7 @@ void main() {
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Unable to connect to the server.'), findsOneWidget);
+    expect(find.text('网络连接失败，请稍后重试'), findsOneWidget);
     expect(api.loginCalls, 1);
   });
 
@@ -215,7 +215,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('The request timed out. Please try again.'),
+      find.text('请求超时，请稍后重试'),
       findsOneWidget,
     );
     expect(api.loginCalls, 1);
@@ -386,12 +386,33 @@ void main() {
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Username or password is incorrect.'), findsOneWidget);
+    expect(find.text('用户名或密码错误'), findsOneWidget);
     expect(find.byKey(const Key('login-submit')).hitTestable(), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
     expect(api.loginCalls, 2);
+  });
+
+  testWidgets('disabled account login shows the administrator contact message', (
+    tester,
+  ) async {
+    final api = FlowAuthApi(
+      loginError: const ApiException(
+        type: ApiErrorType.forbidden,
+        message: 'forbidden',
+        statusCode: 403,
+        code: 'ACCOUNT_DISABLED',
+      ),
+    );
+    await pumpApp(tester, api: api);
+    await openLoginAndFill(tester);
+
+    await tester.tap(find.byKey(const Key('login-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('该账号已被禁用，请联系管理员'), findsOneWidget);
+    expect(api.loginCalls, 1);
   });
 
   testWidgets('async login completion after dispose does not call setState', (
