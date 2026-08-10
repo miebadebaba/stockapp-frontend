@@ -8,6 +8,7 @@ import 'package:flutter_stockapp/features/quant/quant_stock_ranking_section.dart
 import 'package:flutter_stockapp/features/quant/selected_stock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_stockapp/features/quant/quant_factor_preset.dart';
+import 'package:flutter_stockapp/features/quant/quant_cross_sectional_calculator.dart';
 
 void main() {
   testWidgets('显示市场、排序方式和股票排名', (tester) async {
@@ -107,5 +108,67 @@ void main() {
 
     expect(find.text('正在计算股票池排名...'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+  testWidgets('显示股票池综合分并支持选择百分位排序', (tester) async {
+    final stock = quantStockCatalog.first;
+    final analysis = buildMockQuantStockAnalysis(stock.code);
+
+    final result = QuantStockRankingResult(
+      sortBy: QuantRankingSort.poolCompositeScore,
+      items: [
+        QuantStockRankingItem(
+          rank: 1,
+          stock: stock,
+          analysis: analysis,
+          score: calculateQuantFactorScore(analysis: analysis),
+          crossSectionalScore: const QuantCrossSectionalScore(
+            stockId: '600519',
+            factorPercentiles: {'trend': 90, 'momentum': 80, 'volume': 70},
+            compositeScore: 82,
+          ),
+        ),
+      ],
+    );
+
+    QuantRankingSort? selectedSort;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: QuantStockRankingSection(
+              result: result,
+              market: QuantMarket.aShare,
+              presetType: QuantFactorPresetType.balanced,
+              isLoading: false,
+              onMarketChanged: (_) {},
+              onPresetChanged: (_) {},
+              onSortChanged: (sortBy) {
+                selectedSort = sortBy;
+              },
+              onRefresh: () {},
+              onStockSelected: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('股票池综合分'), findsWidgets);
+    expect(find.text('82'), findsOneWidget);
+    expect(find.textContaining('整体相对表现越靠前'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<QuantRankingSort>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('趋势百分位'), findsOneWidget);
+    expect(find.text('动量百分位'), findsOneWidget);
+    expect(find.text('量价百分位'), findsOneWidget);
+
+    await tester.tap(find.text('趋势百分位'));
+    await tester.pumpAndSettle();
+
+    expect(selectedSort, QuantRankingSort.trend);
   });
 }

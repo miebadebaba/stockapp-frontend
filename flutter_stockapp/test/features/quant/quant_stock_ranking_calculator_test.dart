@@ -50,8 +50,10 @@ void main() {
 
       for (var index = 1; index < result.items.length; index++) {
         expect(
-          result.items[index - 1].factorScore(factorId),
-          greaterThanOrEqualTo(result.items[index].factorScore(factorId) ?? 0),
+          result.items[index - 1].factorPercentile(factorId),
+          greaterThanOrEqualTo(
+            result.items[index].factorPercentile(factorId) ?? 0,
+          ),
         );
       }
     }
@@ -80,6 +82,67 @@ void main() {
       );
 
       expect(previous, greaterThanOrEqualTo(current!));
+    }
+  });
+  test('为每只股票生成股票池横向百分位', () async {
+    final stocks = quantStockCatalog.take(4).toList();
+
+    final result = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+    );
+
+    expect(result.items, hasLength(4));
+
+    for (final item in result.items) {
+      expect(item.crossSectionalScore, isNotNull);
+      expect(item.poolCompositeScore, inInclusiveRange(0, 100));
+      expect(item.factorPercentile('trend'), inInclusiveRange(0, 100));
+      expect(item.factorPercentile('momentum'), inInclusiveRange(0, 100));
+      expect(item.factorPercentile('volume'), inInclusiveRange(0, 100));
+    }
+  });
+
+  test('横向综合分使用当前策略的因子权重', () async {
+    final stocks = quantStockCatalog.take(4).toList();
+
+    final balancedResult = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+      presetType: QuantFactorPresetType.balanced,
+    );
+
+    final aggressiveResult = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+      presetType: QuantFactorPresetType.aggressive,
+    );
+
+    expect(
+      balancedResult.items.every((item) => item.crossSectionalScore != null),
+      isTrue,
+    );
+    expect(
+      aggressiveResult.items.every((item) => item.crossSectionalScore != null),
+      isTrue,
+    );
+  });
+  test('支持按股票池综合分降序排名', () async {
+    final stocks = quantStockCatalog.take(4).toList();
+
+    final result = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+      sortBy: QuantRankingSort.poolCompositeScore,
+    );
+
+    expect(result.sortBy, QuantRankingSort.poolCompositeScore);
+
+    for (var index = 1; index < result.items.length; index++) {
+      expect(
+        result.items[index - 1].poolCompositeScore,
+        greaterThanOrEqualTo(result.items[index].poolCompositeScore ?? 0),
+      );
     }
   });
 }
