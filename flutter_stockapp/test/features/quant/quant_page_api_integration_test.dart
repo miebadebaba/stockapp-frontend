@@ -5,6 +5,10 @@ import 'package:flutter_stockapp/features/quant/quant_page.dart';
 import 'package:flutter_stockapp/features/quant/quant_stock_analysis_mock.dart';
 import 'package:flutter_stockapp/features/quant/technical_summary_section.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_stockapp/features/quant/quant_backtest_parameters_section.dart';
+import 'package:flutter_stockapp/features/quant/quant_factor_score_section.dart';
+import 'package:flutter_stockapp/features/quant/quant_price_chart.dart';
+import 'package:flutter_stockapp/features/quant/quant_overview_section.dart';
 
 void main() {
   testWidgets('selecting a stock requests and displays backend analysis', (
@@ -49,7 +53,7 @@ void main() {
     expect(receivedPath, '/api/v1/quant/stocks/600519/analysis');
     expect(receivedQuery, {'limit': 60});
     expect(find.text('600519'), findsOneWidget);
-    expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.byType(QuantOverviewSection), findsOneWidget);
     expect(find.text('当前数据来自 Market 行情服务'), findsOneWidget);
   });
 
@@ -132,7 +136,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(callCount, 1);
-    expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.byType(QuantOverviewSection), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
     expect(find.byIcon(Icons.refresh), findsNothing);
     expect(find.text('当前显示内置模拟数据，仅用于功能演示'), findsOneWidget);
@@ -172,8 +176,83 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.byType(QuantOverviewSection), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
+  });
+  testWidgets('detail tabs switch content and reset after changing stock', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: QuantPage(
+          rankingAnalyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+          getJson:
+              ({
+                required String path,
+                Map<String, dynamic>? queryParameters,
+              }) async {
+                return _successfulResponse();
+              },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final chooseStockButton = find.widgetWithText(FilledButton, '选择股票');
+    await tester.ensureVisible(chooseStockButton);
+    await tester.tap(chooseStockButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ListTile, '600519 · A股'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuantOverviewSection), findsOneWidget);
+
+    await tester.tap(find.text('技术'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuantPriceChart), findsOneWidget);
+    expect(find.byType(TechnicalSummarySection), findsOneWidget);
+    expect(find.byType(QuantOverviewSection), findsNothing);
+
+    await tester.tap(find.text('多因子'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuantFactorScoreSection), findsOneWidget);
+    expect(find.byType(QuantPriceChart), findsNothing);
+
+    await tester.tap(find.text('回测'));
+    await tester.pumpAndSettle();
+
+    final backtestParametersTile = find.byKey(
+      const ValueKey('quant-backtest-parameters'),
+    );
+
+    expect(backtestParametersTile, findsOneWidget);
+    expect(find.byType(QuantBacktestParametersSection), findsNothing);
+
+    await tester.ensureVisible(backtestParametersTile);
+    await tester.tap(backtestParametersTile);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuantBacktestParametersSection), findsOneWidget);
+
+    final changeStockButton = find.widgetWithText(OutlinedButton, '更换股票');
+    await tester.ensureVisible(changeStockButton);
+    await tester.pumpAndSettle();
+    await tester.tap(changeStockButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ListTile, '000001 · A股'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('000001'), findsOneWidget);
+    expect(find.byType(QuantOverviewSection), findsOneWidget);
+    expect(find.byType(QuantBacktestParametersSection), findsNothing);
   });
 }
 

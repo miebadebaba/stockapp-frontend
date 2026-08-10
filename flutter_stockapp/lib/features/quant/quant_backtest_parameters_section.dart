@@ -9,11 +9,13 @@ class QuantBacktestParametersSection extends StatefulWidget {
   const QuantBacktestParametersSection({
     required this.parameters,
     required this.onChanged,
+    this.showHeader = true,
     super.key,
   });
 
   final QuantBacktestParameters parameters;
   final ValueChanged<QuantBacktestParameters> onChanged;
+  final bool showHeader;
 
   @override
   State<QuantBacktestParametersSection> createState() =>
@@ -155,19 +157,21 @@ class _QuantBacktestParametersSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '回测参数',
-          style: textTheme.titleLarge?.copyWith(
-            color: palette.primaryText,
-            fontWeight: FontWeight.w800,
+        if (widget.showHeader) ...[
+          Text(
+            '回测参数',
+            style: textTheme.titleLarge?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          '调整参数后点击“应用参数”，再查看新的历史回测结果。',
-          style: textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
-        ),
-        const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '调整参数后点击“应用参数”，再查看新的历史回测结果。',
+            style: textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         Text(
           '信号阈值：${_signalThreshold.toStringAsFixed(0)} 分',
           style: textTheme.bodyLarge?.copyWith(

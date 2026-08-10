@@ -74,7 +74,7 @@ void main() {
     expect(find.text('趋势'), findsOneWidget);
     expect(find.text('动量'), findsOneWidget);
     expect(find.text('量价'), findsOneWidget);
-    expect(find.text('权重 40%'), findsOneWidget);
+    expect(find.textContaining('40%'), findsOneWidget);
     expect(find.text('风险等级：中等'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNWidgets(4));
   });

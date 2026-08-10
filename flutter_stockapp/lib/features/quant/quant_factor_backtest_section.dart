@@ -242,17 +242,30 @@ class _FactorPerformanceRow extends StatelessWidget {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final hasSignals = performance.signalCount > 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          performance.label,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: palette.primaryText,
-            fontWeight: FontWeight.w700,
-          ),
+    final summary = hasSignals
+        ? '信号 ${performance.signalCount} 次 · '
+              '胜率 ${_percent(performance.winRate)} · '
+              '平均净收益 ${_signedPercent(performance.averageReturn)}'
+        : '暂无满足条件的历史信号';
+
+    return ExpansionTile(
+      key: ValueKey('quant-factor-performance-${performance.factorId}'),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: AppSpacing.md),
+      title: Text(
+        performance.label,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w700,
         ),
-        const SizedBox(height: AppSpacing.md),
+      ),
+      subtitle: Text(
+        summary,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+      ),
+      children: [
         Row(
           children: [
             Expanded(
@@ -299,6 +312,7 @@ class _FactorPerformanceRow extends StatelessWidget {
                     : '--',
               ),
             ),
+            const Expanded(child: SizedBox()),
           ],
         ),
       ],
