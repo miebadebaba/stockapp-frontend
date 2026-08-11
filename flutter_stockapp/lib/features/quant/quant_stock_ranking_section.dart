@@ -7,6 +7,7 @@ import 'quant_factor_preset_calculator.dart';
 import 'quant_factor_score.dart';
 import 'quant_stock_ranking.dart';
 import 'selected_stock.dart';
+import 'quant_factor_correlation_section.dart';
 
 class QuantStockRankingSection extends StatelessWidget {
   const QuantStockRankingSection({
@@ -232,6 +233,15 @@ class QuantStockRankingSection extends StatelessWidget {
                 onPressed: () => onStockSelected(item.stock),
               ),
             ),
+          if (!isLoading &&
+              result != null &&
+              result!.items.isNotEmpty &&
+              result!.factorCorrelations.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            QuantFactorCorrelationSection(
+              correlations: result!.factorCorrelations,
+            ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           Text(
             '排名仅描述当前数据周期内的相对技术状态，不代表未来收益。',
