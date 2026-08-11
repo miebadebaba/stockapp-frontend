@@ -303,6 +303,16 @@ class _RankingRow extends StatelessWidget {
                         color: palette.secondaryText,
                       ),
                     ),
+                    if (item.crossSectionalScore?.totalFactorCount != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.xs),
+                        child: Text(
+                          '${item.crossSectionalScore!.availableFactorCount}/'
+                          '${item.crossSectionalScore!.totalFactorCount} factors',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: palette.secondaryText),
+                        ),
+                      ),
                   ],
                 ),
               ),

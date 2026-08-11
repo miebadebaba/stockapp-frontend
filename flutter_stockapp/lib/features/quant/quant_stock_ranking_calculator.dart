@@ -2,9 +2,11 @@ import 'quant_cross_sectional_calculator.dart';
 import 'quant_factor_preset.dart';
 import 'quant_factor_preset_calculator.dart';
 import 'quant_factor_score_calculator.dart';
+import 'quant_factor_score.dart';
 import 'quant_stock_analysis.dart';
 import 'quant_stock_ranking.dart';
 import 'selected_stock.dart';
+import 'quant_factor_definition.dart';
 
 Future<QuantStockRankingResult> calculateQuantStockRanking({
   required List<SelectedStock> stocks,
@@ -13,6 +15,15 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
   QuantFactorPresetType presetType = QuantFactorPresetType.balanced,
 }) async {
   final preset = quantFactorPresetByType(presetType);
+  final factorWeightsForPreset = <String, double>{
+    'trend': preset.trendWeight,
+    'momentum': preset.momentumWeight,
+    'volume': preset.volumeWeight,
+  };
+
+  final factorDirectionsForPreset = quantFactorDirectionsFor(
+    factorWeightsForPreset.keys,
+  );
 
   final analyzedItems = await Future.wait(
     stocks.map((stock) async {
@@ -36,14 +47,15 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
     factorScoresByStock: {
       for (final item in analyzedItems)
         item.stock.code: {
-          for (final factor in item.score.factors) factor.id: factor.score,
+          for (final factor in item.score.factors)
+            if (factorWeightsForPreset.containsKey(factor.id) &&
+                factor.signal != QuantFactorSignal.unavailable &&
+                factor.score.isFinite)
+              factor.id: factor.score,
         },
     },
-    factorWeights: {
-      'trend': preset.trendWeight,
-      'momentum': preset.momentumWeight,
-      'volume': preset.volumeWeight,
-    },
+    factorWeights: factorWeightsForPreset,
+    factorDirections: factorDirectionsForPreset,
   );
 
   final itemsWithCrossSectionalScores = analyzedItems
