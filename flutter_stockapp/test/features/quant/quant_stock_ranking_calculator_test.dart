@@ -145,4 +145,28 @@ void main() {
       );
     }
   });
+  test('ranking items expose finite factor Z-Scores', () async {
+    final stocks = quantStockCatalog.take(4).toList();
+
+    final result = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+    );
+
+    expect(result.items, hasLength(4));
+
+    for (final item in result.items) {
+      final trendZScore = item.factorZScore('trend');
+      final momentumZScore = item.factorZScore('momentum');
+      final volumeZScore = item.factorZScore('volume');
+
+      expect(trendZScore, isNotNull);
+      expect(momentumZScore, isNotNull);
+      expect(volumeZScore, isNotNull);
+
+      expect(trendZScore!.isFinite, isTrue);
+      expect(momentumZScore!.isFinite, isTrue);
+      expect(volumeZScore!.isFinite, isTrue);
+    }
+  });
 }

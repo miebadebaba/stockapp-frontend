@@ -85,6 +85,11 @@ class QuantStockRankingItem {
   double? factorPercentile(String id) {
     return crossSectionalScore?.percentileFor(id);
   }
+
+  /// Returns the standardized factor value within the current stock pool.
+  double? factorZScore(String id) {
+    return crossSectionalScore?.zScoreFor(id);
+  }
 }
 
 class QuantStockRankingResult {
