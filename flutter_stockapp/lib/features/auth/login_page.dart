@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'auth_remote_service.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -10,60 +11,93 @@ class LoginPage extends StatefulWidget {
     super.key,
   });
 
-  final Future<void> Function(String username) onSignedIn;
-  final Future<void> Function(String username) onRegistered;
+  final Future<void> Function(String username, String password) onSignedIn;
+  final Future<void> Function(String username, String password) onRegistered;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _username = TextEditingController();
+  String _username = '';
   bool _submitting = false;
-
-  @override
-  void dispose() {
-    _username.dispose();
-    super.dispose();
-  }
+  String? _infoText;
+  String? _loginUsernameError;
+  String? _loginPasswordError;
+  String? _loginFormError;
+  String _loginPassword = '';
+  bool _loginSheetSubmitting = false;
 
   Future<void> _showUsernameSheet() async {
+    _loginUsernameError = null;
+    _loginPasswordError = null;
+    _loginFormError = null;
+    _loginPassword = '';
+    _loginSheetSubmitting = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        String? errorText;
-        var isSubmitting = false;
-
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            void rebuildSheet(VoidCallback update) {
+              update();
+              setSheetState(() {});
+            }
+
             Future<void> submit() async {
-              final username = _username.text.trim();
-              if (username.isEmpty) {
-                setSheetState(() => errorText = 'Please enter a username.');
+              if (_loginSheetSubmitting) {
+                return;
+              }
+              FocusScope.of(sheetContext).unfocus();
+              final username = _username.trim();
+              final nextUsernameError = username.isEmpty
+                  ? 'Please enter a username.'
+                  : null;
+              final nextPasswordError = _loginPassword.isEmpty
+                  ? 'Please enter a password.'
+                  : null;
+              if (nextUsernameError != null || nextPasswordError != null) {
+                rebuildSheet(() {
+                  _loginUsernameError = nextUsernameError;
+                  _loginPasswordError = nextPasswordError;
+                  _loginFormError = null;
+                });
                 return;
               }
 
-              setSheetState(() {
-                errorText = null;
-                isSubmitting = true;
+              rebuildSheet(() {
+                _loginUsernameError = null;
+                _loginPasswordError = null;
+                _loginFormError = null;
+                _loginSheetSubmitting = true;
               });
-              setState(() => _submitting = true);
+              if (mounted) {
+                setState(() => _submitting = true);
+              }
 
               try {
-                await widget.onSignedIn(username);
+                await widget.onSignedIn(username, _loginPassword);
                 if (sheetContext.mounted) {
                   Navigator.of(sheetContext).pop();
                 }
+              } on AuthException catch (error) {
+                if (sheetContext.mounted) {
+                  rebuildSheet(() => _loginFormError = error.message);
+                }
               } finally {
+                if (sheetContext.mounted) {
+                  rebuildSheet(() => _loginSheetSubmitting = false);
+                }
                 if (mounted) {
                   setState(() => _submitting = false);
                 }
               }
             }
 
-            return Padding(
+            return SingleChildScrollView(
+              key: const Key('login-sheet-scroll'),
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
@@ -91,25 +125,31 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         'Enter your username to continue.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontFamily: 'Inter',
-                              color: const Color(0xFF6B6B70),
-                            ),
+                          fontFamily: 'Inter',
+                          color: const Color(0xFF6B6B70),
+                        ),
                       ),
                       const SizedBox(height: 20),
-                      TextField(
-                        controller: _username,
+                      TextFormField(
+                        key: const Key('login-username'),
+                        initialValue: _username,
                         autofocus: true,
-                        enabled: !isSubmitting,
+                        enabled: !_loginSheetSubmitting,
                         textInputAction: TextInputAction.done,
-                        onChanged: (_) {
-                          if (errorText != null) {
-                            setSheetState(() => errorText = null);
+                        onChanged: (value) {
+                          _username = value;
+                          if (_loginUsernameError != null ||
+                              _loginFormError != null) {
+                            rebuildSheet(() {
+                              _loginUsernameError = null;
+                              _loginFormError = null;
+                            });
                           }
                         },
-                        onSubmitted: (_) => submit(),
+                        onFieldSubmitted: (_) => submit(),
                         decoration: InputDecoration(
                           hintText: 'Username',
-                          errorText: errorText,
+                          errorText: _loginUsernameError,
                           prefixIcon: const Icon(Icons.person_outline_rounded),
                           filled: true,
                           fillColor: const Color(0xFFF6F4F2),
@@ -130,12 +170,81 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const Key('login-password'),
+                        enabled: !_loginSheetSubmitting,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (value) {
+                          _loginPassword = value;
+                          if (_loginPasswordError != null ||
+                              _loginFormError != null) {
+                            rebuildSheet(() {
+                              _loginPasswordError = null;
+                              _loginFormError = null;
+                            });
+                          }
+                        },
+                        onFieldSubmitted: (_) => submit(),
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          errorText: _loginPasswordError,
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          filled: true,
+                          fillColor: const Color(0xFFF6F4F2),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF4285F4),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_loginFormError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _loginFormError!,
+                          key: const Key('login-form-error'),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: const Color(0xFFB3261E),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _LoginActionButton(
-                        label: isSubmitting ? 'Signing in...' : 'Continue',
+                        key: const Key('login-submit'),
+                        label: _loginSheetSubmitting
+                            ? 'Signing in...'
+                            : 'Continue',
                         icon: Icons.arrow_forward_rounded,
                         dark: true,
-                        onPressed: isSubmitting ? null : submit,
+                        onPressed: _loginSheetSubmitting ? null : submit,
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: TextButton(
+                          key: const Key('login-sheet-sign-up'),
+                          onPressed: _loginSheetSubmitting
+                              ? null
+                              : () {
+                                  Navigator.of(sheetContext).pop();
+                                  _openRegister();
+                                },
+                          child: const Text("Don't have an account? Sign up"),
+                        ),
                       ),
                     ],
                   ),
@@ -149,11 +258,20 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _openRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => RegisterPage(onRegistered: widget.onRegistered),
-      ),
-    );
+    Navigator.of(context)
+        .push<String>(
+          MaterialPageRoute<String>(
+            builder: (_) => RegisterPage(onRegistered: widget.onRegistered),
+          ),
+        )
+        .then((registeredUsername) {
+          if (mounted && registeredUsername != null) {
+            _username = registeredUsername;
+            setState(
+              () => _infoText = 'Registration successful. Please sign in.',
+            );
+          }
+        });
   }
 
   @override
@@ -173,7 +291,9 @@ class _LoginPageState extends State<LoginPage> {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: viewport.maxHeight),
+                        constraints: BoxConstraints(
+                          minHeight: viewport.maxHeight,
+                        ),
                         child: IntrinsicHeight(
                           child: Column(
                             children: [
@@ -224,21 +344,39 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
               ),
+              if (_infoText != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _infoText!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF2E7D32),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 86),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
                 child: Column(
                   children: [
                     _LoginActionButton(
+                      key: const Key('login-open-form'),
                       label: _submitting ? 'Signing in...' : 'Continue',
                       icon: Icons.person_outline_rounded,
                       onPressed: _submitting ? null : _showUsernameSheet,
                     ),
-                    const SizedBox(height: 32),
-                    _LoginActionButton(
-                      label: 'Create an account',
-                      icon: Icons.person_add_alt_1_rounded,
-                      dark: true,
+                    const SizedBox(height: 14),
+                    TextButton(
+                      key: const Key('login-sign-up'),
                       onPressed: _submitting ? null : _openRegister,
+                      child: Text(
+                        "Don't have an account? Sign up",
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF4285F4),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -313,6 +451,7 @@ class _LoginActionButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.dark = false,
+    super.key,
   });
 
   final String label;
@@ -354,11 +493,11 @@ class _LoginActionButton extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontFamily: 'Inter',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: foreground,
-                          ),
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: foreground,
+                      ),
                     ),
                   ),
                 ],
@@ -381,12 +520,7 @@ class _ButtonShadowPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    final shadowRect = Rect.fromLTRB(
-      -1,
-      -1,
-      size.width + 1,
-      size.height + 1,
-    );
+    final shadowRect = Rect.fromLTRB(-1, -1, size.width + 1, size.height + 1);
     final shadow = RRect.fromRectAndRadius(
       shadowRect,
       const Radius.circular(33),
