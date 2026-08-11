@@ -15,6 +15,7 @@ import '../tutorial/tutorial_category_page.dart';
 import 'app_top_actions.dart';
 import 'floating_bottom_nav.dart';
 import 'idea_builder_sheet.dart';
+import '../watchlist/watchlist_controller.dart';
 
 class RootShell extends StatefulWidget {
   const RootShell({
@@ -41,6 +42,21 @@ class _RootShellState extends State<RootShell> {
   var _isTutorialPageOpen = false;
   var _isForumPageOpen = false;
   var _hasPlayedAgentHeadline = false;
+
+  late final WatchlistController _watchlistController;
+
+  @override
+  void initState() {
+    super.initState();
+    _watchlistController = WatchlistController();
+    _watchlistController.load();
+  }
+
+  @override
+  void dispose() {
+    _watchlistController.dispose();
+    super.dispose();
+  }
 
   void _toggleIdeaOverlay() {
     setState(() => _isIdeaOverlayOpen = !_isIdeaOverlayOpen);
@@ -146,8 +162,15 @@ class _RootShellState extends State<RootShell> {
 
   void _openSimulationPage() {
     _closeIdeaOverlay();
+
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (context) => const PaperTradingPage()),
+      MaterialPageRoute<void>(
+        builder: (routeContext) => PaperTradingPage(
+          onClose: () {
+            Navigator.of(routeContext).pop();
+          },
+        ),
+      ),
     );
   }
 
@@ -160,7 +183,7 @@ class _RootShellState extends State<RootShell> {
         animateHeadline: _selectedIndex == 0 && !_hasPlayedAgentHeadline,
         onHeadlineAnimationCompleted: _handleAgentHeadlineAnimationCompleted,
       ),
-      const HomePage(),
+      HomePage(watchlistController: _watchlistController),
       const QuantPage(),
     ];
 
@@ -297,9 +320,7 @@ class _RootShellState extends State<RootShell> {
                 ),
               ),
             if (_isNewsPageOpen)
-              Positioned.fill(
-                child: NewsFeedPage(onCloseTap: _closeNewsPage),
-              ),
+              Positioned.fill(child: NewsFeedPage(onCloseTap: _closeNewsPage)),
           ],
         ),
       ),

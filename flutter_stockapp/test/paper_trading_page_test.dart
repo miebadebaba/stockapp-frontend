@@ -41,9 +41,15 @@ void main() {
     expect(find.text('腾讯控股'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byType(BackButton));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    final backButton = find.descendant(
+      of: find.byType(BackButton),
+      matching: find.byType(IconButton),
+    );
+
+    expect(backButton, findsOneWidget);
+
+    await tester.tap(backButton);
+    await tester.pumpAndSettle();
 
     expect(find.byType(PaperTradingPage), findsNothing);
     expect(find.byIcon(Icons.add_rounded), findsOneWidget);

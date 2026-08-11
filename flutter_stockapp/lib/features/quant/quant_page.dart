@@ -25,12 +25,12 @@ import 'quant_backtest_parameters_section.dart';
 import 'quant_backtest_comparison.dart';
 import 'quant_backtest_comparison_section.dart';
 import 'quant_factor_backtest_section.dart';
-import 'quant_stock_catalog.dart';
 import 'quant_factor_preset.dart';
 import 'quant_stock_ranking.dart';
 import 'quant_stock_ranking_calculator.dart';
 import 'quant_stock_ranking_section.dart';
 import 'quant_technical_overview_section.dart';
+import 'quant_pool_controller.dart';
 
 enum QuantDetailTab { overview, technical, factors, backtest }
 
@@ -45,6 +45,8 @@ class QuantPage extends StatefulWidget {
 }
 
 class _QuantPageState extends State<QuantPage> {
+  late final QuantPoolController _quantPoolController;
+
   SelectedStock? selectedStock;
   SelectedStock? comparisonStock;
 
@@ -76,13 +78,16 @@ class _QuantPageState extends State<QuantPage> {
         getJson: widget.getJson ?? ApiClient().getJson,
       ),
     );
-    _loadRanking();
+
+    _quantPoolController = QuantPoolController();
+    _initializeQuantPool();
   }
 
   @override
   void dispose() {
     _stockAnalysisController.dispose();
     _comparisonStockAnalysisController.dispose();
+    _quantPoolController.dispose();
     super.dispose();
   }
 
@@ -90,9 +95,12 @@ class _QuantPageState extends State<QuantPage> {
     final stock = await showModalBottomSheet<SelectedStock>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const FractionallySizedBox(
+      builder: (context) => FractionallySizedBox(
         heightFactor: 0.75,
-        child: QuantStockSearchSheet(),
+        child: QuantStockSearchSheet(
+          quantPoolController: _quantPoolController,
+          onQuantPoolChanged: _loadRanking,
+        ),
       ),
     );
 
@@ -115,9 +123,12 @@ class _QuantPageState extends State<QuantPage> {
     final stock = await showModalBottomSheet<SelectedStock>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const FractionallySizedBox(
+      builder: (context) => FractionallySizedBox(
         heightFactor: 0.75,
-        child: QuantStockSearchSheet(),
+        child: QuantStockSearchSheet(
+          quantPoolController: _quantPoolController,
+          onQuantPoolChanged: _loadRanking,
+        ),
       ),
     );
 
@@ -171,7 +182,7 @@ class _QuantPageState extends State<QuantPage> {
     final sortBy = _rankingSort;
     final presetType = _rankingPresetType;
 
-    final stocks = quantStockCatalog
+    final stocks = _quantPoolController.stocks
         .where((stock) => stock.market == market)
         .toList();
 
@@ -199,6 +210,16 @@ class _QuantPageState extends State<QuantPage> {
       _rankingResult = result;
       _isRankingLoading = false;
     });
+  }
+
+  Future<void> _initializeQuantPool() async {
+    await _quantPoolController.load(defaultStocks: const []);
+
+    if (!mounted) {
+      return;
+    }
+
+    await _loadRanking();
   }
 
   void _onRankingMarketChanged(QuantMarket market) {
@@ -325,6 +346,7 @@ class _QuantPageState extends State<QuantPage> {
                         onSortChanged: _onRankingSortChanged,
                         onRefresh: _loadRanking,
                         onStockSelected: _onRankingStockSelected,
+                        onAddStock: _chooseStock,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       FilledButton.icon(

@@ -8,11 +8,18 @@ import '../home/widgets/investing_chart_card.dart';
 import 'market_stock_detail_api.dart';
 import 'market_news_article_page.dart';
 import 'market_stock_detail_data.dart';
+import '../watchlist/watchlist_controller.dart';
+import '../quant/selected_stock.dart';
 
 class MarketStockDetailPage extends StatefulWidget {
-  const MarketStockDetailPage({required this.stockId, super.key});
+  const MarketStockDetailPage({
+    required this.stockId,
+    this.watchlistController,
+    super.key,
+  });
 
   final String stockId;
+  final WatchlistController? watchlistController;
 
   @override
   State<MarketStockDetailPage> createState() => _MarketStockDetailPageState();
@@ -42,6 +49,49 @@ class _MarketStockDetailPageState extends State<MarketStockDetailPage> {
       _chartMode = ChartDisplayMode.candles;
       _stockFuture = _api.fetchStockDetail(widget.stockId);
     });
+  }
+
+  Future<void> _toggleWatchlist(MarketStockDetailData stock) async {
+    final controller = widget.watchlistController;
+    if (controller == null) {
+      return;
+    }
+
+    final selectedStock = SelectedStock(
+      code: stock.ticker.trim(),
+      name: stock.companyName.trim(),
+      market: _marketForStock(stock),
+    );
+
+    if (controller.containsCode(selectedStock.code)) {
+      await controller.removeAndSave(selectedStock);
+    } else {
+      await controller.addAndSave(selectedStock);
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  QuantMarket _marketForStock(MarketStockDetailData stock) {
+    final ticker = stock.ticker.trim().toUpperCase();
+    final exchange = stock.exchangeLabel.trim().toUpperCase();
+
+    if (ticker.endsWith('.HK') ||
+        exchange.contains('HKEX') ||
+        exchange.contains('HONG KONG')) {
+      return QuantMarket.hongKong;
+    }
+
+    if (ticker.endsWith('.US') ||
+        exchange.contains('NASDAQ') ||
+        exchange.contains('NYSE') ||
+        exchange.contains('AMEX')) {
+      return QuantMarket.unitedStates;
+    }
+
+    return QuantMarket.aShare;
   }
 
   void _ensureChartState(MarketStockDetailData stock) {
@@ -159,6 +209,16 @@ class _MarketStockDetailPageState extends State<MarketStockDetailPage> {
                   _ensureChartState(stock);
                   return _LoadedStockDetailView(
                     stock: stock,
+                    isInWatchlist:
+                        widget.watchlistController?.containsCode(
+                          stock.ticker,
+                        ) ??
+                        false,
+                    onWatchlistTap: widget.watchlistController == null
+                        ? null
+                        : () {
+                            _toggleWatchlist(stock);
+                          },
                     chartMode: _chartMode,
                     selectedRange: _selectedRange ?? _visibleRanges.first,
                     filteredLineSeries: _filteredLineSeries,
@@ -183,6 +243,8 @@ class _MarketStockDetailPageState extends State<MarketStockDetailPage> {
 class _LoadedStockDetailView extends StatelessWidget {
   const _LoadedStockDetailView({
     required this.stock,
+    required this.isInWatchlist,
+    required this.onWatchlistTap,
     required this.chartMode,
     required this.selectedRange,
     required this.filteredLineSeries,
@@ -194,6 +256,8 @@ class _LoadedStockDetailView extends StatelessWidget {
   });
 
   final MarketStockDetailData stock;
+  final bool isInWatchlist;
+  final VoidCallback? onWatchlistTap;
   final ChartDisplayMode chartMode;
   final String selectedRange;
   final Map<String, List<double>> filteredLineSeries;
@@ -218,7 +282,13 @@ class _LoadedStockDetailView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              AnimatedPageWrapper(child: _HeaderRow(onBackTap: onBackTap)),
+              AnimatedPageWrapper(
+                child: _HeaderRow(
+                  onBackTap: onBackTap,
+                  isInWatchlist: isInWatchlist,
+                  onWatchlistTap: onWatchlistTap,
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               AnimatedPageWrapper(
                 delay: const Duration(milliseconds: 40),
@@ -250,7 +320,8 @@ class _LoadedStockDetailView extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w800, fontSize: 18),
                   changeLabelStyle: Theme.of(context).textTheme.bodyLarge
                       ?.copyWith(color: palette.secondaryText, fontSize: 18),
-                  amountText: '${_currencyPrefixForTicker(stock.ticker)}${stock.priceText}',
+                  amountText:
+                      '${_currencyPrefixForTicker(stock.ticker)}${stock.priceText}',
                   changeText: changeText,
                   changeLabel: stock.changeLabel,
                   mockData: filteredLineSeries,
@@ -413,32 +484,51 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.onBackTap});
+  const _HeaderRow({
+    required this.onBackTap,
+    this.isInWatchlist = false,
+    this.onWatchlistTap,
+  });
 
   final VoidCallback onBackTap;
+  final bool isInWatchlist;
+  final VoidCallback? onWatchlistTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Material(
-        color: palette.groupBackground,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: InkWell(
+    return Row(
+      children: [
+        Material(
+          color: palette.groupBackground,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          onTap: onBackTap,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 18,
-              color: palette.primaryText,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            onTap: onBackTap,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: palette.primaryText,
+              ),
             ),
           ),
         ),
-      ),
+        const Spacer(),
+        if (onWatchlistTap != null)
+          IconButton(
+            tooltip: isInWatchlist ? '移出自选' : '加入自选',
+            onPressed: onWatchlistTap,
+            icon: Icon(
+              isInWatchlist ? Icons.star_rounded : Icons.star_border_rounded,
+              color: isInWatchlist
+                  ? Theme.of(context).colorScheme.primary
+                  : palette.primaryText,
+            ),
+          ),
+      ],
     );
   }
 }

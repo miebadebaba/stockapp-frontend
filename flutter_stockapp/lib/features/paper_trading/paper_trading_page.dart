@@ -7,9 +7,14 @@ import 'widgets/holdings_list.dart';
 import 'widgets/portfolio_summary.dart';
 
 class PaperTradingPage extends StatelessWidget {
-  const PaperTradingPage({this.portfolio = PaperPortfolio.mock, super.key});
+  const PaperTradingPage({
+    this.portfolio = PaperPortfolio.mock,
+    this.onClose,
+    super.key,
+  });
 
   final PaperPortfolio portfolio;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +23,11 @@ class PaperTradingPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: palette.pageBackground,
       appBar: AppBar(
+        leading: BackButton(
+          onPressed:
+              onClose ??
+              () => Navigator.of(context, rootNavigator: true).maybePop(),
+        ),
         backgroundColor: palette.pageBackground,
         foregroundColor: palette.primaryText,
         surfaceTintColor: Colors.transparent,
@@ -35,9 +45,11 @@ class PaperTradingPage extends StatelessWidget {
               ),
             ),
             Text(
-              '模拟练习区',
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: palette.secondaryText, fontSize: 12),
+              '虚拟资金账户',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: palette.secondaryText,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -87,8 +99,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge
-          ?.copyWith(color: palette.primaryText, fontWeight: FontWeight.w800),
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        color: palette.primaryText,
+        fontWeight: FontWeight.w800,
+      ),
     );
   }
 }
