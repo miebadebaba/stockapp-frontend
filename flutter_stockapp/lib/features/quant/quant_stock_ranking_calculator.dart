@@ -7,6 +7,7 @@ import 'quant_stock_analysis.dart';
 import 'quant_stock_ranking.dart';
 import 'selected_stock.dart';
 import 'quant_factor_definition.dart';
+import 'quant_factor_correlation_calculator.dart';
 
 Future<QuantStockRankingResult> calculateQuantStockRanking({
   required List<SelectedStock> stocks,
@@ -58,6 +59,14 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
     factorDirections: factorDirectionsForPreset,
   );
 
+  final factorCorrelations = calculateFactorCorrelations(
+    factorValuesByStock: {
+      for (final entry in crossSectionalScores.entries)
+        entry.key: entry.value.factorZScores,
+    },
+    factorIds: factorWeightsForPreset.keys,
+  );
+
   final itemsWithCrossSectionalScores = analyzedItems
       .map(
         (item) => QuantStockRankingItem(
@@ -94,6 +103,7 @@ Future<QuantStockRankingResult> calculateQuantStockRanking({
     items: List.unmodifiable(rankedItems),
     sortBy: sortBy,
     presetType: presetType,
+    factorCorrelations: factorCorrelations,
   );
 }
 

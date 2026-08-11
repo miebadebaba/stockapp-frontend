@@ -169,4 +169,37 @@ void main() {
       expect(volumeZScore!.isFinite, isTrue);
     }
   });
+  test('ranking result includes all factor correlation pairs', () async {
+    final stocks = quantStockCatalog.take(4).toList();
+
+    final result = await calculateQuantStockRanking(
+      stocks: stocks,
+      analyze: (symbol) async => buildMockQuantStockAnalysis(symbol),
+    );
+
+    expect(result.factorCorrelations, hasLength(3));
+
+    final factorPairs = result.factorCorrelations
+        .map(
+          (correlation) =>
+              '${correlation.leftFactorId}:${correlation.rightFactorId}',
+        )
+        .toSet();
+
+    expect(
+      factorPairs,
+      equals({'trend:momentum', 'trend:volume', 'momentum:volume'}),
+    );
+
+    for (final correlation in result.factorCorrelations) {
+      expect(correlation.sampleSize, 4);
+
+      final coefficient = correlation.coefficient;
+
+      if (coefficient != null) {
+        expect(coefficient, inInclusiveRange(-1, 1));
+        expect(coefficient.isFinite, isTrue);
+      }
+    }
+  });
 }

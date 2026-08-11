@@ -3,6 +3,7 @@ import 'quant_factor_preset.dart';
 import 'quant_factor_score.dart';
 import 'quant_stock_analysis.dart';
 import 'selected_stock.dart';
+import 'quant_factor_correlation_calculator.dart';
 
 enum QuantRankingSort {
   poolCompositeScore,
@@ -97,9 +98,13 @@ class QuantStockRankingResult {
     required this.items,
     required this.sortBy,
     this.presetType = QuantFactorPresetType.balanced,
+    this.factorCorrelations = const [],
   });
 
   final List<QuantStockRankingItem> items;
   final QuantRankingSort sortBy;
   final QuantFactorPresetType presetType;
+
+  /// Pairwise correlation diagnostics for factors in the current stock pool.
+  final List<QuantFactorCorrelation> factorCorrelations;
 }
