@@ -31,7 +31,9 @@ class StockListItemData {
 
     return StockListItemData(
       id: (json['id'] as String?)?.trim() ?? '',
-      title: isAShare ? (companyName.isNotEmpty ? companyName : ticker) : ticker,
+      title: isAShare
+          ? (companyName.isNotEmpty ? companyName : ticker)
+          : ticker,
       subtitle: isAShare ? ticker : companyName,
       priceText: (json['price_text'] as String?)?.trim() ?? '--',
       changePercent: _asDouble(json['change_percent']) ?? 0,
@@ -120,10 +122,16 @@ class StockListSection extends StatelessWidget {
 }
 
 class StockListTile extends StatelessWidget {
-  const StockListTile({required this.stock, this.onTap, super.key});
+  const StockListTile({
+    required this.stock,
+    this.onTap,
+    this.onRemove,
+    super.key,
+  });
 
   final StockListItemData stock;
   final VoidCallback? onTap;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -240,6 +248,23 @@ class StockListTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onRemove != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                SizedBox(
+                  width: 40,
+                  height: 48,
+                  child: IconButton(
+                    tooltip: '移出自选',
+                    padding: EdgeInsets.zero,
+                    onPressed: onRemove,
+                    icon: Icon(
+                      Icons.remove_circle_outline_rounded,
+                      size: 21,
+                      color: palette.secondaryText,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -288,11 +313,7 @@ class _StockTrendChartPainter extends CustomPainter {
       ..lineTo(points.first.dx, chartBottom)
       ..close();
 
-    _drawDashedReferenceLine(
-      canvas: canvas,
-      width: size.width,
-      y: referenceY,
-    );
+    _drawDashedReferenceLine(canvas: canvas, width: size.width, y: referenceY);
 
     canvas.drawPath(
       fillPath,

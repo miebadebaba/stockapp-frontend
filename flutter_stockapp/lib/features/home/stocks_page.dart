@@ -6,11 +6,17 @@ import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import '../market/market_stock_detail_page.dart';
 import 'widgets/stock_list_section.dart';
+import '../watchlist/watchlist_controller.dart';
 
 class StocksPage extends StatefulWidget {
-  const StocksPage({required this.stocks, super.key});
+  const StocksPage({
+    required this.stocks,
+    required this.watchlistController,
+    super.key,
+  });
 
   final List<StockListItemData> stocks;
+  final WatchlistController watchlistController;
 
   @override
   State<StocksPage> createState() => _StocksPageState();
@@ -44,10 +50,86 @@ class _StocksPageState extends State<StocksPage> {
     }).toList();
   }
 
+  List<StockListItemData> get _watchlistStocks {
+    final result = <StockListItemData>[];
+
+    for (final selectedStock in widget.watchlistController.stocks) {
+      final code = selectedStock.code.trim().toUpperCase();
+
+      StockListItemData? matchedStock;
+
+      for (final stock in widget.stocks) {
+        final stockId = stock.id.trim().toUpperCase();
+        final title = stock.title.trim().toUpperCase();
+        final subtitle = stock.subtitle.trim().toUpperCase();
+
+        if (stockId == code || title == code || subtitle == code) {
+          matchedStock = stock;
+          break;
+        }
+      }
+
+      if (matchedStock != null) {
+        result.add(matchedStock);
+      }
+    }
+
+    return result;
+  }
+
+  Future<void> _removeFromWatchlist(String stockId) async {
+    await widget.watchlistController.removeByCodeAndSave(stockId);
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _clearWatchlist() async {
+    final controller = widget.watchlistController;
+
+    if (controller.isEmpty) {
+      return;
+    }
+
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Clear watchlist'),
+          content: Text('Remove all ${controller.length} saved stocks?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldClear != true) {
+      return;
+    }
+
+    await controller.clearAndSave();
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _openStock(BuildContext context, String stockId) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => MarketStockDetailPage(stockId: stockId),
+        builder: (context) => MarketStockDetailPage(
+          stockId: stockId,
+          watchlistController: widget.watchlistController,
+        ),
       ),
     );
   }
@@ -81,6 +163,26 @@ class _StocksPageState extends State<StocksPage> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xl),
+
+                        AnimatedBuilder(
+                          animation: widget.watchlistController,
+                          builder: (context, _) {
+                            final watchlistStocks = _watchlistStocks;
+
+                            return _WatchlistSection(
+                              stocks: watchlistStocks,
+                              savedCount: widget.watchlistController.length,
+                              onStockTap: (stockId) {
+                                _openStock(context, stockId);
+                              },
+                              onRemove: _removeFromWatchlist,
+                              onClear: _clearWatchlist,
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: AppSpacing.xxl),
+
                         AnimatedPageWrapper(
                           delay: const Duration(milliseconds: 40),
                           child: Padding(
@@ -172,6 +274,178 @@ class _StocksPageState extends State<StocksPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _WatchlistSection extends StatefulWidget {
+  const _WatchlistSection({
+    required this.stocks,
+    required this.savedCount,
+    required this.onStockTap,
+    required this.onRemove,
+    required this.onClear,
+  });
+
+  final List<StockListItemData> stocks;
+  final int savedCount;
+  final ValueChanged<String> onStockTap;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onClear;
+
+  @override
+  State<_WatchlistSection> createState() => _WatchlistSectionState();
+}
+
+class _WatchlistSectionState extends State<_WatchlistSection> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+    final shouldShowExpandButton = widget.stocks.length > 3;
+    final visibleStocks = _isExpanded
+        ? widget.stocks
+        : widget.stocks.take(3).toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'My Watchlist',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontSize: 30,
+                    height: 1.12,
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '${widget.savedCount}',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: palette.secondaryText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (shouldShowExpandButton)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() => _isExpanded = !_isExpanded);
+                  },
+                  icon: Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                  ),
+                  label: Text(_isExpanded ? 'Collapse' : 'View all'),
+                ),
+              if (widget.savedCount > 0)
+                IconButton(
+                  tooltip: 'Clear watchlist',
+                  onPressed: widget.onClear,
+                  icon: Icon(
+                    Icons.delete_sweep_outlined,
+                    color: palette.secondaryText,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (widget.stocks.isEmpty)
+          _EmptyWatchlistState(hasSavedStocks: widget.savedCount > 0)
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: ListView.separated(
+              itemCount: visibleStocks.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                final stock = visibleStocks[index];
+
+                return StockListTile(
+                  stock: stock,
+                  onTap: () => widget.onStockTap(stock.id),
+                  onRemove: () => widget.onRemove(stock.id),
+                );
+              },
+              separatorBuilder: (context, index) {
+                return Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  color: palette.divider,
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _EmptyWatchlistState extends StatelessWidget {
+  const _EmptyWatchlistState({required this.hasSavedStocks});
+
+  final bool hasSavedStocks;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppThemePalette>()!;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+      decoration: BoxDecoration(
+        color: palette.groupBackground,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            hasSavedStocks
+                ? Icons.hourglass_empty_rounded
+                : Icons.star_border_rounded,
+            size: 32,
+            color: palette.secondaryText,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            hasSavedStocks
+                ? 'Watchlist data is loading'
+                : 'No stocks in your watchlist',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            hasSavedStocks
+                ? 'Saved stocks will appear when market data is available.'
+                : 'Open a stock detail page and tap the star to add it here.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.secondaryText,
+              height: 1.45,
+            ),
+          ),
+        ],
       ),
     );
   }

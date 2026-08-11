@@ -11,9 +11,12 @@ import 'markets_page.dart';
 import 'stocks_page.dart';
 import 'widgets/market_snapshot_section.dart';
 import 'widgets/stock_list_section.dart';
+import '../watchlist/watchlist_controller.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({required this.watchlistController, super.key});
+
+  final WatchlistController watchlistController;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -64,9 +67,7 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
                                     builder: (context) {
-                                      return MarketsPage(
-                                        initialData: overview,
-                                      );
+                                      return MarketsPage(initialData: overview);
                                     },
                                   ),
                                 );
@@ -75,9 +76,7 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
                                     builder: (context) {
-                                      return MarketsPage(
-                                        initialData: overview,
-                                      );
+                                      return MarketsPage(initialData: overview);
                                     },
                                   ),
                                 );
@@ -114,7 +113,11 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
                                     builder: (context) {
-                                      return StocksPage(stocks: stocks);
+                                      return StocksPage(
+                                        stocks: stocks,
+                                        watchlistController:
+                                            widget.watchlistController,
+                                      );
                                     },
                                   ),
                                 );
@@ -125,6 +128,8 @@ class _HomePageState extends State<HomePage> {
                                     builder: (context) {
                                       return MarketStockDetailPage(
                                         stockId: stockId,
+                                        watchlistController:
+                                            widget.watchlistController,
                                       );
                                     },
                                   ),

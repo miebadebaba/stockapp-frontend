@@ -19,6 +19,7 @@ class QuantStockRankingSection extends StatelessWidget {
     required this.onSortChanged,
     required this.onRefresh,
     required this.onStockSelected,
+    this.onAddStock,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class QuantStockRankingSection extends StatelessWidget {
   final ValueChanged<QuantRankingSort> onSortChanged;
   final VoidCallback onRefresh;
   final ValueChanged<SelectedStock> onStockSelected;
+  final VoidCallback? onAddStock;
 
   @override
   Widget build(BuildContext context) {
@@ -184,12 +186,41 @@ class QuantStockRankingSection extends StatelessWidget {
             )
           else if (result == null || result!.items.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-              child: Text(
-                '当前市场暂无可用于排名的股票数据。',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.star_border_rounded,
+                      size: 36,
+                      color: palette.secondaryText,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      '${market.label}暂无自选股票',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: palette.primaryText,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      '当前市场暂无可用于排名的股票数据。',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: palette.secondaryText,
+                      ),
+                    ),
+                    if (onAddStock != null) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      FilledButton.icon(
+                        onPressed: onAddStock,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('添加自选股票'),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             )
           else
