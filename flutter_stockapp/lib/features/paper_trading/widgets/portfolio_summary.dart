@@ -24,16 +24,15 @@ class PortfolioSummary extends StatelessWidget {
         color: _profitLossColor(context, summary.totalProfitLoss),
       ),
       _SummaryMetric(
-        label: '当日盈亏',
-        value: PaperTradingFormatters.amount(summary.dailyProfitLoss),
-        color: _profitLossColor(context, summary.dailyProfitLoss),
+        label: '总盈亏比例',
+        value: PaperTradingFormatters.percentage(
+          summary.totalProfitLossPercent,
+        ),
+        color: _profitLossColor(context, summary.totalProfitLossPercent),
       ),
       _SummaryMetric(
-        label: '当日盈亏比例',
-        value: PaperTradingFormatters.percentage(
-          summary.dailyProfitLossPercent,
-        ),
-        color: _profitLossColor(context, summary.dailyProfitLossPercent),
+        label: '初始资金',
+        value: PaperTradingFormatters.amount(summary.initialCash),
       ),
       _SummaryMetric(
         label: '总市值',
@@ -42,10 +41,6 @@ class PortfolioSummary extends StatelessWidget {
       _SummaryMetric(
         label: '可用资金',
         value: PaperTradingFormatters.amount(summary.availableCash),
-      ),
-      _SummaryMetric(
-        label: '可取资金',
-        value: PaperTradingFormatters.amount(summary.withdrawableCash),
       ),
       _SummaryMetric(
         label: '仓位比例',

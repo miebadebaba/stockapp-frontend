@@ -102,6 +102,7 @@ class _AuthGateState extends State<_AuthGate> {
             if (session.isLoggedIn) {
               return RootShell(
                 username: session.username,
+                accessTokenProvider: session.readAccessToken,
                 themeMode: widget.themeMode,
                 onThemeModeChanged: widget.onThemeModeChanged,
                 onSignOut: () {

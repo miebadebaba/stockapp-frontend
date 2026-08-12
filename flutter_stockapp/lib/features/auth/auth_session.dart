@@ -16,6 +16,10 @@ class AuthSession extends ChangeNotifier {
   String? get username => _currentUser?.username;
   bool get isLoggedIn => _currentUser != null;
 
+  Future<String?> readAccessToken() {
+    return _tokenStorage.readAccessToken();
+  }
+
   static Future<AuthSession> load({
     AuthApi? api,
     TokenStorage? tokenStorage,

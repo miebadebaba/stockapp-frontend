@@ -2,13 +2,16 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../account/account_page.dart';
 import '../agent/agent_page.dart';
+import '../agent/services/ai_chat_service.dart';
 import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
 import '../news/news_feed_page.dart';
 import '../paper_trading/paper_trading_page.dart';
+import '../paper_trading/services/paper_trading_api.dart';
 import '../quant/quant_page.dart';
 import '../settings/settings_preview_page.dart';
 import '../tutorial/tutorial_category_page.dart';
@@ -19,6 +22,8 @@ import 'idea_builder_sheet.dart';
 class RootShell extends StatefulWidget {
   const RootShell({
     this.username,
+    this.accessTokenProvider,
+    this.paperTradingApi,
     this.onSignOut,
     required this.themeMode,
     required this.onThemeModeChanged,
@@ -26,6 +31,8 @@ class RootShell extends StatefulWidget {
   });
 
   final String? username;
+  final AccessTokenProvider? accessTokenProvider;
+  final PaperTradingApi? paperTradingApi;
   final VoidCallback? onSignOut;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
@@ -35,6 +42,9 @@ class RootShell extends StatefulWidget {
 }
 
 class _RootShellState extends State<RootShell> {
+  late final ApiClient _apiClient;
+  late final AiChatService _aiChatService;
+  late final PaperTradingApi _paperTradingApi;
   var _selectedIndex = 1;
   var _isIdeaOverlayOpen = false;
   var _isAccountPageOpen = false;
@@ -43,6 +53,26 @@ class _RootShellState extends State<RootShell> {
   var _isTutorialPageOpen = false;
   var _isForumPageOpen = false;
   var _hasPlayedAgentHeadline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiClient = ApiClient(accessTokenProvider: widget.accessTokenProvider);
+    _aiChatService = HttpAiChatService(apiClient: _apiClient);
+    _paperTradingApi =
+        widget.paperTradingApi ?? HttpPaperTradingApi(apiClient: _apiClient);
+  }
+
+  @override
+  void dispose() {
+    final paperTradingApi = _paperTradingApi;
+    if (paperTradingApi is HttpPaperTradingApi) {
+      paperTradingApi.close();
+    }
+    _aiChatService.close();
+    _apiClient.close(force: true);
+    super.dispose();
+  }
 
   void _toggleIdeaOverlay() {
     setState(() => _isIdeaOverlayOpen = !_isIdeaOverlayOpen);
@@ -149,7 +179,9 @@ class _RootShellState extends State<RootShell> {
   void _openSimulationPage() {
     _closeIdeaOverlay();
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (context) => const PaperTradingPage()),
+      MaterialPageRoute<void>(
+        builder: (context) => PaperTradingPage(api: _paperTradingApi),
+      ),
     );
   }
 
@@ -161,9 +193,10 @@ class _RootShellState extends State<RootShell> {
       AgentPage(
         animateHeadline: _selectedIndex == 0 && !_hasPlayedAgentHeadline,
         onHeadlineAnimationCompleted: _handleAgentHeadlineAnimationCompleted,
+        aiChatService: _aiChatService,
       ),
       const HomePage(),
-      const QuantPage(),
+      QuantPage(getJson: _apiClient.getJson),
     ];
 
     return PopScope(

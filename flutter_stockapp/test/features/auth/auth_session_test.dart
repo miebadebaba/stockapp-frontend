@@ -127,6 +127,20 @@ void main() {
       expect(storage.deleteCalls, 1);
     });
 
+    test('exposes the current stored access token for API injection', () async {
+      final api = FakeAuthApi();
+      final storage = MemoryTokenStorage(token: 'saved-token');
+      final session = await AuthSession.load(api: api, tokenStorage: storage);
+
+      expect(await session.readAccessToken(), 'saved-token');
+
+      storage.token = 'updated-token';
+      expect(await session.readAccessToken(), 'updated-token');
+
+      await session.signOut();
+      expect(await session.readAccessToken(), isNull);
+    });
+
     test('registers without creating a local session', () async {
       final api = FakeAuthApi();
       final storage = MemoryTokenStorage();
