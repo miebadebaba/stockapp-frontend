@@ -31,6 +31,7 @@ class _PaperTradingPageState extends State<PaperTradingPage> {
   bool _isRefreshing = false;
   bool _isSubmitting = false;
   bool _isOrdersLoading = false;
+  bool _isResetting = false;
 
   @override
   void initState() {
@@ -216,6 +217,46 @@ class _PaperTradingPageState extends State<PaperTradingPage> {
     );
   }
 
+  Future<void> _confirmResetAccount() async {
+    if (_isResetting || _isSubmitting) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => const _ResetAccountDialog(),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() => _isResetting = true);
+    try {
+      final portfolio = await _api.resetAccount();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _portfolio = portfolio;
+        _orders = const [];
+        _ordersError = null;
+        _isResetting = false;
+      });
+      _showSnack('模拟账户已重置。');
+    } on PaperTradingApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isResetting = false);
+      _showSnack(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isResetting = false);
+      _showSnack('重置失败，请稍后重试。');
+    }
+  }
+
   void _showCancelUnavailable() {
     _showSnack('当前市价单立即成交，暂无可撤订单。');
   }
@@ -262,7 +303,7 @@ class _PaperTradingPageState extends State<PaperTradingPage> {
         actions: [
           IconButton(
             tooltip: '刷新',
-            onPressed: _isLoading || _isRefreshing
+            onPressed: _isLoading || _isRefreshing || _isResetting
                 ? null
                 : () => _loadPortfolio(keepExisting: true),
             icon: _isRefreshing
@@ -272,6 +313,21 @@ class _PaperTradingPageState extends State<PaperTradingPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh_rounded),
+          ),
+          PopupMenuButton<String>(
+            tooltip: '模拟账户设置',
+            enabled: !_isLoading && !_isResetting,
+            onSelected: (value) {
+              if (value == 'reset') {
+                _confirmResetAccount();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'reset',
+                child: Text('重置模拟账户'),
+              ),
+            ],
           ),
         ],
       ),
@@ -311,7 +367,7 @@ class _PaperTradingPageState extends State<PaperTradingPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _TradingActionBar(
-                  disabled: _isSubmitting,
+                  disabled: _isSubmitting || _isResetting,
                   onBuy: () => _showOrderDialog('buy'),
                   onSell: () => _showOrderDialog('sell'),
                   onCancel: _showCancelUnavailable,
@@ -756,6 +812,52 @@ class _OrderHistorySheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ResetAccountDialog extends StatefulWidget {
+  const _ResetAccountDialog();
+
+  @override
+  State<_ResetAccountDialog> createState() => _ResetAccountDialogState();
+}
+
+class _ResetAccountDialogState extends State<_ResetAccountDialog> {
+  var _understood = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('确认重置模拟账户？'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '此操作将清空当前资金状态、持仓、订单、成交和盈亏记录，并恢复初始模拟资金。操作完成后无法撤销。',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          CheckboxListTile(
+            value: _understood,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('我了解此操作无法撤销'),
+            onChanged: (value) => setState(() => _understood = value ?? false),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: _understood ? () => Navigator.of(context).pop(true) : null,
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+          child: const Text('确认重置'),
+        ),
+      ],
     );
   }
 }

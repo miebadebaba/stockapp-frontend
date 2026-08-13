@@ -206,6 +206,33 @@ void main() {
 
     expect(find.text('当前市价单立即成交，暂无可撤订单。'), findsOneWidget);
   });
+  testWidgets('reset account requires acknowledgement before calling API', (
+    tester,
+  ) async {
+    final api = FakePaperTradingApi(resetPortfolio: emptyPortfolio);
+    await pumpPage(tester, api: api);
+
+    await tester.tap(find.byTooltip('模拟账户设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重置模拟账户'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认重置模拟账户？'), findsOneWidget);
+    final resetButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '确认重置'),
+    );
+    expect(resetButton.onPressed, isNull);
+    expect(api.resetCalls, 0);
+
+    await tester.tap(find.text('我了解此操作无法撤销'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认重置'));
+    await tester.pumpAndSettle();
+
+    expect(api.resetCalls, 1);
+    expect(find.text('模拟账户已重置。'), findsOneWidget);
+    expect(find.text('暂无持仓'), findsOneWidget);
+  });
 }
 
 Future<void> pumpPage(
@@ -330,6 +357,8 @@ class FakePaperTradingApi implements PaperTradingApi {
     this.portfolio = samplePortfolio,
     this.orders = const [],
     this.submitError,
+    this.resetPortfolio,
+    this.resetError,
     this.loadCompleter,
     List<PaperTradingApiException>? loadErrors,
   }) : loadErrors = loadErrors ?? [];
@@ -337,11 +366,14 @@ class FakePaperTradingApi implements PaperTradingApi {
   final PaperPortfolio portfolio;
   final List<PaperOrder> orders;
   final PaperTradingApiException? submitError;
+  final PaperPortfolio? resetPortfolio;
+  final PaperTradingApiException? resetError;
   final Completer<PaperPortfolio>? loadCompleter;
   final List<PaperTradingApiException> loadErrors;
   final submittedOrders = <SubmittedOrder>[];
   int loadPortfolioCalls = 0;
   int loadOrdersCalls = 0;
+  int resetCalls = 0;
 
   @override
   Future<PaperPortfolio> loadPortfolio() async {
@@ -396,6 +428,15 @@ class FakePaperTradingApi implements PaperTradingApi {
       execution: execution,
       summary: sampleSummary,
     );
+  }
+
+  @override
+  Future<PaperPortfolio> resetAccount() async {
+    resetCalls += 1;
+    if (resetError != null) {
+      throw resetError!;
+    }
+    return resetPortfolio ?? portfolio;
   }
 }
 

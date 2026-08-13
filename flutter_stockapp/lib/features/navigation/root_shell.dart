@@ -8,6 +8,7 @@ import '../account/account_page.dart';
 import '../agent/agent_page.dart';
 import '../agent/services/ai_chat_service.dart';
 import '../forum/discussion_list_page.dart';
+import '../forum/services/forum_api.dart';
 import '../home/home_page.dart';
 import '../news/news_feed_page.dart';
 import '../paper_trading/paper_trading_page.dart';
@@ -44,6 +45,7 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   late final ApiClient _apiClient;
   late final AiChatService _aiChatService;
+  late final ForumApi _forumApi;
   late final PaperTradingApi _paperTradingApi;
   var _selectedIndex = 1;
   var _isIdeaOverlayOpen = false;
@@ -59,6 +61,7 @@ class _RootShellState extends State<RootShell> {
     super.initState();
     _apiClient = ApiClient(accessTokenProvider: widget.accessTokenProvider);
     _aiChatService = HttpAiChatService(apiClient: _apiClient);
+    _forumApi = HttpForumApi(apiClient: _apiClient);
     _paperTradingApi =
         widget.paperTradingApi ?? HttpPaperTradingApi(apiClient: _apiClient);
   }
@@ -245,7 +248,10 @@ class _RootShellState extends State<RootShell> {
             ),
             if (_isForumPageOpen)
               Positioned.fill(
-                child: DiscussionListPage.demo(
+                child: DiscussionListPage(
+                  api: _forumApi,
+                  posts: const [],
+                  commentsByPostId: const {},
                   bottomPadding: 140,
                   showTopActions: false,
                   onSettingsTap: _openSettingsPage,

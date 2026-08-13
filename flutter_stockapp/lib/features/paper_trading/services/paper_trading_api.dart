@@ -37,6 +37,8 @@ abstract interface class PaperTradingApi {
     required String side,
     required int quantity,
   });
+
+  Future<PaperPortfolio> resetAccount();
 }
 
 class HttpPaperTradingApi implements PaperTradingApi {
@@ -59,6 +61,7 @@ class HttpPaperTradingApi implements PaperTradingApi {
   static const portfolioPath = '/api/v1/paper-trading/portfolio';
   static const positionsPath = '/api/v1/paper-trading/positions';
   static const ordersPath = '/api/v1/paper-trading/orders';
+  static const resetPath = '/api/v1/paper-trading/reset';
 
   final ApiClient? _apiClient;
   final bool _ownsApiClient;
@@ -140,6 +143,21 @@ class HttpPaperTradingApi implements PaperTradingApi {
       throw PaperTradingApiException(_messageForOrderError(error, side));
     } on FormatException {
       throw const PaperTradingApiException('后端返回的成交数据格式不正确。');
+    }
+  }
+
+  @override
+  Future<PaperPortfolio> resetAccount() async {
+    try {
+      final response = await (_postJson ?? _apiClient!.postJson)(
+        path: resetPath,
+        body: const {},
+      );
+      return PaperPortfolio.fromJson(response);
+    } on ApiException catch (error) {
+      throw PaperTradingApiException(_messageForApiError(error));
+    } on FormatException {
+      throw const PaperTradingApiException('后端返回的重置数据格式不正确。');
     }
   }
 

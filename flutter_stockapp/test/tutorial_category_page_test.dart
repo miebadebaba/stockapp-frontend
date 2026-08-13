@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_stockapp/core/theme/app_theme.dart';
+import 'package:flutter_stockapp/features/tutorial/simulation_app_guide_page.dart';
 import 'package:flutter_stockapp/features/tutorial/tutorial_category_page.dart';
 
 void main() {
@@ -45,7 +46,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('opens a minimal placeholder for the tapped module', (
+  testWidgets('opens simulation app guide and renders scrollable modules', (
     tester,
   ) async {
     tester.view
@@ -65,8 +66,22 @@ void main() {
     await tester.tap(find.text('模拟交易与 App 使用'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(TutorialModulePlaceholderPage), findsOneWidget);
+    expect(find.byType(SimulationAppGuidePage), findsOneWidget);
+    expect(find.byType(TutorialModulePlaceholderPage), findsNothing);
     expect(find.text('模拟交易与 App 使用'), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
+
+    expect(find.text('认识主要功能'), findsOneWidget);
+    expect(find.text('开始模拟交易'), findsOneWidget);
+    expect(find.text('查看账户与重置'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey('simulation-app-guide-scroll')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('使用提醒'), findsOneWidget);
+    expect(find.textContaining('不涉及真实资金'), findsOneWidget);
   });
 }

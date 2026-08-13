@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import '../navigation/app_top_actions.dart';
+import 'services/forum_api.dart';
 
 class DiscussionPostData {
   const DiscussionPostData({
@@ -16,6 +17,8 @@ class DiscussionPostData {
     required this.avatarColor,
     this.topicLabel = 'Discussion',
     this.isFavorite = false,
+    this.status,
+    this.moderationReason,
   });
 
   final String id;
@@ -26,6 +29,8 @@ class DiscussionPostData {
   final Color avatarColor;
   final String topicLabel;
   final bool isFavorite;
+  final String? status;
+  final String? moderationReason;
 }
 
 class DiscussionCommentData {
@@ -50,6 +55,7 @@ class DiscussionListPage extends StatefulWidget {
   const DiscussionListPage({
     required this.posts,
     required this.commentsByPostId,
+    this.api,
     this.onSettingsTap,
     this.onProfileTap,
     this.onPostTap,
@@ -61,6 +67,7 @@ class DiscussionListPage extends StatefulWidget {
 
   final List<DiscussionPostData> posts;
   final Map<String, List<DiscussionCommentData>> commentsByPostId;
+  final ForumApi? api;
   final VoidCallback? onSettingsTap;
   final VoidCallback? onProfileTap;
   final ValueChanged<String>? onPostTap;
@@ -198,6 +205,59 @@ class DiscussionListPage extends StatefulWidget {
 }
 
 class _DiscussionListPageState extends State<DiscussionListPage> {
+  late List<DiscussionPostData> _posts;
+  var _showMine = false;
+  var _isLoading = false;
+  String? _error;
+
+  ForumApi? get _api => widget.api;
+
+  @override
+  void initState() {
+    super.initState();
+    _posts = widget.posts;
+    if (_api != null) {
+      _loadPosts();
+    }
+  }
+
+  Future<void> _loadPosts() async {
+    final api = _api;
+    if (api == null || _isLoading) {
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final posts = _showMine ? await api.loadMyPosts() : await api.loadPublicPosts();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _posts = posts.map(_postFromApi).toList(growable: false);
+        _isLoading = false;
+      });
+    } on ForumApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = error.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = '论坛内容加载失败，请稍后重试。';
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _handlePostTap(DiscussionPostData post) async {
     widget.onPostTap?.call(post.id);
     await Navigator.of(context).push(
@@ -213,13 +273,49 @@ class _DiscussionListPageState extends State<DiscussionListPage> {
 
   Future<void> _handleNewPostTap() async {
     widget.onNewPostTap?.call();
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => NewPostPage(
-          onPublishTap: (_) {},
-        ),
+    final text = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (context) => const NewPostPage(),
       ),
     );
+    final api = _api;
+    final content = text?.trim();
+    if (api == null || content == null || content.isEmpty) {
+      return;
+    }
+    try {
+      await api.createPost(content: content, topicLabel: 'Discussion');
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('内容已提交，等待管理员审核'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      _showMine = true;
+      await _loadPosts();
+    } on ForumApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(error.message), behavior: SnackBarBehavior.floating),
+        );
+    }
+  }
+
+  void _setScope(bool showMine) {
+    if (_showMine == showMine) {
+      return;
+    }
+    setState(() => _showMine = showMine);
+    _loadPosts();
   }
 
   @override
@@ -281,26 +377,21 @@ class _DiscussionListPageState extends State<DiscussionListPage> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Expanded(
-                      child: ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.only(bottom: widget.bottomPadding),
-                        itemCount: widget.posts.length,
-                        itemBuilder: (context, index) {
-                          final post = widget.posts[index];
-                          return DiscussionPostItem(
-                            post: post,
-                            onTap: () => _handlePostTap(post),
-                          );
-                        },
-                        separatorBuilder: (context, index) {
-                          return Divider(
-                            color: palette.divider,
-                            height: 1,
-                            thickness: 1,
-                          );
-                        },
+                    if (_api != null) ...[
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(value: false, label: Text('公开内容')),
+                          ButtonSegment(value: true, label: Text('我的内容')),
+                        ],
+                        selected: {_showMine},
+                        onSelectionChanged: _isLoading
+                            ? null
+                            : (selection) => _setScope(selection.first),
                       ),
+                      const SizedBox(height: 14),
+                    ],
+                    Expanded(
+                      child: _buildPostList(palette),
                     ),
                   ],
                 ),
@@ -308,6 +399,113 @@ class _DiscussionListPageState extends State<DiscussionListPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPostList(AppThemePalette palette) {
+    if (_isLoading && _posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _posts.isEmpty) {
+      return _ForumStateMessage(message: _error!, onRetry: _loadPosts);
+    }
+    if (_posts.isEmpty) {
+      return Center(
+        child: Text(
+          _showMine ? '暂无已提交内容' : '暂无已通过审核的帖子',
+          style: TextStyle(color: palette.secondaryText),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadPosts,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(bottom: widget.bottomPadding),
+        itemCount: _posts.length,
+        itemBuilder: (context, index) {
+          final post = _posts[index];
+          return DiscussionPostItem(
+            post: post,
+            onTap: () => _handlePostTap(post),
+          );
+        },
+        separatorBuilder: (context, index) {
+          return Divider(
+            color: palette.divider,
+            height: 1,
+            thickness: 1,
+          );
+        },
+      ),
+    );
+  }
+}
+
+DiscussionPostData _postFromApi(ForumPost post) {
+  return DiscussionPostData(
+    id: post.id.toString(),
+    userName: post.authorUsername,
+    content: post.content,
+    publishedText: _formatForumDate(post.createdAt),
+    avatarLabel: _avatarLabel(post.authorUsername),
+    avatarColor: _avatarColor(post.authorUsername),
+    topicLabel: post.topicLabel,
+    status: post.status,
+    moderationReason: post.moderationReason,
+  );
+}
+
+String _avatarLabel(String username) {
+  final clean = username.trim();
+  if (clean.isEmpty) {
+    return '?';
+  }
+  return (clean.length <= 2 ? clean : clean.substring(0, 2)).toUpperCase();
+}
+
+Color _avatarColor(String username) {
+  const colors = [
+    AppColors.orbBlueLight,
+    AppColors.orbMint,
+    AppColors.orbRose,
+    AppColors.orbAmberLight,
+    AppColors.orbViolet,
+    AppColors.orbBlueDeep,
+  ];
+  final index = username.codeUnits.fold<int>(0, (sum, value) => sum + value) % colors.length;
+  return colors[index];
+}
+
+String _formatForumDate(DateTime value) {
+  final local = value.toLocal();
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  return '${local.year}-$month-$day';
+}
+
+class _ForumStateMessage extends StatelessWidget {
+  const _ForumStateMessage({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, textAlign: TextAlign.center, style: TextStyle(color: palette.primaryText)),
+          const SizedBox(height: AppSpacing.md),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('重试'),
+          ),
+        ],
       ),
     );
   }
@@ -524,8 +722,12 @@ class _NewPostPageState extends State<NewPostPage> {
   }
 
   void _handlePublish() {
-    widget.onPublishTap?.call(_postController.text.trim());
-    Navigator.of(context).maybePop();
+    final content = _postController.text.trim();
+    if (content.isEmpty) {
+      return;
+    }
+    widget.onPublishTap?.call(content);
+    Navigator.of(context).pop(content);
   }
 
   @override
@@ -661,14 +863,34 @@ class DiscussionPostItem extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      post.publishedText,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: palette.secondaryText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          post.publishedText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: palette.secondaryText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (post.status != null)
+                          _ModerationStatusChip(status: post.status!),
+                      ],
                     ),
+                    if (post.moderationReason != null &&
+                        post.moderationReason!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '审核原因：${post.moderationReason}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -819,6 +1041,40 @@ class _CommentComposer extends StatelessWidget {
                 onTap: onSendTap,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModerationStatusChip extends StatelessWidget {
+  const _ModerationStatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (label, color) = switch (status) {
+      'PENDING' => ('待审核', colorScheme.tertiary),
+      'APPROVED' => ('已通过', colorScheme.primary),
+      'REJECTED' => ('已拒绝', colorScheme.error),
+      'HIDDEN' => ('已下架', colorScheme.error),
+      _ => (status, colorScheme.secondary),
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

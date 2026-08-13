@@ -5,6 +5,7 @@ import '../../core/theme/app_theme_palette.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import '../../core/widgets/pressable_scale.dart';
 import 'fundamental_analysis_page.dart';
+import 'simulation_app_guide_page.dart';
 import 'stock_market_basics_page.dart';
 import 'risk_portfolio_page.dart';
 import 'technical_quant_analysis_page.dart';
@@ -87,6 +88,7 @@ class _TutorialCategoryPageState extends State<TutorialCategoryPage> {
       'fundamental-analysis' => const FundamentalAnalysisPage(),
       'technical-quant-analysis' => const TechnicalQuantAnalysisPage(),
       'risk-portfolio' => const RiskPortfolioPage(),
+      'simulation-app-guide' => const SimulationAppGuidePage(),
       _ => TutorialModulePlaceholderPage(module: category),
     };
     Navigator.of(context)

@@ -138,6 +138,37 @@ void main() {
         ),
       );
     });
+
+    test('resets the account through the reset path', () async {
+      String? capturedPath;
+      Object? capturedBody;
+      final api = HttpPaperTradingApi(
+        getJson:
+            ({required String path, Map<String, dynamic>? queryParameters}) {
+              return Future.value(_portfolioJson());
+            },
+        getJsonList:
+            ({required String path, Map<String, dynamic>? queryParameters}) {
+              return Future.value(const []);
+            },
+        postJson:
+            ({
+              required String path,
+              required Object body,
+              Duration? receiveTimeout,
+            }) {
+              capturedPath = path;
+              capturedBody = body;
+              return Future.value(_portfolioJson());
+            },
+      );
+
+      final portfolio = await api.resetAccount();
+
+      expect(capturedPath, HttpPaperTradingApi.resetPath);
+      expect(capturedBody, const {});
+      expect(portfolio.summary.availableCash, 162000);
+    });
   });
 }
 
