@@ -31,6 +31,9 @@ import 'quant_stock_ranking_calculator.dart';
 import 'quant_stock_ranking_section.dart';
 import 'quant_technical_overview_section.dart';
 import 'quant_pool_controller.dart';
+import 'quant_factor_ic_dashboard.dart';
+import 'quant_factor_ic_dashboard_calculator.dart';
+import 'quant_factor_ic_dashboard_section.dart';
 
 enum QuantDetailTab { overview, technical, factors, backtest }
 
@@ -58,6 +61,7 @@ class _QuantPageState extends State<QuantPage> {
   QuantRankingSort _rankingSort = QuantRankingSort.riskAdjustedScore;
   QuantFactorPresetType _rankingPresetType = QuantFactorPresetType.balanced;
   QuantStockRankingResult? _rankingResult;
+  QuantFactorIcDashboardResult? _icDashboardResult;
   bool _isRankingLoading = false;
   QuantBacktestParameters _backtestParameters = const QuantBacktestParameters();
   QuantDetailTab _detailTab = QuantDetailTab.overview;
@@ -188,6 +192,7 @@ class _QuantPageState extends State<QuantPage> {
 
     setState(() {
       _isRankingLoading = true;
+      _icDashboardResult = null;
     });
 
     final result = await calculateQuantStockRanking(
@@ -206,8 +211,20 @@ class _QuantPageState extends State<QuantPage> {
       return;
     }
 
+    final icDashboardResult = calculateQuantFactorIcDashboard(
+      rankingResult: result,
+    );
+
+    if (!mounted ||
+        market != _rankingMarket ||
+        sortBy != _rankingSort ||
+        presetType != _rankingPresetType) {
+      return;
+    }
+
     setState(() {
       _rankingResult = result;
+      _icDashboardResult = icDashboardResult;
       _isRankingLoading = false;
     });
   }
@@ -347,6 +364,11 @@ class _QuantPageState extends State<QuantPage> {
                         onRefresh: _loadRanking,
                         onStockSelected: _onRankingStockSelected,
                         onAddStock: _chooseStock,
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      QuantFactorIcDashboardSection(
+                        result: _icDashboardResult,
+                        isLoading: _isRankingLoading,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       FilledButton.icon(
