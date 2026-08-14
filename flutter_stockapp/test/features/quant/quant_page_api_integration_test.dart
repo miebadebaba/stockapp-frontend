@@ -9,6 +9,7 @@ import 'package:flutter_stockapp/features/quant/quant_backtest_parameters_sectio
 import 'package:flutter_stockapp/features/quant/quant_factor_score_section.dart';
 import 'package:flutter_stockapp/features/quant/quant_price_chart.dart';
 import 'package:flutter_stockapp/features/quant/quant_overview_section.dart';
+import 'package:flutter_stockapp/features/quant/quant_factor_ic_dashboard_section.dart';
 
 void main() {
   testWidgets('selecting a stock requests and displays backend analysis', (
@@ -253,6 +254,42 @@ void main() {
     expect(find.text('000001'), findsOneWidget);
     expect(find.byType(QuantOverviewSection), findsOneWidget);
     expect(find.byType(QuantBacktestParametersSection), findsNothing);
+  });
+  testWidgets('stock pool shows IC dashboard without simulated IC values', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: QuantPage(
+          rankingAnalyze: (symbol) async {
+            return buildMockQuantStockAnalysis(symbol);
+          },
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    final dashboardFinder = find.byType(QuantFactorIcDashboardSection);
+
+    expect(dashboardFinder, findsOneWidget);
+    expect(find.text('因子有效性'), findsOneWidget);
+
+    final dashboard = tester.widget<QuantFactorIcDashboardSection>(
+      dashboardFinder,
+    );
+
+    // 模拟行情不能生成正式 IC 指标。
+    expect(find.text('Rank IC'), findsNothing);
+    expect(find.text('平均 IC'), findsNothing);
+    expect(find.text('ICIR'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }
 
