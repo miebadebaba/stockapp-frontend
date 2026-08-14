@@ -50,7 +50,6 @@ class DiscussionListPage extends StatefulWidget {
   const DiscussionListPage({
     required this.posts,
     required this.commentsByPostId,
-    this.onSettingsTap,
     this.onProfileTap,
     this.onPostTap,
     this.onNewPostTap,
@@ -61,7 +60,6 @@ class DiscussionListPage extends StatefulWidget {
 
   final List<DiscussionPostData> posts;
   final Map<String, List<DiscussionCommentData>> commentsByPostId;
-  final VoidCallback? onSettingsTap;
   final VoidCallback? onProfileTap;
   final ValueChanged<String>? onPostTap;
   final VoidCallback? onNewPostTap;
@@ -69,7 +67,6 @@ class DiscussionListPage extends StatefulWidget {
   final bool showTopActions;
 
   factory DiscussionListPage.demo({
-    VoidCallback? onSettingsTap,
     VoidCallback? onProfileTap,
     ValueChanged<String>? onPostTap,
     VoidCallback? onNewPostTap,
@@ -81,7 +78,6 @@ class DiscussionListPage extends StatefulWidget {
       key: key,
       posts: _demoPosts,
       commentsByPostId: _demoCommentsByPostId,
-      onSettingsTap: onSettingsTap,
       onProfileTap: onProfileTap,
       onPostTap: onPostTap,
       onNewPostTap: onNewPostTap,
@@ -255,7 +251,6 @@ class _DiscussionListPageState extends State<DiscussionListPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: AppTopActions(
-                              onSettingsTap: widget.onSettingsTap,
                               onProfileTap: widget.onProfileTap,
                             ),
                           ),

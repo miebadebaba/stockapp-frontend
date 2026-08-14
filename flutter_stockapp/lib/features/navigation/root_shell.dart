@@ -7,10 +7,11 @@ import '../account/account_page.dart';
 import '../agent/agent_page.dart';
 import '../forum/discussion_list_page.dart';
 import '../home/home_page.dart';
+import '../home/market_stock_list_api.dart';
+import '../home/stocks_page.dart';
 import '../news/news_feed_page.dart';
 import '../paper_trading/paper_trading_page.dart';
 import '../quant/quant_page.dart';
-import '../settings/settings_preview_page.dart';
 import '../tutorial/tutorial_category_page.dart';
 import 'app_top_actions.dart';
 import 'floating_bottom_nav.dart';
@@ -39,7 +40,6 @@ class _RootShellState extends State<RootShell> {
   var _selectedIndex = 1;
   var _isIdeaOverlayOpen = false;
   var _isAccountPageOpen = false;
-  var _isSettingsPageOpen = false;
   var _isNewsPageOpen = false;
   var _isTutorialPageOpen = false;
   var _isForumPageOpen = false;
@@ -76,7 +76,6 @@ class _RootShellState extends State<RootShell> {
       _selectedIndex = index;
       _isIdeaOverlayOpen = false;
       _isAccountPageOpen = false;
-      _isSettingsPageOpen = false;
       _isNewsPageOpen = false;
       _isTutorialPageOpen = false;
       _isForumPageOpen = false;
@@ -91,10 +90,7 @@ class _RootShellState extends State<RootShell> {
   }
 
   void _openAccountPage() {
-    setState(() {
-      _isAccountPageOpen = true;
-      _isSettingsPageOpen = false;
-    });
+    setState(() => _isAccountPageOpen = true);
   }
 
   void _closeAccountPage() {
@@ -104,23 +100,11 @@ class _RootShellState extends State<RootShell> {
     setState(() => _isAccountPageOpen = false);
   }
 
-  void _openSettingsPage() {
-    setState(() => _isSettingsPageOpen = true);
-  }
-
-  void _closeSettingsPage() {
-    if (!_isSettingsPageOpen) {
-      return;
-    }
-    setState(() => _isSettingsPageOpen = false);
-  }
-
   void _openNewsPage() {
     setState(() {
       _isNewsPageOpen = true;
       _isIdeaOverlayOpen = false;
       _isAccountPageOpen = false;
-      _isSettingsPageOpen = false;
     });
   }
 
@@ -176,6 +160,22 @@ class _RootShellState extends State<RootShell> {
     );
   }
 
+  Future<void> _openWatchlistPage() async {
+    final stocks = await const MarketStockListApi().fetchStocks();
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => StocksPage(
+          stocks: stocks,
+          watchlistController: _watchlistController,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
@@ -193,7 +193,6 @@ class _RootShellState extends State<RootShell> {
       canPop:
           !_isIdeaOverlayOpen &&
           !_isAccountPageOpen &&
-          !_isSettingsPageOpen &&
           !_isNewsPageOpen &&
           !_isTutorialPageOpen &&
           !_isForumPageOpen,
@@ -217,10 +216,6 @@ class _RootShellState extends State<RootShell> {
           _closeIdeaOverlay();
           return;
         }
-        if (_isSettingsPageOpen) {
-          _closeSettingsPage();
-          return;
-        }
         if (_isAccountPageOpen) {
           _closeAccountPage();
         }
@@ -238,7 +233,6 @@ class _RootShellState extends State<RootShell> {
                 child: DiscussionListPage.demo(
                   bottomPadding: 140,
                   showTopActions: false,
-                  onSettingsTap: _openSettingsPage,
                   onProfileTap: _openAccountPage,
                   onPostTap: (_) {},
                   onNewPostTap: () {},
@@ -253,35 +247,24 @@ class _RootShellState extends State<RootShell> {
                   onCategoryTap: (_) {},
                 ),
               ),
-            if (_isSettingsPageOpen)
-              Positioned.fill(
-                child: SettingsPreviewPage(
-                  themeMode: widget.themeMode,
-                  onThemeModeChanged: widget.onThemeModeChanged,
-                  onSettingsTap: () {},
-                  onAvatarTap: () {
-                    _closeSettingsPage();
-                    _openAccountPage();
-                  },
-                ),
-              ),
             if (_isAccountPageOpen)
               Positioned.fill(
                 child: AccountPage(
                   userName: widget.username ?? 'Account',
+                  watchlistController: _watchlistController,
                   onRateUsTap: () {},
                   onHelpCenterTap: () {},
-                  onPreferencesTap: () {},
                   onAboutTap: () {},
                   onPrimaryActionTap: () {},
-                  onSecondaryActionTap: () {},
+                  onSecondaryActionTap: _openWatchlistPage,
                   onProfileTap: () {},
-                  onSettingsTap: _openSettingsPage,
                   onTopProfileTap: _closeAccountPage,
                   onSignOutTap: widget.onSignOut,
+                  initialThemeMode: widget.themeMode,
+                  onThemeModeChanged: widget.onThemeModeChanged,
                 ),
               ),
-            if (!_isAccountPageOpen && !_isSettingsPageOpen && !_isNewsPageOpen)
+            if (!_isAccountPageOpen && !_isNewsPageOpen)
               Positioned(
                 left: 0,
                 right: 0,
@@ -293,7 +276,6 @@ class _RootShellState extends State<RootShell> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                       child: AppTopActions(
-                        onSettingsTap: _openSettingsPage,
                         onProfileTap: _openAccountPage,
                       ),
                     ),
