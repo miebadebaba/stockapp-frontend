@@ -32,15 +32,21 @@ import 'quant_stock_ranking_section.dart';
 import 'quant_technical_overview_section.dart';
 import 'quant_pool_controller.dart';
 import 'quant_factor_ic_dashboard.dart';
-import 'quant_factor_ic_dashboard_calculator.dart';
+import 'quant_factor_ic_api.dart';
 import 'quant_factor_ic_dashboard_section.dart';
 
 enum QuantDetailTab { overview, technical, factors, backtest }
 
 class QuantPage extends StatefulWidget {
-  const QuantPage({this.getJson, this.rankingAnalyze, super.key});
+  const QuantPage({
+    this.getJson,
+    this.postJson,
+    this.rankingAnalyze,
+    super.key,
+  });
 
   final JsonGet? getJson;
+  final JsonPost? postJson;
   final Future<QuantStockAnalysis> Function(String symbol)? rankingAnalyze;
 
   @override
@@ -49,6 +55,7 @@ class QuantPage extends StatefulWidget {
 
 class _QuantPageState extends State<QuantPage> {
   late final QuantPoolController _quantPoolController;
+  late final QuantFactorIcApi _factorIcApi;
 
   SelectedStock? selectedStock;
   SelectedStock? comparisonStock;
@@ -81,6 +88,10 @@ class _QuantPageState extends State<QuantPage> {
       api: QuantStockAnalysisApi(
         getJson: widget.getJson ?? ApiClient().getJson,
       ),
+    );
+
+    _factorIcApi = QuantFactorIcApi(
+      postJson: widget.postJson ?? ApiClient().postJson,
     );
 
     _quantPoolController = QuantPoolController();
@@ -211,9 +222,19 @@ class _QuantPageState extends State<QuantPage> {
       return;
     }
 
-    final icDashboardResult = calculateQuantFactorIcDashboard(
-      rankingResult: result,
-    );
+    QuantFactorIcDashboardResult icDashboardResult;
+
+    try {
+      icDashboardResult = await _factorIcApi.analyze(
+        market: market,
+        symbols: stocks.map((stock) => stock.code),
+      );
+    } catch (_) {
+      icDashboardResult = QuantFactorIcDashboardResult(
+        status: QuantFactorIcDashboardStatus.loadFailure,
+        realStockCount: stocks.length,
+      );
+    }
 
     if (!mounted ||
         market != _rankingMarket ||
