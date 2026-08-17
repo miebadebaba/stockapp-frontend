@@ -4,6 +4,7 @@ enum QuantFactorIcDashboardStatus {
   available,
   insufficientRealStocks,
   insufficientHistory,
+  loadFailure,
 }
 
 class QuantFactorIcDashboardResult {

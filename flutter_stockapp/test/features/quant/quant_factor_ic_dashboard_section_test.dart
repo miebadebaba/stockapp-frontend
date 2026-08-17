@@ -51,6 +51,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('shows backend load failure state', (tester) async {
+    await _pumpSection(
+      tester,
+      result: const QuantFactorIcDashboardResult(
+        status: QuantFactorIcDashboardStatus.loadFailure,
+        realStockCount: 3,
+      ),
+    );
+
+    expect(find.text('因子有效性加载失败'), findsOneWidget);
+    expect(find.textContaining('请确认后端已启动后刷新重试'), findsOneWidget);
+    expect(find.byIcon(Icons.cloud_off_outlined), findsOneWidget);
+    expect(find.text('Rank IC'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shows metrics for all available factors', (tester) async {
     final result = QuantFactorIcDashboardResult(
       status: QuantFactorIcDashboardStatus.available,

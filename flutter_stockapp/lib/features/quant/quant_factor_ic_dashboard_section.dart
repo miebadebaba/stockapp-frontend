@@ -80,6 +80,12 @@ class QuantFactorIcDashboardSection extends StatelessWidget {
               '但尚未形成足够的历史因子与未来收益样本。',
         );
 
+      case QuantFactorIcDashboardStatus.loadFailure:
+        return const _StatusMessage(
+          icon: Icons.cloud_off_outlined,
+          title: '因子有效性加载失败',
+          message: '暂时无法获取真实 IC 数据，请确认后端已启动后刷新重试。',
+        );
       case QuantFactorIcDashboardStatus.available:
         return Column(
           children: [
