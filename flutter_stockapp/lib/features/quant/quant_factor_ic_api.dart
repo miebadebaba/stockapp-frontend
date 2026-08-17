@@ -6,6 +6,7 @@ typedef JsonPost =
     Future<Map<String, dynamic>> Function({
       required String path,
       required Object body,
+      Duration? receiveTimeout,
     });
 
 class QuantFactorIcApi {
@@ -16,6 +17,7 @@ class QuantFactorIcApi {
   static const holdingPeriod = 5;
   static const minimumLookback = 35;
   static const minimumSampleSize = 3;
+  static const receiveTimeout = Duration(seconds: 30);
 
   final JsonPost postJson;
 
@@ -46,6 +48,7 @@ class QuantFactorIcApi {
         'minimum_lookback': minimumLookback,
         'minimum_sample_size': minimumSampleSize,
       },
+      receiveTimeout: receiveTimeout,
     );
 
     return mapQuantFactorIcAnalysisResponse(response);

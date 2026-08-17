@@ -17,9 +17,7 @@ class ApiClient {
         receiveTimeout: ApiConfig.receiveTimeout,
         contentType: Headers.jsonContentType,
         responseType: ResponseType.json,
-        headers: const {
-          Headers.acceptHeader: Headers.jsonContentType,
-        },
+        headers: const {Headers.acceptHeader: Headers.jsonContentType},
       ),
     );
   }
@@ -52,11 +50,15 @@ class ApiClient {
   Future<Map<String, dynamic>> postJson({
     required String path,
     required Object body,
+    Duration? receiveTimeout,
   }) async {
     try {
       final response = await _dio.post<Object?>(
         path,
         data: body,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
       );
 
       return _requireJsonObject(response.data);
@@ -124,10 +126,7 @@ class ApiClient {
         );
 
       case DioExceptionType.badResponse:
-        return _mapStatusCode(
-          error.response?.statusCode,
-          error.response?.data,
-        );
+        return _mapStatusCode(error.response?.statusCode, error.response?.data);
 
       case DioExceptionType.badCertificate:
         return const ApiException(
@@ -145,7 +144,9 @@ class ApiClient {
 
   static ApiException _mapStatusCode(int? statusCode, Object? data) {
     final detail = data is Map ? data['detail'] : null;
-    final code = data is Map && data['code'] is String ? data['code'] as String : null;
+    final code = data is Map && data['code'] is String
+        ? data['code'] as String
+        : null;
     switch (statusCode) {
       case 401:
         return ApiException(

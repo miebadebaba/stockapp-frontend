@@ -7,34 +7,41 @@ void main() {
   test('posts normalized symbols to the real IC endpoint', () async {
     String? receivedPath;
     Object? receivedBody;
+    Duration? receivedTimeout;
 
     final api = QuantFactorIcApi(
-      postJson: ({required String path, required Object body}) async {
-        receivedPath = path;
-        receivedBody = body;
+      postJson:
+          ({
+            required String path,
+            required Object body,
+            Duration? receiveTimeout,
+          }) async {
+            receivedPath = path;
+            receivedBody = body;
+            receivedTimeout = receiveTimeout;
 
-        return {
-          'market': 'united_states',
-          'symbols': ['AAPL', 'MSFT', 'NVDA'],
-          'history_limit': 120,
-          'holding_period': 5,
-          'minimum_lookback': 35,
-          'minimum_sample_size': 3,
-          'factor_results': [
-            {
-              'factor_id': 'trend',
-              'periods': [
+            return {
+              'market': 'united_states',
+              'symbols': ['AAPL', 'MSFT', 'NVDA'],
+              'history_limit': 120,
+              'holding_period': 5,
+              'minimum_lookback': 35,
+              'minimum_sample_size': 3,
+              'factor_results': [
                 {
-                  'date': '2026-01-05',
-                  'sample_size': 3,
-                  'information_coefficient': 0.4,
-                  'rank_information_coefficient': 0.5,
+                  'factor_id': 'trend',
+                  'periods': [
+                    {
+                      'date': '2026-01-05',
+                      'sample_size': 3,
+                      'information_coefficient': 0.4,
+                      'rank_information_coefficient': 0.5,
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-        };
-      },
+            };
+          },
     );
 
     final result = await api.analyze(
@@ -43,6 +50,7 @@ void main() {
     );
 
     expect(receivedPath, '/api/v1/quant/factor-ic-analysis');
+    expect(receivedTimeout, const Duration(seconds: 30));
     expect(receivedBody, {
       'market': 'united_states',
       'symbols': ['AAPL', 'MSFT', 'NVDA'],
@@ -61,10 +69,15 @@ void main() {
       var requestCount = 0;
 
       final api = QuantFactorIcApi(
-        postJson: ({required String path, required Object body}) async {
-          requestCount += 1;
-          return {};
-        },
+        postJson:
+            ({
+              required String path,
+              required Object body,
+              Duration? receiveTimeout,
+            }) async {
+              requestCount += 1;
+              return {};
+            },
       );
 
       final result = await api.analyze(

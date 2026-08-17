@@ -12,10 +12,7 @@ void main() {
       late RequestOptions capturedRequest;
       final client = _buildClient((request) async {
         capturedRequest = request;
-        return _jsonResponse(
-          statusCode: 200,
-          data: {'status': 'ok'},
-        );
+        return _jsonResponse(statusCode: 200, data: {'status': 'ok'});
       });
 
       final result = await client.getJson(
@@ -33,35 +30,25 @@ void main() {
       late RequestOptions capturedRequest;
       final client = _buildClient((request) async {
         capturedRequest = request;
-        return _jsonResponse(
-          statusCode: 200,
-          data: {'accepted': true},
-        );
+        return _jsonResponse(statusCode: 200, data: {'accepted': true});
       });
 
       final result = await client.postJson(
         path: '/api/v1/example',
-        body: {
-          'symbol': '600519.SH',
-          'period': 20,
-        },
+        body: {'symbol': '600519.SH', 'period': 20},
+        receiveTimeout: const Duration(seconds: 30),
       );
 
       expect(capturedRequest.path, '/api/v1/example');
       expect(capturedRequest.method, 'POST');
-      expect(capturedRequest.data, {
-        'symbol': '600519.SH',
-        'period': 20,
-      });
+      expect(capturedRequest.receiveTimeout, const Duration(seconds: 30));
+      expect(capturedRequest.data, {'symbol': '600519.SH', 'period': 20});
       expect(result, {'accepted': true});
     });
 
     test('rejects a response that is not a JSON object', () async {
       final client = _buildClient((request) async {
-        return _jsonResponse(
-          statusCode: 200,
-          data: ['unexpected', 'list'],
-        );
+        return _jsonResponse(statusCode: 200, data: ['unexpected', 'list']);
       });
 
       await expectLater(
@@ -120,9 +107,7 @@ void main() {
       final client = _buildClient((request) async {
         return _jsonResponse(
           statusCode: 404,
-          data: {
-            'detail': 'internal resource information',
-          },
+          data: {'detail': 'internal resource information'},
         );
       });
 
@@ -130,16 +115,8 @@ void main() {
         client.getJson(path: '/api/v1/missing'),
         throwsA(
           isA<ApiException>()
-              .having(
-                (error) => error.type,
-                'type',
-                ApiErrorType.notFound,
-              )
-              .having(
-                (error) => error.statusCode,
-                'statusCode',
-                404,
-              ),
+              .having((error) => error.type, 'type', ApiErrorType.notFound)
+              .having((error) => error.statusCode, 'statusCode', 404),
         ),
       );
     });
@@ -148,9 +125,7 @@ void main() {
       final client = _buildClient((request) async {
         return _jsonResponse(
           statusCode: 503,
-          data: {
-            'detail': 'private server stack information',
-          },
+          data: {'detail': 'private server stack information'},
         );
       });
 
@@ -158,16 +133,8 @@ void main() {
         client.getJson(path: '/api/v1/example'),
         throwsA(
           isA<ApiException>()
-              .having(
-                (error) => error.type,
-                'type',
-                ApiErrorType.server,
-              )
-              .having(
-                (error) => error.statusCode,
-                'statusCode',
-                503,
-              ),
+              .having((error) => error.type, 'type', ApiErrorType.server)
+              .having((error) => error.statusCode, 'statusCode', 503),
         ),
       );
     });
@@ -187,9 +154,7 @@ ApiClient _buildClient(_RequestHandler handler) {
   return ApiClient(dio: dio);
 }
 
-typedef _RequestHandler = Future<ResponseBody> Function(
-  RequestOptions request,
-);
+typedef _RequestHandler = Future<ResponseBody> Function(RequestOptions request);
 
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.handler);
@@ -209,10 +174,7 @@ class _StubAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-ResponseBody _jsonResponse({
-  required int statusCode,
-  required Object data,
-}) {
+ResponseBody _jsonResponse({required int statusCode, required Object data}) {
   return ResponseBody.fromString(
     jsonEncode(data),
     statusCode,
