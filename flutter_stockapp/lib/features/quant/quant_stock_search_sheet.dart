@@ -48,8 +48,9 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
 
     if (code == null ||
         quantStockCatalog.any(
-          (stock) => stock.code.toUpperCase() == code.toUpperCase(),
-        )) {
+          (stock) => _normalizeCode(stock.code) == _normalizeCode(code),
+        ) ||
+        (widget.quantPoolController?.containsCode(code) ?? false)) {
       return null;
     }
 
@@ -62,8 +63,22 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
 
   List<SelectedStock> get _filteredStocks {
     final keyword = _normalizedQuery.toLowerCase();
+    final stocks = <SelectedStock>[...quantStockCatalog];
 
-    return quantStockCatalog.where((stock) {
+    if (_isBatchMode) {
+      final knownCodes = stocks
+          .map((stock) => _normalizeCode(stock.code))
+          .toSet();
+
+      for (final stock
+          in widget.quantPoolController?.stocks ?? const <SelectedStock>[]) {
+        if (knownCodes.add(_normalizeCode(stock.code))) {
+          stocks.add(stock);
+        }
+      }
+    }
+
+    return stocks.where((stock) {
       if (stock.market != _selectedMarket) {
         return false;
       }
@@ -355,7 +370,8 @@ class _QuantStockSearchSheetState extends State<QuantStockSearchSheet> {
                               : null,
                           title: Text(stock.name),
                           subtitle: Text(
-                            '${stock.code} · ${stock.market.label}',
+                            '${stock.code} · ${stock.market.label}'
+                            '${_isBatchMode && isInQuantPool ? ' · 已在池中' : ''}',
                           ),
                           trailing: _isBatchMode
                               ? null

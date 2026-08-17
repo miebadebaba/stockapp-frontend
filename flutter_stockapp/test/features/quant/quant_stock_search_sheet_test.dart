@@ -3,6 +3,7 @@ import 'package:flutter_stockapp/core/theme/app_theme.dart';
 import 'package:flutter_stockapp/features/quant/quant_stock_search_sheet.dart';
 import 'package:flutter_stockapp/features/quant/selected_stock.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_stockapp/features/quant/quant_pool_controller.dart';
 
 void main() {
   testWidgets('returns a custom six digit A-share code', (tester) async {
@@ -45,6 +46,37 @@ void main() {
     expect(selectedStock?.code, 'AMD');
     expect(selectedStock?.name, '美股代码');
     expect(selectedStock?.market, QuantMarket.unitedStates);
+  });
+  testWidgets('批量模式显示分析池中的自定义股票', (tester) async {
+    final controller = QuantPoolController(
+      initialStocks: const [
+        SelectedStock(
+          code: 'AMD',
+          name: '美股代码',
+          market: QuantMarket.unitedStates,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantStockSearchSheet(quantPoolController: controller),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('批量管理'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('美股').first);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'AMD');
+    await tester.pumpAndSettle();
+
+    expect(find.text('AMD · 美股 · 已在池中'), findsOneWidget);
   });
 }
 
