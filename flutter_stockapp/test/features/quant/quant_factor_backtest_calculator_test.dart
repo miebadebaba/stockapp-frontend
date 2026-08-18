@@ -192,6 +192,12 @@ void main() {
       );
 
       expect(result.tradeCount, 0);
+      expect(result.evaluatedSignalCount, greaterThan(0));
+      expect(result.highestSignalScore, isNotNull);
+      expect(
+        result.noTradeReason,
+        QuantBacktestNoTradeReason.noQualifiedSignal,
+      );
       expect(result.winRate, 0);
       expect(result.averageReturn, 0);
       expect(result.averageGrossReturn, 0);
@@ -212,6 +218,12 @@ void main() {
       );
 
       expect(result.tradeCount, 0);
+      expect(result.evaluatedSignalCount, 0);
+      expect(result.highestSignalScore, isNull);
+      expect(
+        result.noTradeReason,
+        QuantBacktestNoTradeReason.insufficientHistory,
+      );
       expect(result.equityCurve, isEmpty);
       expect(result.hasEquityComparison, isFalse);
       expect(result.benchmarkReturn, 0);

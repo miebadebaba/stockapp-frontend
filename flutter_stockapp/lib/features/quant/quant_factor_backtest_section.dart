@@ -55,7 +55,7 @@ class QuantFactorBacktestSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         if (result.trades.isEmpty)
           Text(
-            '当前历史区间内没有满足条件的完整交易。',
+            _noTradeMessage(result),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: palette.secondaryText,
               height: 1.5,
@@ -350,6 +350,32 @@ class _BacktestMetric extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+String _noTradeMessage(QuantFactorBacktestResult result) {
+  switch (result.noTradeReason) {
+    case QuantBacktestNoTradeReason.insufficientHistory:
+      return '历史数据不足，暂时无法形成完整交易。请增加回测数据区间，或缩短持有周期。';
+
+    case QuantBacktestNoTradeReason.invalidPrices:
+      return '候选交易日的开盘价或收盘价无效，无法完成交易。请检查行情数据是否完整。';
+
+    case QuantBacktestNoTradeReason.noQualifiedSignal:
+      final highestScore = result.highestSignalScore;
+
+      if (highestScore == null) {
+        return '已评估 ${result.evaluatedSignalCount} 个候选交易日，'
+            '但没有产生可用的综合评分。请检查因子数据是否完整。';
+      }
+
+      return '已评估 ${result.evaluatedSignalCount} 个候选交易日，'
+          '最高风险调整分为 ${highestScore.toStringAsFixed(0)} 分，'
+          '未达到 ${result.signalThreshold.toStringAsFixed(0)} 分阈值。'
+          '可适当降低信号阈值后重新回测。';
+
+    case null:
+      return '';
   }
 }
 

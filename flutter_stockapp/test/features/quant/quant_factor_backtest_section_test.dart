@@ -154,7 +154,7 @@ void main() {
 
     await tester.pumpWidget(buildSubject(result: result, isSimulated: true));
 
-    expect(find.text('当前历史区间内没有满足条件的完整交易。'), findsOneWidget);
+    expect(find.text('历史数据不足，暂时无法形成完整交易。请增加回测数据区间，或缩短持有周期。'), findsOneWidget);
     expect(find.text('当前回测基于内置模拟数据，只用于验证功能流程，不能用于判断策略真实效果。'), findsOneWidget);
 
     expect(find.text('交易次数'), findsNothing);
@@ -162,6 +162,27 @@ void main() {
     expect(
       find.byKey(const ValueKey('quant-backtest-equity-chart')),
       findsNothing,
+    );
+  });
+
+  testWidgets('没有信号时显示最高分和调整建议', (tester) async {
+    const result = QuantFactorBacktestResult(
+      trades: [],
+      signalThreshold: 60,
+      holdingPeriod: 5,
+      minimumLookback: 35,
+      evaluatedSignalCount: 18,
+      highestSignalScore: 54.4,
+    );
+
+    await tester.pumpWidget(buildSubject(result: result));
+
+    expect(
+      find.text(
+        '已评估 18 个候选交易日，最高风险调整分为 54 分，'
+        '未达到 60 分阈值。可适当降低信号阈值后重新回测。',
+      ),
+      findsOneWidget,
     );
   });
 

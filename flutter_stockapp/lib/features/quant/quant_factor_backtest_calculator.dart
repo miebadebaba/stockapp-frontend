@@ -72,6 +72,10 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
 
   final trades = <QuantBacktestTrade>[];
 
+  var evaluatedSignalCount = 0;
+  var invalidPriceCandidateCount = 0;
+  double? highestSignalScore;
+
   final factorTrades = <String, List<QuantBacktestTrade>>{
     'trend': [],
     'momentum': [],
@@ -111,8 +115,16 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     final exitBar = orderedBars[exitIndex];
 
     if (!_isValidPrice(entryBar.open) || !_isValidPrice(exitBar.close)) {
+      invalidPriceCandidateCount++;
       signalIndex++;
       continue;
+    }
+
+    evaluatedSignalCount++;
+
+    if (signalScore != null &&
+        (highestSignalScore == null || signalScore > highestSignalScore)) {
+      highestSignalScore = signalScore;
     }
 
     for (final factor in factorScore.factors) {
@@ -169,6 +181,9 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
   );
 
   return QuantFactorBacktestResult(
+    evaluatedSignalCount: evaluatedSignalCount,
+    invalidPriceCandidateCount: invalidPriceCandidateCount,
+    highestSignalScore: highestSignalScore,
     trades: List.unmodifiable(trades),
     signalThreshold: effectiveSignalThreshold,
     holdingPeriod: effectiveHoldingPeriod,

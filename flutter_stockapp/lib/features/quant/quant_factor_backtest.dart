@@ -170,6 +170,12 @@ class QuantFactorHistoricalPerformance {
   }
 }
 
+enum QuantBacktestNoTradeReason {
+  insufficientHistory,
+  invalidPrices,
+  noQualifiedSignal,
+}
+
 class QuantFactorBacktestResult {
   const QuantFactorBacktestResult({
     required this.trades,
@@ -179,6 +185,9 @@ class QuantFactorBacktestResult {
     this.costSettings = const QuantBacktestCostSettings(),
     this.equityCurve = const [],
     this.factorPerformances = const [],
+    this.evaluatedSignalCount = 0,
+    this.invalidPriceCandidateCount = 0,
+    this.highestSignalScore,
   });
 
   final List<QuantBacktestTrade> trades;
@@ -192,6 +201,31 @@ class QuantFactorBacktestResult {
 
   /// 各单项因子独立发出信号时的历史表现。
   final List<QuantFactorHistoricalPerformance> factorPerformances;
+
+  /// 实际完成因子评分的候选交易日数量。
+  final int evaluatedSignalCount;
+
+  /// 因开盘价或收盘价无效而被跳过的候选数量。
+  final int invalidPriceCandidateCount;
+
+  /// 回测期间观察到的最高风险调整分。
+  final double? highestSignalScore;
+
+  QuantBacktestNoTradeReason? get noTradeReason {
+    if (trades.isNotEmpty) {
+      return null;
+    }
+
+    if (evaluatedSignalCount > 0) {
+      return QuantBacktestNoTradeReason.noQualifiedSignal;
+    }
+
+    if (invalidPriceCandidateCount > 0) {
+      return QuantBacktestNoTradeReason.invalidPrices;
+    }
+
+    return QuantBacktestNoTradeReason.insufficientHistory;
+  }
 
   int get tradeCount => trades.length;
 
