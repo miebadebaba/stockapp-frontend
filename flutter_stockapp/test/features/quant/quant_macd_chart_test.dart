@@ -30,6 +30,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('MACD趋势指标'), findsOneWidget);
+    expect(find.text('DIF和DEA展示趋势变化，柱状图展示两者差异；0轴用于区分正负动能'), findsOneWidget);
     expect(find.text('0.25'), findsOneWidget);
     expect(find.text('0.15'), findsOneWidget);
     expect(find.text('0.20'), findsOneWidget);
