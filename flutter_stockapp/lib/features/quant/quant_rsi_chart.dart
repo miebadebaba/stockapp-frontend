@@ -28,6 +28,15 @@ class QuantRsiChart extends StatelessWidget {
         : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
     final selectedValue = selectedIndex >= 0 ? values[selectedIndex] : null;
     final displayValue = selectedValue ?? _latestRsi(values);
+    final firstAvailableIndex = values.indexWhere((value) => value != null);
+    final chartValues = firstAvailableIndex < 0
+        ? values
+        : values.sublist(firstAvailableIndex);
+
+    final chartSelectedIndex =
+        firstAvailableIndex >= 0 && selectedIndex >= firstAvailableIndex
+        ? selectedIndex - firstAvailableIndex
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,6 +55,17 @@ class QuantRsiChart extends StatelessWidget {
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
         ),
+        if (firstAvailableIndex > 0) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '前 $firstAvailableIndex 个交易日用于指标预热，'
+            '图表从首个有效 RSI 数据开始显示。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
@@ -75,8 +95,8 @@ class QuantRsiChart extends StatelessWidget {
           child: CustomPaint(
             key: const ValueKey('quant-rsi-chart'),
             painter: _QuantRsiChartPainter(
-              values: values,
-              selectedIndex: selectedIndex >= 0 ? selectedIndex : null,
+              values: chartValues,
+              selectedIndex: chartSelectedIndex,
               lineColor: const Color(0xFF2F6FED),
               gridColor: palette.divider,
               labelColor: palette.secondaryText,
