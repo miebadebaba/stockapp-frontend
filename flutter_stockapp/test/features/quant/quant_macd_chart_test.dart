@@ -34,6 +34,7 @@ void main() {
     expect(find.text('0.15'), findsOneWidget);
     expect(find.text('0.20'), findsOneWidget);
     expect(find.byKey(const ValueKey('quant-macd-chart')), findsOneWidget);
+    expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 MACD 数据开始显示。'), findsOneWidget);
   });
 
   testWidgets('displays selected date MACD values', (tester) async {
@@ -77,6 +78,27 @@ void main() {
     );
 
     expect(find.text('MACD趋势指标'), findsNothing);
+  });
+
+  testWidgets('does not show warm-up notice when all values are available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantMacdChart(
+            bars: [_bar(DateTime(2026, 7, 28)), _bar(DateTime(2026, 7, 29))],
+            values: const [
+              MacdResult(dif: 0.10, dea: 0.08, histogram: 0.04),
+              MacdResult(dif: 0.15, dea: 0.10, histogram: 0.10),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('用于指标预热'), findsNothing);
   });
 }
 
