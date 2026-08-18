@@ -53,7 +53,7 @@ class QuantMacdChart extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'DIF和DEA展示趋势变化，柱状图展示两者差异',
+          'DIF和DEA展示趋势变化，柱状图展示两者差异；0轴用于区分正负动能',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
@@ -102,7 +102,7 @@ class QuantMacdChart extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         Container(
           height: 200,
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          padding: const EdgeInsets.fromLTRB(12, 14, 8, 14),
           decoration: BoxDecoration(
             color: palette.cardBackground,
             border: Border.all(color: palette.divider),
@@ -118,6 +118,7 @@ class QuantMacdChart extends StatelessWidget {
               positiveColor: const Color(0xFF16A085),
               negativeColor: const Color(0xFFE05A47),
               gridColor: palette.divider,
+              labelColor: palette.secondaryText,
             ),
             child: const SizedBox.expand(),
           ),
@@ -210,6 +211,7 @@ class _QuantMacdChartPainter extends CustomPainter {
     required this.positiveColor,
     required this.negativeColor,
     required this.gridColor,
+    required this.labelColor,
   });
 
   final List<MacdResult?> values;
@@ -219,6 +221,7 @@ class _QuantMacdChartPainter extends CustomPainter {
   final Color positiveColor;
   final Color negativeColor;
   final Color gridColor;
+  final Color labelColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -233,23 +236,38 @@ class _QuantMacdChartPainter extends CustomPainter {
         )
         .fold<double>(0, math.max);
     final scaleMagnitude = math.max(maximumMagnitude, 0.000001);
+    const labelWidth = 28.0;
+    final plotWidth = size.width - labelWidth;
     final zeroY = size.height / 2;
-    final slotWidth = size.width / values.length;
+    final slotWidth = plotWidth / values.length;
     final histogramWidth = math.max(1.5, slotWidth * 0.55);
 
     final gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
 
-    canvas.drawLine(Offset(0, zeroY), Offset(size.width, zeroY), gridPaint);
+    canvas.drawLine(Offset(0, zeroY), Offset(plotWidth, zeroY), gridPaint);
+
+    final zeroLabelPainter = TextPainter(
+      text: TextSpan(
+        text: '0',
+        style: TextStyle(color: labelColor, fontSize: 10),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    zeroLabelPainter.paint(
+      canvas,
+      Offset(plotWidth + 5, zeroY - zeroLabelPainter.height / 2),
+    );
     canvas.drawLine(
       Offset(0, size.height * 0.25),
-      Offset(size.width, size.height * 0.25),
+      Offset(plotWidth, size.height * 0.25),
       gridPaint,
     );
     canvas.drawLine(
       Offset(0, size.height * 0.75),
-      Offset(size.width, size.height * 0.75),
+      Offset(plotWidth, size.height * 0.75),
       gridPaint,
     );
 
@@ -259,7 +277,7 @@ class _QuantMacdChartPainter extends CustomPainter {
         continue;
       }
 
-      final centerX = _indexToX(index, values.length, size.width);
+      final centerX = _indexToX(index, values.length, plotWidth);
       final histogramY = _valueToY(
         value.histogram,
         scaleMagnitude,
@@ -280,6 +298,7 @@ class _QuantMacdChartPainter extends CustomPainter {
     _drawLine(
       canvas: canvas,
       size: size,
+      plotWidth: plotWidth,
       scaleMagnitude: scaleMagnitude,
       color: difColor,
       readValue: (value) => value.dif,
@@ -287,6 +306,7 @@ class _QuantMacdChartPainter extends CustomPainter {
     _drawLine(
       canvas: canvas,
       size: size,
+      plotWidth: plotWidth,
       scaleMagnitude: scaleMagnitude,
       color: deaColor,
       readValue: (value) => value.dea,
@@ -297,7 +317,7 @@ class _QuantMacdChartPainter extends CustomPainter {
       return;
     }
 
-    final selectedX = _indexToX(selection, values.length, size.width);
+    final selectedX = _indexToX(selection, values.length, plotWidth);
 
     canvas.drawLine(
       Offset(selectedX, 0),
@@ -331,6 +351,7 @@ class _QuantMacdChartPainter extends CustomPainter {
   void _drawLine({
     required Canvas canvas,
     required Size size,
+    required double plotWidth,
     required double scaleMagnitude,
     required Color color,
     required double Function(MacdResult value) readValue,
@@ -347,7 +368,7 @@ class _QuantMacdChartPainter extends CustomPainter {
       }
 
       final point = Offset(
-        _indexToX(index, values.length, size.width),
+        _indexToX(index, values.length, plotWidth),
         _valueToY(readValue(value), scaleMagnitude, size.height),
       );
 
@@ -390,6 +411,7 @@ class _QuantMacdChartPainter extends CustomPainter {
         positiveColor != oldDelegate.positiveColor ||
         negativeColor != oldDelegate.negativeColor ||
         gridColor != oldDelegate.gridColor ||
+        labelColor != oldDelegate.labelColor ||
         values.length != oldDelegate.values.length) {
       return true;
     }
