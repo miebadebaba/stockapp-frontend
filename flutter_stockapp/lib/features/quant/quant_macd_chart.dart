@@ -31,6 +31,15 @@ class QuantMacdChart extends StatelessWidget {
         : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
     final selectedValue = selectedIndex >= 0 ? values[selectedIndex] : null;
     final displayValue = selectedValue ?? _latestMacd(values);
+    final firstAvailableIndex = values.indexWhere((value) => value != null);
+    final chartValues = firstAvailableIndex < 0
+        ? values
+        : values.sublist(firstAvailableIndex);
+
+    final chartSelectedIndex =
+        firstAvailableIndex >= 0 && selectedIndex >= firstAvailableIndex
+        ? selectedIndex - firstAvailableIndex
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,6 +58,17 @@ class QuantMacdChart extends StatelessWidget {
             context,
           ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
         ),
+        if (firstAvailableIndex > 0) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '前 $firstAvailableIndex 个交易日用于指标预热，'
+            '图表从首个有效 MACD 数据开始显示。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
@@ -91,8 +111,8 @@ class QuantMacdChart extends StatelessWidget {
           child: CustomPaint(
             key: const ValueKey('quant-macd-chart'),
             painter: _QuantMacdChartPainter(
-              values: values,
-              selectedIndex: selectedIndex >= 0 ? selectedIndex : null,
+              values: chartValues,
+              selectedIndex: chartSelectedIndex,
               difColor: const Color(0xFF2F6FED),
               deaColor: const Color(0xFFF2A93B),
               positiveColor: const Color(0xFF16A085),
