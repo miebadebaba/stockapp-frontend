@@ -29,6 +29,7 @@ void main() {
     expect(find.text('72.50'), findsOneWidget);
     expect(find.text('高位区间'), findsOneWidget);
     expect(find.byKey(const ValueKey('quant-rsi-chart')), findsOneWidget);
+    expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 RSI 数据开始显示。'), findsOneWidget);
   });
 
   testWidgets('displays the selected date RSI value', (tester) async {
@@ -69,6 +70,24 @@ void main() {
     );
 
     expect(find.text('RSI相对强弱指标'), findsNothing);
+  });
+
+  testWidgets('does not show warm-up notice when all values are available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantRsiChart(
+            bars: [_bar(DateTime(2026, 7, 28)), _bar(DateTime(2026, 7, 29))],
+            values: const [45, 55],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('用于指标预热'), findsNothing);
   });
 }
 
