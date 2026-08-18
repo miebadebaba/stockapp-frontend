@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'quant_backtest_comparison.dart';
+import 'quant_factor_backtest.dart';
 
 class QuantBacktestComparisonSection extends StatelessWidget {
   const QuantBacktestComparisonSection({required this.result, super.key});
@@ -193,6 +194,16 @@ class _ComparisonItem extends StatelessWidget {
                 ),
               ],
             ),
+            if (!hasTrades) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                _comparisonNoTradeMessage(result),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: palette.secondaryText,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -303,4 +314,27 @@ String _percent(double value) {
 String _signedPercent(double value) {
   final sign = value > 0 ? '+' : '';
   return '$sign${(value * 100).toStringAsFixed(2)}%';
+}
+
+String _comparisonNoTradeMessage(QuantFactorBacktestResult result) {
+  switch (result.noTradeReason) {
+    case QuantBacktestNoTradeReason.insufficientHistory:
+      return '历史数据不足，无法形成完整交易。';
+
+    case QuantBacktestNoTradeReason.invalidPrices:
+      return '行情价格数据不完整，候选交易无法执行。';
+
+    case QuantBacktestNoTradeReason.noQualifiedSignal:
+      final highestScore = result.highestSignalScore;
+
+      if (highestScore == null) {
+        return '没有产生可用的综合评分。';
+      }
+
+      return '最高评分 ${highestScore.toStringAsFixed(0)} 分，'
+          '未达到 ${result.signalThreshold.toStringAsFixed(0)} 分阈值。';
+
+    case null:
+      return '';
+  }
 }
