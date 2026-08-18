@@ -107,8 +107,10 @@ QuantBacktestComparisonResult calculateQuantBacktestComparison({
   return QuantBacktestComparisonResult(items: List.unmodifiable(items));
 }
 
-List<QuantBacktestComparisonCase> defaultQuantBacktestComparisonCases() {
-  return const [
+List<QuantBacktestComparisonCase> defaultQuantBacktestComparisonCases({
+  QuantBacktestCostSettings costSettings = const QuantBacktestCostSettings(),
+}) {
+  return [
     QuantBacktestComparisonCase(
       id: 'conservative',
       label: '稳健策略',
@@ -116,6 +118,7 @@ List<QuantBacktestComparisonCase> defaultQuantBacktestComparisonCases() {
       parameters: QuantBacktestParameters(
         signalThreshold: 70,
         holdingPeriod: 10,
+        costSettings: costSettings,
       ),
     ),
     QuantBacktestComparisonCase(
@@ -125,6 +128,7 @@ List<QuantBacktestComparisonCase> defaultQuantBacktestComparisonCases() {
       parameters: QuantBacktestParameters(
         signalThreshold: 60,
         holdingPeriod: 5,
+        costSettings: costSettings,
       ),
     ),
     QuantBacktestComparisonCase(
@@ -134,6 +138,7 @@ List<QuantBacktestComparisonCase> defaultQuantBacktestComparisonCases() {
       parameters: QuantBacktestParameters(
         signalThreshold: 50,
         holdingPeriod: 3,
+        costSettings: costSettings,
       ),
     ),
   ];

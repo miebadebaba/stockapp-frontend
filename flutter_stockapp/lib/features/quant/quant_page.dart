@@ -34,6 +34,7 @@ import 'quant_pool_controller.dart';
 import 'quant_factor_ic_dashboard.dart';
 import 'quant_factor_ic_api.dart';
 import 'quant_factor_ic_dashboard_section.dart';
+import 'quant_market_backtest_costs.dart';
 
 enum QuantDetailTab { overview, technical, factors, backtest }
 
@@ -71,6 +72,7 @@ class _QuantPageState extends State<QuantPage> {
   QuantFactorIcDashboardResult? _icDashboardResult;
   bool _isRankingLoading = false;
   QuantBacktestParameters _backtestParameters = const QuantBacktestParameters();
+  QuantMarket _backtestCostMarket = QuantMarket.aShare;
   QuantDetailTab _detailTab = QuantDetailTab.overview;
 
   late final QuantStockAnalysisController _stockAnalysisController;
@@ -124,6 +126,7 @@ class _QuantPageState extends State<QuantPage> {
     }
 
     setState(() {
+      _applyMarketBacktestCosts(stock.market);
       selectedStock = stock;
       comparisonStock = null;
       comparisonAnalysis = null;
@@ -289,6 +292,7 @@ class _QuantPageState extends State<QuantPage> {
 
   void _onRankingStockSelected(SelectedStock stock) {
     setState(() {
+      _applyMarketBacktestCosts(stock.market);
       selectedStock = stock;
       comparisonStock = null;
       comparisonAnalysis = null;
@@ -305,6 +309,19 @@ class _QuantPageState extends State<QuantPage> {
     if (stock != null) {
       _loadAnalysis(stock);
     }
+  }
+
+  void _applyMarketBacktestCosts(QuantMarket market) {
+    if (_backtestCostMarket == market) {
+      return;
+    }
+
+    _backtestCostMarket = market;
+    _backtestParameters = _backtestParameters.copyWith(
+      costSettings: QuantMarketBacktestCostProfile.forMarket(
+        market,
+      ).costSettings,
+    );
   }
 
   void _onBacktestParametersChanged(QuantBacktestParameters parameters) {
@@ -501,7 +518,9 @@ class _SelectedStockState extends StatelessWidget {
     final comparisonResult = calculateQuantBacktestComparison(
       symbol: analysis.symbol,
       bars: analysis.bars,
-      cases: defaultQuantBacktestComparisonCases(),
+      cases: defaultQuantBacktestComparisonCases(
+        costSettings: backtestParameters.costSettings,
+      ),
     );
     final metadata = quote == null
         ? null
@@ -729,6 +748,7 @@ class _SelectedStockState extends StatelessWidget {
               QuantBacktestParametersSection(
                 parameters: backtestParameters,
                 onChanged: onBacktestParametersChanged,
+                market: stock.market,
                 showHeader: false,
               ),
             ],

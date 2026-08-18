@@ -49,7 +49,13 @@ void main() {
 
     expect(find.text('多因子历史回测'), findsOneWidget);
     expect(find.text('风险调整分达到 60 后，于下一交易日开盘买入并持有 5 个交易日'), findsOneWidget);
-    expect(find.text('成本假设：佣金双向 0.03%，卖出印花税 0.05%，单边滑点 0.05%'), findsOneWidget);
+    expect(
+      find.text(
+        '成本假设：单边佣金 0.03%，买入税费 0.00%，'
+        '卖出税费 0.05%，单边滑点 0.05%',
+      ),
+      findsOneWidget,
+    );
 
     expect(find.text('交易次数'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
@@ -79,7 +85,10 @@ void main() {
     expect(find.text('5.20%'), findsOneWidget);
 
     expect(
-      find.text('回测已估算佣金、印花税和滑点，不代表未来收益；暂未考虑最低佣金、涨跌停及停牌限制。'),
+      find.text(
+        '回测已估算佣金、市场税费和滑点，不代表未来收益；'
+        '实际费用因市场、券商和成交金额而异。',
+      ),
       findsOneWidget,
     );
   });
