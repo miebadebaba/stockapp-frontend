@@ -41,7 +41,10 @@ class QuantBacktestParameters {
         other.holdingPeriod == holdingPeriod &&
         other.minimumLookback == minimumLookback &&
         other.costSettings.commissionRate == costSettings.commissionRate &&
-        other.costSettings.stampDutyRate == costSettings.stampDutyRate &&
+        other.costSettings.buyTransactionCostRate ==
+            costSettings.buyTransactionCostRate &&
+        other.costSettings.sellTransactionCostRate ==
+            costSettings.sellTransactionCostRate &&
         other.costSettings.slippageRate == costSettings.slippageRate;
   }
 
@@ -52,7 +55,8 @@ class QuantBacktestParameters {
       holdingPeriod,
       minimumLookback,
       costSettings.commissionRate,
-      costSettings.stampDutyRate,
+      costSettings.buyTransactionCostRate,
+      costSettings.sellTransactionCostRate,
       costSettings.slippageRate,
     );
   }

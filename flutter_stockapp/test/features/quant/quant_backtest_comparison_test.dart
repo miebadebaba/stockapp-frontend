@@ -49,6 +49,23 @@ void main() {
       expect(cases[1].parameters.signalThreshold, 60);
       expect(cases[2].parameters.signalThreshold, 50);
     });
+
+    test('三种策略继承传入的市场成本', () {
+      const marketCosts = QuantBacktestCostSettings(
+        commissionRate: 0,
+        buyTransactionCostRate: 0.001,
+        sellTransactionCostRate: 0.001,
+        slippageRate: 0.0008,
+      );
+
+      final cases = defaultQuantBacktestComparisonCases(
+        costSettings: marketCosts,
+      );
+
+      for (final item in cases) {
+        expect(item.parameters.costSettings, same(marketCosts));
+      }
+    });
   });
 }
 

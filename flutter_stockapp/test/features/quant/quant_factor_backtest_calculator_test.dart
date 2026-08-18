@@ -303,6 +303,44 @@ void main() {
       expect(trade.returnRate, trade.netReturnRate);
       expect(trade.isWinning, isTrue);
     });
+
+    test('买入侧市场税费会计入总买入成本并降低净收益', () {
+      const costsWithoutBuyTax = QuantBacktestCostSettings(
+        commissionRate: 0,
+        buyTransactionCostRate: 0,
+        sellTransactionCostRate: 0.001,
+        slippageRate: 0,
+      );
+      const costsWithBuyTax = QuantBacktestCostSettings(
+        commissionRate: 0,
+        buyTransactionCostRate: 0.001,
+        sellTransactionCostRate: 0.001,
+        slippageRate: 0,
+      );
+
+      final tradeWithoutBuyTax = QuantBacktestTrade(
+        entryDate: DateTime(2026, 1, 1),
+        exitDate: DateTime(2026, 1, 5),
+        entryPrice: 100,
+        exitPrice: 110,
+        signalScore: 70,
+        costSettings: costsWithoutBuyTax,
+      );
+      final tradeWithBuyTax = QuantBacktestTrade(
+        entryDate: DateTime(2026, 1, 1),
+        exitDate: DateTime(2026, 1, 5),
+        entryPrice: 100,
+        exitPrice: 110,
+        signalScore: 70,
+        costSettings: costsWithBuyTax,
+      );
+
+      expect(tradeWithBuyTax.totalEntryCost, closeTo(100.1, 0.000001));
+      expect(
+        tradeWithBuyTax.netReturnRate,
+        lessThan(tradeWithoutBuyTax.netReturnRate),
+      );
+    });
   });
 
   group('QuantFactorBacktestResult', () {

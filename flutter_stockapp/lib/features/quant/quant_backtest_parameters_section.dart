@@ -4,17 +4,21 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'quant_backtest_parameters.dart';
 import 'quant_factor_backtest.dart';
+import 'quant_market_backtest_costs.dart';
+import 'selected_stock.dart';
 
 class QuantBacktestParametersSection extends StatefulWidget {
   const QuantBacktestParametersSection({
     required this.parameters,
     required this.onChanged,
+    required this.market,
     this.showHeader = true,
     super.key,
   });
 
   final QuantBacktestParameters parameters;
   final ValueChanged<QuantBacktestParameters> onChanged;
+  final QuantMarket market;
   final bool showHeader;
 
   @override
@@ -28,6 +32,7 @@ class _QuantBacktestParametersSectionState
   late int _holdingPeriod;
 
   late final TextEditingController _commissionController;
+  late final TextEditingController _buyTransactionCostController;
   late final TextEditingController _stampDutyController;
   late final TextEditingController _slippageController;
 
@@ -49,6 +54,12 @@ class _QuantBacktestParametersSectionState
     _slippageController = TextEditingController(
       text: _formatRateAsPercent(widget.parameters.costSettings.slippageRate),
     );
+
+    _buyTransactionCostController = TextEditingController(
+      text: _formatRateAsPercent(
+        widget.parameters.costSettings.buyTransactionCostRate,
+      ),
+    );
   }
 
   @override
@@ -65,6 +76,7 @@ class _QuantBacktestParametersSectionState
     _commissionController.dispose();
     _stampDutyController.dispose();
     _slippageController.dispose();
+    _buyTransactionCostController.dispose();
     super.dispose();
   }
 
@@ -81,10 +93,16 @@ class _QuantBacktestParametersSectionState
     _slippageController.text = _formatRateAsPercent(
       parameters.costSettings.slippageRate,
     );
+    _buyTransactionCostController.text = _formatRateAsPercent(
+      parameters.costSettings.buyTransactionCostRate,
+    );
   }
 
   void _resetToDefault() {
-    const defaults = QuantBacktestParameters();
+    final profile = QuantMarketBacktestCostProfile.forMarket(widget.market);
+    final defaults = QuantBacktestParameters(
+      costSettings: profile.costSettings,
+    );
 
     setState(() {
       _signalThreshold = defaults.signalThreshold;
@@ -92,8 +110,11 @@ class _QuantBacktestParametersSectionState
       _commissionController.text = _formatRateAsPercent(
         defaults.costSettings.commissionRate,
       );
+      _buyTransactionCostController.text = _formatRateAsPercent(
+        defaults.costSettings.buyTransactionCostRate,
+      );
       _stampDutyController.text = _formatRateAsPercent(
-        defaults.costSettings.stampDutyRate,
+        defaults.costSettings.sellTransactionCostRate,
       );
       _slippageController.text = _formatRateAsPercent(
         defaults.costSettings.slippageRate,
@@ -105,21 +126,27 @@ class _QuantBacktestParametersSectionState
 
   void _applyParameters() {
     final commissionRate = _parsePercent(_commissionController.text);
-    final stampDutyRate = _parsePercent(_stampDutyController.text);
+    final buyTransactionCostRate = _parsePercent(
+      _buyTransactionCostController.text,
+    );
+    final sellTransactionCostRate = _parsePercent(_stampDutyController.text);
     final slippageRate = _parsePercent(_slippageController.text);
 
     if (commissionRate == null ||
-        stampDutyRate == null ||
+        buyTransactionCostRate == null ||
+        sellTransactionCostRate == null ||
         slippageRate == null) {
       _showValidationMessage('请输入有效的交易成本比例，例如 0.03');
       return;
     }
 
     if (commissionRate < 0 ||
-        stampDutyRate < 0 ||
+        buyTransactionCostRate < 0 ||
+        sellTransactionCostRate < 0 ||
         slippageRate < 0 ||
         commissionRate >= 100 ||
-        stampDutyRate >= 100 ||
+        buyTransactionCostRate >= 100 ||
+        sellTransactionCostRate >= 100 ||
         slippageRate >= 100) {
       _showValidationMessage('交易成本比例必须在 0 到 100 之间');
       return;
@@ -131,7 +158,8 @@ class _QuantBacktestParametersSectionState
       minimumLookback: widget.parameters.minimumLookback,
       costSettings: QuantBacktestCostSettings(
         commissionRate: commissionRate / 100,
-        stampDutyRate: stampDutyRate / 100,
+        buyTransactionCostRate: buyTransactionCostRate / 100,
+        sellTransactionCostRate: sellTransactionCostRate / 100,
         slippageRate: slippageRate / 100,
       ),
     );
@@ -153,6 +181,7 @@ class _QuantBacktestParametersSectionState
   Widget build(BuildContext context) {
     final palette = Theme.of(context).extension<AppThemePalette>()!;
     final textTheme = Theme.of(context).textTheme;
+    final costProfile = QuantMarketBacktestCostProfile.forMarket(widget.market);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +264,7 @@ class _QuantBacktestParametersSectionState
             ),
           ),
           subtitle: Text(
-            '用于让回测结果更接近真实交易',
+            costProfile.description,
             style: textTheme.bodySmall?.copyWith(color: palette.secondaryText),
           ),
           children: [
@@ -247,9 +276,15 @@ class _QuantBacktestParametersSectionState
             ),
             const SizedBox(height: AppSpacing.md),
             _RateInput(
+              controller: _buyTransactionCostController,
+              label: costProfile.buyCostLabel,
+              helperText: '买入成交时收取',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _RateInput(
               controller: _stampDutyController,
-              label: '卖出印花税',
-              helperText: '仅卖出时收取',
+              label: costProfile.sellCostLabel,
+              helperText: '卖出成交时收取',
             ),
             const SizedBox(height: AppSpacing.md),
             _RateInput(
@@ -315,7 +350,13 @@ class _RateInput extends StatelessWidget {
 }
 
 String _formatRateAsPercent(double rate) {
-  return (rate * 100).toStringAsFixed(2);
+  final percent = rate * 100;
+
+  if (percent != 0 && percent.abs() < 0.01) {
+    return percent.toStringAsFixed(5);
+  }
+
+  return percent.toStringAsFixed(2);
 }
 
 double? _parsePercent(String value) {

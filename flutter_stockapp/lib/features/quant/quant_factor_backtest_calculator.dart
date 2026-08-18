@@ -53,10 +53,12 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
   }
 
   if (effectiveCostSettings.commissionRate < 0 ||
-      effectiveCostSettings.stampDutyRate < 0 ||
+      effectiveCostSettings.buyTransactionCostRate < 0 ||
+      effectiveCostSettings.sellTransactionCostRate < 0 ||
       effectiveCostSettings.slippageRate < 0 ||
       effectiveCostSettings.commissionRate >= 1 ||
-      effectiveCostSettings.stampDutyRate >= 1 ||
+      effectiveCostSettings.buyTransactionCostRate >= 1 ||
+      effectiveCostSettings.sellTransactionCostRate >= 1 ||
       effectiveCostSettings.slippageRate >= 1) {
     throw ArgumentError.value(
       effectiveCostSettings,

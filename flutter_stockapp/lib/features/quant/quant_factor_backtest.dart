@@ -1,18 +1,27 @@
 class QuantBacktestCostSettings {
   const QuantBacktestCostSettings({
     this.commissionRate = 0.0003,
-    this.stampDutyRate = 0.0005,
+    this.buyTransactionCostRate = 0,
+    double? sellTransactionCostRate,
+    double? stampDutyRate,
     this.slippageRate = 0.0005,
-  });
+  }) : sellTransactionCostRate =
+           sellTransactionCostRate ?? stampDutyRate ?? 0.0005;
 
-  /// 单边佣金率，默认 0.03%，买入和卖出均收取。
+  /// 单边佣金率，买入和卖出均收取。
   final double commissionRate;
 
-  /// 卖出印花税率，默认 0.05%，仅卖出时收取。
-  final double stampDutyRate;
+  /// 买入时收取的税费或市场费用。
+  final double buyTransactionCostRate;
 
-  /// 单边滑点率，默认 0.05%。
+  /// 卖出时收取的税费或市场费用。
+  final double sellTransactionCostRate;
+
+  /// 单边滑点率。
   final double slippageRate;
+
+  /// 兼容原有“卖出印花税”参数。
+  double get stampDutyRate => sellTransactionCostRate;
 
   double get roundTripCommissionRate => commissionRate * 2;
 }
@@ -52,13 +61,16 @@ class QuantBacktestTrade {
 
   /// 买入金额，包括买入佣金和买入滑点。
   double get totalEntryCost {
-    return executedEntryPrice * (1 + costSettings.commissionRate);
+    return executedEntryPrice *
+        (1 + costSettings.commissionRate + costSettings.buyTransactionCostRate);
   }
 
   /// 卖出所得，扣除卖出佣金、印花税和卖出滑点。
   double get netExitProceeds {
     return executedExitPrice *
-        (1 - costSettings.commissionRate - costSettings.stampDutyRate);
+        (1 -
+            costSettings.commissionRate -
+            costSettings.sellTransactionCostRate);
   }
 
   /// 扣除佣金、印花税和滑点后的净收益率。
