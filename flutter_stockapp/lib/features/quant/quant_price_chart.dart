@@ -223,7 +223,7 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         const SizedBox(height: AppSpacing.lg),
         Container(
           height: 220,
-          padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+          padding: const EdgeInsets.fromLTRB(12, 16, 8, 10),
           decoration: BoxDecoration(
             color: palette.cardBackground,
             border: Border.all(color: palette.divider),
@@ -231,8 +231,18 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              const scaleWidth = 52.0;
+              final plotWidth = math.max(
+                0.0,
+                constraints.maxWidth - scaleWidth,
+              );
+
               void selectAt(Offset position) {
-                _selectBarAt(position.dx, constraints.maxWidth, visibleBars);
+                if (position.dx < 0 || position.dx > plotWidth) {
+                  return;
+                }
+
+                _selectBarAt(position.dx, plotWidth, visibleBars);
               }
 
               return GestureDetector(
@@ -246,29 +256,80 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (_showCandlesticks)
-                      QuantCandlestickChart(
-                        bars: visibleBars,
-                        selectedIndex: selectedBar == null
-                            ? null
-                            : visibleBars.indexOf(selectedBar),
-                      )
-                    else
-                      CustomPaint(
-                        painter: _QuantPriceChartPainter(
-                          bars: visibleBars,
-                          selectedIndex: selectedBar == null
-                              ? null
-                              : visibleBars.indexOf(selectedBar),
-                          lineColor: const Color(0xFF2F6FED),
-                          gridColor: palette.divider,
-                        ),
-                        child: const SizedBox.expand(),
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: plotWidth,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (_showCandlesticks)
+                            QuantCandlestickChart(
+                              bars: visibleBars,
+                              selectedIndex: selectedBar == null
+                                  ? null
+                                  : visibleBars.indexOf(selectedBar),
+                            )
+                          else
+                            CustomPaint(
+                              painter: _QuantPriceChartPainter(
+                                bars: visibleBars,
+                                selectedIndex: selectedBar == null
+                                    ? null
+                                    : visibleBars.indexOf(selectedBar),
+                                lineColor: const Color(0xFF2F6FED),
+                                gridColor: palette.divider,
+                              ),
+                              child: const SizedBox.expand(),
+                            ),
+                          QuantMovingAverageOverlay(
+                            bars: visibleBars,
+                            series: movingAverageSeries,
+                            candlestickMode: _showCandlesticks,
+                          ),
+                        ],
                       ),
-                    QuantMovingAverageOverlay(
-                      bars: visibleBars,
-                      series: movingAverageSeries,
-                      candlestickMode: _showCandlesticks,
+                    ),
+                    Positioned(
+                      left: plotWidth,
+                      top: 0,
+                      bottom: 0,
+                      width: scaleWidth,
+                      child: IgnorePointer(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              key: const ValueKey('quant-price-scale-high'),
+                              highest.toStringAsFixed(2),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: palette.secondaryText,
+                                    fontSize: 10,
+                                  ),
+                            ),
+                            Text(
+                              key: const ValueKey('quant-price-scale-middle'),
+                              ((highest + lowest) / 2).toStringAsFixed(2),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: palette.secondaryText,
+                                    fontSize: 10,
+                                  ),
+                            ),
+                            Text(
+                              key: const ValueKey('quant-price-scale-low'),
+                              lowest.toStringAsFixed(2),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: palette.secondaryText,
+                                    fontSize: 10,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

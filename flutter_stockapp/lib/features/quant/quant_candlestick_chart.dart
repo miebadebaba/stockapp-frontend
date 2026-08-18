@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'stock_daily_bar.dart';
 
+import '../../core/theme/app_theme_palette.dart';
+
 class QuantCandlestickChart extends StatelessWidget {
   const QuantCandlestickChart({
     required this.bars,
@@ -23,7 +25,9 @@ class QuantCandlestickChart extends StatelessWidget {
         selectedIndex: selectedIndex,
         risingColor: const Color(0xFF16A085),
         fallingColor: const Color(0xFFE05A47),
-        gridColor: Theme.of(context).dividerColor,
+        gridColor:
+            Theme.of(context).extension<AppThemePalette>()?.divider ??
+            Theme.of(context).colorScheme.outlineVariant,
         selectionColor: const Color(0xFF2F6FED),
       ),
       child: const SizedBox.expand(),

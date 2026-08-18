@@ -50,11 +50,34 @@ void main() {
     expect(find.text('近60个交易日价格走势'), findsOneWidget);
     expect(find.text('基于最近日线收盘价绘制'), findsOneWidget);
     expect(find.text('区间最高'), findsOneWidget);
-    expect(find.text('11.50'), findsOneWidget);
+    expect(find.text('11.50'), findsNWidgets(2));
     expect(find.text('区间最低'), findsOneWidget);
-    expect(find.text('10.10'), findsOneWidget);
+    expect(find.text('10.10'), findsNWidgets(2));
     expect(find.text('最新收盘'), findsOneWidget);
     expect(find.text('11.30'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('quant-price-scale-high')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('quant-price-scale-middle')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('quant-price-scale-low')), findsOneWidget);
+
+    final highScale = tester.widget<Text>(
+      find.byKey(const ValueKey('quant-price-scale-high')),
+    );
+    final middleScale = tester.widget<Text>(
+      find.byKey(const ValueKey('quant-price-scale-middle')),
+    );
+    final lowScale = tester.widget<Text>(
+      find.byKey(const ValueKey('quant-price-scale-low')),
+    );
+
+    expect(highScale.data, '11.50');
+    expect(middleScale.data, '10.80');
+    expect(lowScale.data, '10.10');
     expect(find.text('2026-07-28'), findsOneWidget);
     expect(find.text('2026-07-30'), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
@@ -99,8 +122,8 @@ void main() {
     expect(find.text('2026-01-01'), findsNothing);
     expect(find.text('2026-02-10'), findsOneWidget);
     expect(find.text('2026-03-01'), findsOneWidget);
-    expect(find.text('139.00'), findsOneWidget);
-    expect(find.text('160.00'), findsOneWidget);
+    expect(find.text('139.00'), findsNWidgets(2));
+    expect(find.text('160.00'), findsNWidgets(2));
     expect(find.text('159.50'), findsOneWidget);
   });
 
