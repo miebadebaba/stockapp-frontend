@@ -3,29 +3,24 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'stock_daily_bar.dart';
+import 'quant_chart_timeline.dart';
 
 class QuantMovingAverageOverlay extends StatelessWidget {
   const QuantMovingAverageOverlay({
     required this.bars,
     required this.series,
-    required this.candlestickMode,
     super.key,
   });
 
   final List<StockDailyBar> bars;
   final Map<int, List<double?>> series;
-  final bool candlestickMode;
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: CustomPaint(
         key: const ValueKey('quant-moving-average-overlay'),
-        painter: _MovingAveragePainter(
-          bars: bars,
-          series: series,
-          candlestickMode: candlestickMode,
-        ),
+        painter: _MovingAveragePainter(bars: bars, series: series),
         child: const SizedBox.expand(),
       ),
     );
@@ -33,15 +28,10 @@ class QuantMovingAverageOverlay extends StatelessWidget {
 }
 
 class _MovingAveragePainter extends CustomPainter {
-  const _MovingAveragePainter({
-    required this.bars,
-    required this.series,
-    required this.candlestickMode,
-  });
+  const _MovingAveragePainter({required this.bars, required this.series});
 
   final List<StockDailyBar> bars;
   final Map<int, List<double?>> series;
-  final bool candlestickMode;
 
   static const _colors = <int, Color>{
     5: Color(0xFFF2A93B),
@@ -65,16 +55,11 @@ class _MovingAveragePainter extends CustomPainter {
     }
 
     double indexToX(int index) {
-      if (candlestickMode) {
-        final slotWidth = size.width / bars.length;
-        return slotWidth * index + slotWidth / 2;
-      }
-
-      if (bars.length == 1) {
-        return size.width / 2;
-      }
-
-      return size.width * index / (bars.length - 1);
+      return quantChartXForIndex(
+        index: index,
+        itemCount: bars.length,
+        width: size.width,
+      );
     }
 
     canvas.save();
@@ -124,8 +109,6 @@ class _MovingAveragePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MovingAveragePainter oldDelegate) {
-    return bars != oldDelegate.bars ||
-        series != oldDelegate.series ||
-        candlestickMode != oldDelegate.candlestickMode;
+    return bars != oldDelegate.bars || series != oldDelegate.series;
   }
 }

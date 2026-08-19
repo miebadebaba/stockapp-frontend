@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'stock_daily_bar.dart';
+import 'quant_chart_timeline.dart';
 
 import '../../core/theme/app_theme_palette.dart';
 
@@ -80,7 +81,11 @@ class _QuantCandlestickChartPainter extends CustomPainter {
 
     final selection = selectedIndex;
     if (selection != null && selection >= 0 && selection < bars.length) {
-      final centerX = slotWidth * selection + slotWidth / 2;
+      final centerX = quantChartXForIndex(
+        index: selection,
+        itemCount: bars.length,
+        width: size.width,
+      );
 
       canvas.drawRect(
         Rect.fromLTWH(centerX - slotWidth / 2, 0, slotWidth, size.height),
@@ -100,7 +105,11 @@ class _QuantCandlestickChartPainter extends CustomPainter {
 
     for (var index = 0; index < bars.length; index++) {
       final bar = bars[index];
-      final centerX = slotWidth * index + slotWidth / 2;
+      final centerX = quantChartXForIndex(
+        index: index,
+        itemCount: bars.length,
+        width: size.width,
+      );
       final color = bar.close >= bar.open ? risingColor : fallingColor;
 
       final highY = priceToY(bar.high);

@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'macd_series.dart';
 import 'moving_average_series.dart';
+import 'quant_chart_timeline.dart';
 import 'quant_macd_chart.dart';
 import 'quant_moving_average_overlay.dart';
 import 'stock_daily_bar.dart';
@@ -37,8 +38,11 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
       return;
     }
 
-    final position = (dx / width).clamp(0.0, 1.0);
-    final index = (position * (bars.length - 1)).round();
+    final index = quantChartIndexForX(
+      x: dx,
+      itemCount: bars.length,
+      width: width,
+    );
 
     setState(() {
       _selectedTradingDate = bars[index].tradingDate;
@@ -226,10 +230,9 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              const scaleWidth = 52.0;
               final plotWidth = math.max(
                 0.0,
-                constraints.maxWidth - scaleWidth,
+                constraints.maxWidth - quantChartScaleWidth,
               );
 
               void selectAt(Offset position) {
@@ -281,7 +284,6 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                           QuantMovingAverageOverlay(
                             bars: visibleBars,
                             series: movingAverageSeries,
-                            candlestickMode: _showCandlesticks,
                           ),
                         ],
                       ),
@@ -290,7 +292,7 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
                       left: plotWidth,
                       top: 0,
                       bottom: 0,
-                      width: scaleWidth,
+                      width: quantChartScaleWidth,
                       child: IgnorePointer(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -334,7 +336,8 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         ),
         const SizedBox(height: AppSpacing.sm),
         Padding(
-          padding: const EdgeInsets.only(right: 52),
+          key: const ValueKey('quant-price-date-axis'),
+          padding: const EdgeInsets.only(left: 12, right: 74),
           child: Row(
             children: [
               Expanded(
@@ -545,7 +548,11 @@ class _QuantPriceChartPainter extends CustomPainter {
     }
 
     final points = List<Offset>.generate(bars.length, (index) {
-      final x = size.width * index / (bars.length - 1);
+      final x = quantChartXForIndex(
+        index: index,
+        itemCount: bars.length,
+        width: size.width,
+      );
       final normalized = (bars[index].close - minimum) / span;
       final y = size.height - normalized * size.height;
 
