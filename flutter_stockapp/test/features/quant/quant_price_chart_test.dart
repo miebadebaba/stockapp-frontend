@@ -79,6 +79,7 @@ void main() {
     expect(middleScale.data, '10.80');
     expect(lowScale.data, '10.10');
     expect(find.text('2026-07-28'), findsOneWidget);
+    expect(find.text('2026-07-29'), findsOneWidget);
     expect(find.text('2026-07-30'), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
   });
@@ -178,7 +179,13 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('quant-ohlc-details')), findsOneWidget);
-    expect(find.text('2026-07-29'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('quant-ohlc-details')),
+        matching: find.text('2026-07-29'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('开盘价'), findsOneWidget);
     expect(find.text('最高价'), findsOneWidget);
     expect(find.text('最低价'), findsOneWidget);
