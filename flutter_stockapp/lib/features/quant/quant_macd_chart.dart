@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
 import 'macd_result.dart';
+import 'quant_chart_timeline.dart';
 import 'stock_daily_bar.dart';
 
 class QuantMacdChart extends StatelessWidget {
@@ -34,19 +35,6 @@ class QuantMacdChart extends StatelessWidget {
         ? values[selectedIndex]
         : _latestMacd(values);
     final firstAvailableIndex = values.indexWhere((value) => value != null);
-    final chartValues = firstAvailableIndex < 0
-        ? values
-        : values.sublist(firstAvailableIndex);
-
-    final chartBars = firstAvailableIndex < 0
-        ? const <StockDailyBar>[]
-        : bars.sublist(firstAvailableIndex);
-
-    final chartSelectedIndex =
-        firstAvailableIndex >= 0 && selectedIndex >= firstAvailableIndex
-        ? selectedIndex - firstAvailableIndex
-        : null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -68,7 +56,7 @@ class QuantMacdChart extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             '前 $firstAvailableIndex 个交易日用于指标预热，'
-            '图表从首个有效 MACD 数据开始显示。',
+            '对应区间保留为空白。',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: palette.secondaryText,
               height: 1.5,
@@ -117,8 +105,8 @@ class QuantMacdChart extends StatelessWidget {
           child: CustomPaint(
             key: const ValueKey('quant-macd-chart'),
             painter: _QuantMacdChartPainter(
-              values: chartValues,
-              selectedIndex: chartSelectedIndex,
+              values: values,
+              selectedIndex: hasSelectedDate ? selectedIndex : null,
               difColor: const Color(0xFF2F6FED),
               deaColor: const Color(0xFFF2A93B),
               positiveColor: const Color(0xFF16A085),
@@ -129,14 +117,15 @@ class QuantMacdChart extends StatelessWidget {
             child: const SizedBox.expand(),
           ),
         ),
-        if (chartBars.isNotEmpty)
+        if (bars.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 12, right: 36),
+            key: const ValueKey('quant-macd-date-axis'),
+            padding: const EdgeInsets.only(left: 12, right: 74),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    _formatDate(chartBars.first.tradingDate),
+                    _formatDate(bars.first.tradingDate),
                     textAlign: TextAlign.left,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: palette.secondaryText,
@@ -145,7 +134,7 @@ class QuantMacdChart extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    _formatDate(chartBars[chartBars.length ~/ 2].tradingDate),
+                    _formatDate(bars[bars.length ~/ 2].tradingDate),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: palette.secondaryText,
@@ -154,7 +143,7 @@ class QuantMacdChart extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    _formatDate(chartBars.last.tradingDate),
+                    _formatDate(bars.last.tradingDate),
                     textAlign: TextAlign.right,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: palette.secondaryText,
@@ -277,8 +266,7 @@ class _QuantMacdChartPainter extends CustomPainter {
         )
         .fold<double>(0, math.max);
     final scaleMagnitude = math.max(maximumMagnitude, 0.000001);
-    const labelWidth = 28.0;
-    final plotWidth = size.width - labelWidth;
+    final plotWidth = size.width - quantChartScaleWidth;
     final zeroY = size.height / 2;
     final slotWidth = plotWidth / values.length;
     final histogramWidth = math.max(1.5, slotWidth * 0.55);
@@ -318,7 +306,11 @@ class _QuantMacdChartPainter extends CustomPainter {
         continue;
       }
 
-      final centerX = _indexToX(index, values.length, plotWidth);
+      final centerX = quantChartXForIndex(
+        index: index,
+        itemCount: values.length,
+        width: plotWidth,
+      );
       final histogramY = _valueToY(
         value.histogram,
         scaleMagnitude,
@@ -358,7 +350,11 @@ class _QuantMacdChartPainter extends CustomPainter {
       return;
     }
 
-    final selectedX = _indexToX(selection, values.length, plotWidth);
+    final selectedX = quantChartXForIndex(
+      index: selection,
+      itemCount: values.length,
+      width: plotWidth,
+    );
 
     canvas.drawLine(
       Offset(selectedX, 0),
@@ -409,7 +405,11 @@ class _QuantMacdChartPainter extends CustomPainter {
       }
 
       final point = Offset(
-        _indexToX(index, values.length, plotWidth),
+        quantChartXForIndex(
+          index: index,
+          itemCount: values.length,
+          width: plotWidth,
+        ),
         _valueToY(readValue(value), scaleMagnitude, size.height),
       );
 
@@ -430,14 +430,6 @@ class _QuantMacdChartPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
-  }
-
-  double _indexToX(int index, int length, double width) {
-    if (length <= 1) {
-      return width / 2;
-    }
-
-    return width * index / (length - 1);
   }
 
   double _valueToY(double value, double magnitude, double height) {

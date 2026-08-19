@@ -35,13 +35,15 @@ void main() {
     expect(find.text('0.15'), findsOneWidget);
     expect(find.text('0.20'), findsOneWidget);
     expect(find.byKey(const ValueKey('quant-macd-chart')), findsOneWidget);
-    expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 MACD 数据开始显示。'), findsOneWidget);
+    expect(find.text('前 1 个交易日用于指标预热，对应区间保留为空白。'), findsOneWidget);
     expect(find.text('最新DIF'), findsOneWidget);
     expect(find.text('最新DEA'), findsOneWidget);
     expect(find.text('最新MACD柱'), findsOneWidget);
   });
 
-  testWidgets('displays dates for the effective MACD range', (tester) async {
+  testWidgets('displays dates for the full visible price range', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -68,9 +70,19 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('2026-07-30'), findsOneWidget);
-    expect(find.text('2026-07-31'), findsOneWidget);
-    expect(find.text('2026-08-01'), findsOneWidget);
+    final dateAxis = find.byKey(const ValueKey('quant-macd-date-axis'));
+    expect(
+      find.descendant(of: dateAxis, matching: find.text('2026-07-28')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dateAxis, matching: find.text('2026-07-30')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dateAxis, matching: find.text('2026-08-01')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('displays selected date MACD values', (tester) async {

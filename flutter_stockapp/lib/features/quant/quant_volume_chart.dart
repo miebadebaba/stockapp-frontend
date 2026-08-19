@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'quant_chart_timeline.dart';
 import 'stock_daily_bar.dart';
 
 class QuantVolumeChart extends StatelessWidget {
@@ -153,8 +154,7 @@ class _QuantVolumeChartPainter extends CustomPainter {
 
     final maximumVolume = bars.map((bar) => bar.volume).reduce(math.max);
     final scaleMaximum = math.max(maximumVolume, 1);
-    const labelWidth = 66.0;
-    final plotWidth = math.max(0.0, size.width - labelWidth);
+    final plotWidth = math.max(0.0, size.width - quantChartScaleWidth);
     final slotWidth = plotWidth / bars.length;
     final barWidth = math.max(1.0, slotWidth * 0.62);
 
@@ -180,7 +180,7 @@ class _QuantVolumeChartPainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
         maxLines: 1,
-      )..layout(maxWidth: labelWidth - 4);
+      )..layout(maxWidth: quantChartScaleWidth - 4);
 
       final y = size.height * index / 2;
       final labelY = (y - textPainter.height / 2).clamp(
@@ -194,7 +194,11 @@ class _QuantVolumeChartPainter extends CustomPainter {
     for (var index = 0; index < bars.length; index++) {
       final bar = bars[index];
       final height = size.height * bar.volume / scaleMaximum;
-      final centerX = slotWidth * index + slotWidth / 2;
+      final centerX = quantChartXForIndex(
+        index: index,
+        itemCount: bars.length,
+        width: plotWidth,
+      );
       final rect = Rect.fromLTWH(
         centerX - barWidth / 2,
         size.height - height,
@@ -209,7 +213,11 @@ class _QuantVolumeChartPainter extends CustomPainter {
     }
     final selection = selectedIndex;
     if (selection != null && selection >= 0 && selection < bars.length) {
-      final centerX = slotWidth * selection + slotWidth / 2;
+      final centerX = quantChartXForIndex(
+        index: selection,
+        itemCount: bars.length,
+        width: plotWidth,
+      );
 
       canvas.drawRect(
         Rect.fromLTWH(centerX - slotWidth / 2, 0, slotWidth, size.height),

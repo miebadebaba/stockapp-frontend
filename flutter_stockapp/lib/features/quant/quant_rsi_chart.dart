@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_theme_palette.dart';
+import 'quant_chart_timeline.dart';
 import 'stock_daily_bar.dart';
 
 class QuantRsiChart extends StatelessWidget {
@@ -31,15 +32,6 @@ class QuantRsiChart extends StatelessWidget {
         ? values[selectedIndex]
         : _latestRsi(values);
     final firstAvailableIndex = values.indexWhere((value) => value != null);
-    final chartValues = firstAvailableIndex < 0
-        ? values
-        : values.sublist(firstAvailableIndex);
-
-    final chartSelectedIndex =
-        firstAvailableIndex >= 0 && selectedIndex >= firstAvailableIndex
-        ? selectedIndex - firstAvailableIndex
-        : null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -61,7 +53,7 @@ class QuantRsiChart extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             '前 $firstAvailableIndex 个交易日用于指标预热，'
-            '图表从首个有效 RSI 数据开始显示。',
+            '对应区间保留为空白。',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: palette.secondaryText,
               height: 1.5,
@@ -97,8 +89,8 @@ class QuantRsiChart extends StatelessWidget {
           child: CustomPaint(
             key: const ValueKey('quant-rsi-chart'),
             painter: _QuantRsiChartPainter(
-              values: chartValues,
-              selectedIndex: chartSelectedIndex,
+              values: values,
+              selectedIndex: hasSelectedDate ? selectedIndex : null,
               lineColor: const Color(0xFF2F6FED),
               gridColor: palette.divider,
               labelColor: palette.secondaryText,
@@ -164,8 +156,7 @@ class _QuantRsiChartPainter extends CustomPainter {
       return;
     }
 
-    const labelWidth = 28.0;
-    final plotWidth = size.width - labelWidth;
+    final plotWidth = size.width - quantChartScaleWidth;
 
     for (final level in const [70.0, 50.0, 30.0]) {
       final y = _valueToY(level, size.height);
@@ -207,7 +198,11 @@ class _QuantRsiChartPainter extends CustomPainter {
       }
 
       final point = Offset(
-        _indexToX(index, values.length, plotWidth),
+        quantChartXForIndex(
+          index: index,
+          itemCount: values.length,
+          width: plotWidth,
+        ),
         _valueToY(value, size.height),
       );
 
@@ -234,7 +229,11 @@ class _QuantRsiChartPainter extends CustomPainter {
       return;
     }
 
-    final selectedX = _indexToX(selection, values.length, plotWidth);
+    final selectedX = quantChartXForIndex(
+      index: selection,
+      itemCount: values.length,
+      width: plotWidth,
+    );
 
     canvas.drawLine(
       Offset(selectedX, 0),
@@ -252,14 +251,6 @@ class _QuantRsiChartPainter extends CustomPainter {
         Paint()..color = lineColor,
       );
     }
-  }
-
-  double _indexToX(int index, int length, double width) {
-    if (length <= 1) {
-      return width / 2;
-    }
-
-    return width * index / (length - 1);
   }
 
   double _valueToY(double value, double height) {

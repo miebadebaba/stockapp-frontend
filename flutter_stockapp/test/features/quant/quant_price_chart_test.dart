@@ -78,9 +78,19 @@ void main() {
     expect(highScale.data, '11.50');
     expect(middleScale.data, '10.80');
     expect(lowScale.data, '10.10');
-    expect(find.text('2026-07-28'), findsOneWidget);
-    expect(find.text('2026-07-29'), findsOneWidget);
-    expect(find.text('2026-07-30'), findsOneWidget);
+    final priceDateAxis = find.byKey(const ValueKey('quant-price-date-axis'));
+    expect(
+      find.descendant(of: priceDateAxis, matching: find.text('2026-07-28')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: priceDateAxis, matching: find.text('2026-07-29')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: priceDateAxis, matching: find.text('2026-07-30')),
+      findsOneWidget,
+    );
     expect(find.byType(CustomPaint), findsWidgets);
   });
 
@@ -109,7 +119,11 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('2026-01-01'), findsOneWidget);
+    final priceDateAxis = find.byKey(const ValueKey('quant-price-date-axis'));
+    expect(
+      find.descendant(of: priceDateAxis, matching: find.text('2026-01-01')),
+      findsOneWidget,
+    );
     expect(find.text('近60个交易日价格走势'), findsOneWidget);
     expect(find.text('2.50 亿股'), findsOneWidget);
 
@@ -120,7 +134,10 @@ void main() {
     expect(find.text('2.50 亿股'), findsNothing);
     expect(find.text('1059 股'), findsNWidgets(2));
 
-    expect(find.text('2026-01-01'), findsNothing);
+    expect(
+      find.descendant(of: priceDateAxis, matching: find.text('2026-01-01')),
+      findsNothing,
+    );
     expect(find.text('2026-02-10'), findsNWidgets(2));
     expect(find.text('2026-03-01'), findsNWidgets(2));
     expect(find.text('139.00'), findsNWidgets(2));
@@ -131,7 +148,7 @@ void main() {
   testWidgets('shows daily details after tapping the price chart', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1800));
+    await tester.binding.setSurfaceSize(const Size(800, 1900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(

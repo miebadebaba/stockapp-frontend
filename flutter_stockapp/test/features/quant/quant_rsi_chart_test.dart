@@ -29,7 +29,7 @@ void main() {
     expect(find.text('72.50'), findsOneWidget);
     expect(find.text('高位区间'), findsOneWidget);
     expect(find.byKey(const ValueKey('quant-rsi-chart')), findsOneWidget);
-    expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 RSI 数据开始显示。'), findsOneWidget);
+    expect(find.text('前 1 个交易日用于指标预热，对应区间保留为空白。'), findsOneWidget);
   });
 
   testWidgets('shows unavailable RSI for a selected warm-up date', (
