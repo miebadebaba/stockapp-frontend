@@ -121,8 +121,8 @@ void main() {
     expect(find.text('1059 股'), findsNWidgets(2));
 
     expect(find.text('2026-01-01'), findsNothing);
-    expect(find.text('2026-02-10'), findsOneWidget);
-    expect(find.text('2026-03-01'), findsOneWidget);
+    expect(find.text('2026-02-10'), findsNWidgets(2));
+    expect(find.text('2026-03-01'), findsNWidgets(2));
     expect(find.text('139.00'), findsNWidgets(2));
     expect(find.text('160.00'), findsNWidgets(2));
     expect(find.text('159.50'), findsOneWidget);

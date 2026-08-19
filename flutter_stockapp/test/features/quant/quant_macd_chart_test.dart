@@ -38,6 +38,38 @@ void main() {
     expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 MACD 数据开始显示。'), findsOneWidget);
   });
 
+  testWidgets('displays dates for the effective MACD range', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantMacdChart(
+            bars: [
+              _bar(DateTime(2026, 7, 28)),
+              _bar(DateTime(2026, 7, 29)),
+              _bar(DateTime(2026, 7, 30)),
+              _bar(DateTime(2026, 7, 31)),
+              _bar(DateTime(2026, 8, 1)),
+            ],
+            values: const [
+              null,
+              null,
+              MacdResult(dif: 0.10, dea: 0.08, histogram: 0.04),
+              MacdResult(dif: 0.15, dea: 0.10, histogram: 0.10),
+              MacdResult(dif: 0.20, dea: 0.12, histogram: 0.16),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026-07-30'), findsOneWidget);
+    expect(find.text('2026-07-31'), findsOneWidget);
+    expect(find.text('2026-08-01'), findsOneWidget);
+  });
+
   testWidgets('displays selected date MACD values', (tester) async {
     final selectedDate = DateTime(2026, 7, 29);
 
