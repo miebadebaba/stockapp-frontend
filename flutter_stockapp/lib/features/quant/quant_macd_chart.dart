@@ -13,12 +13,14 @@ class QuantMacdChart extends StatelessWidget {
     required this.bars,
     required this.values,
     this.selectedTradingDate,
+    this.onSelectedTradingDate,
     super.key,
   });
 
   final List<StockDailyBar> bars;
   final List<MacdResult?> values;
   final DateTime? selectedTradingDate;
+  final ValueChanged<DateTime>? onSelectedTradingDate;
 
   @override
   Widget build(BuildContext context) {
@@ -102,19 +104,57 @@ class QuantMacdChart extends StatelessWidget {
             border: Border.all(color: palette.divider),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: CustomPaint(
-            key: const ValueKey('quant-macd-chart'),
-            painter: _QuantMacdChartPainter(
-              values: values,
-              selectedIndex: hasSelectedDate ? selectedIndex : null,
-              difColor: const Color(0xFF2F6FED),
-              deaColor: const Color(0xFFF2A93B),
-              positiveColor: const Color(0xFF16A085),
-              negativeColor: const Color(0xFFE05A47),
-              gridColor: palette.divider,
-              labelColor: palette.secondaryText,
-            ),
-            child: const SizedBox.expand(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final plotWidth = constraints.maxWidth - quantChartScaleWidth;
+
+              void selectAt(Offset position) {
+                if (position.dx < 0 || position.dx > plotWidth) {
+                  return;
+                }
+
+                final index = quantChartIndexForX(
+                  x: position.dx,
+                  itemCount: bars.length,
+                  width: plotWidth,
+                );
+                onSelectedTradingDate?.call(bars[index].tradingDate);
+              }
+
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  CustomPaint(
+                    key: const ValueKey('quant-macd-chart'),
+                    painter: _QuantMacdChartPainter(
+                      values: values,
+                      selectedIndex: hasSelectedDate ? selectedIndex : null,
+                      difColor: const Color(0xFF2F6FED),
+                      deaColor: const Color(0xFFF2A93B),
+                      positiveColor: const Color(0xFF16A085),
+                      negativeColor: const Color(0xFFE05A47),
+                      gridColor: palette.divider,
+                      labelColor: palette.secondaryText,
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: plotWidth,
+                    child: GestureDetector(
+                      key: const ValueKey('quant-macd-chart-gesture'),
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: (details) => selectAt(details.localPosition),
+                      onHorizontalDragStart: (details) =>
+                          selectAt(details.localPosition),
+                      onHorizontalDragUpdate: (details) =>
+                          selectAt(details.localPosition),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         if (bars.isNotEmpty)

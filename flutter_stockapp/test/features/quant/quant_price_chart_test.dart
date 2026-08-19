@@ -235,6 +235,67 @@ void main() {
     expect(find.byKey(const ValueKey('quant-ohlc-details')), findsNothing);
   });
 
+  testWidgets('synchronizes the selected date from the volume chart', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: QuantPriceChart(
+              bars: [
+                StockDailyBar(
+                  tradingDate: DateTime(2026, 7, 28),
+                  open: 10.20,
+                  high: 10.80,
+                  low: 10.10,
+                  close: 10.60,
+                  volume: 1000,
+                ),
+                StockDailyBar(
+                  tradingDate: DateTime(2026, 7, 29),
+                  open: 10.60,
+                  high: 11.20,
+                  low: 10.50,
+                  close: 11.00,
+                  volume: 1200,
+                ),
+                StockDailyBar(
+                  tradingDate: DateTime(2026, 7, 30),
+                  open: 11.00,
+                  high: 11.50,
+                  low: 10.90,
+                  close: 11.30,
+                  volume: 1400,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('quant-volume-chart-gesture')));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('quant-ohlc-details')), findsOneWidget);
+    expect(find.text('所选日期成交量'), findsOneWidget);
+    expect(find.text('所选日期RSI14'), findsOneWidget);
+    expect(find.text('所选日期DIF'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('quant-ohlc-details')),
+        matching: find.text('2026-07-29'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('switches from line chart to candlestick chart', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));

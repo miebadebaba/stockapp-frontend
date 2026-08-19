@@ -100,6 +100,34 @@ void main() {
     expect(find.text('1.20 万股'), findsNothing);
   });
 
+  testWidgets('reports the trading date tapped on the chart', (tester) async {
+    DateTime? selectedDate;
+    final middleDate = DateTime(2026, 7, 29);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: QuantVolumeChart(
+              bars: [
+                _bar(DateTime(2026, 7, 28)),
+                _bar(middleDate),
+                _bar(DateTime(2026, 7, 30)),
+              ],
+              onSelectedTradingDate: (date) => selectedDate = date,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('quant-volume-chart-gesture')));
+
+    expect(selectedDate, middleDate);
+  });
+
   testWidgets('renders nothing when bars are empty', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -110,4 +138,15 @@ void main() {
 
     expect(find.text('成交量趋势'), findsNothing);
   });
+}
+
+StockDailyBar _bar(DateTime tradingDate) {
+  return StockDailyBar(
+    tradingDate: tradingDate,
+    open: 10,
+    high: 11,
+    low: 9,
+    close: 10.5,
+    volume: 1000,
+  );
 }
