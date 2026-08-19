@@ -32,6 +32,37 @@ void main() {
     expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 RSI 数据开始显示。'), findsOneWidget);
   });
 
+  testWidgets('shows unavailable RSI for a selected warm-up date', (
+    tester,
+  ) async {
+    final selectedDate = DateTime(2026, 7, 28);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantRsiChart(
+            bars: [
+              _bar(selectedDate),
+              _bar(DateTime(2026, 7, 29)),
+              _bar(DateTime(2026, 7, 30)),
+            ],
+            values: const [null, 45, 72.5],
+            selectedTradingDate: selectedDate,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('所选日期RSI14'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
+    expect(find.text('数据不足'), findsOneWidget);
+    expect(find.text('72.50'), findsNothing);
+    expect(find.text('高位区间'), findsNothing);
+  });
+
   testWidgets('displays the selected date RSI value', (tester) async {
     final selectedDate = DateTime(2026, 7, 29);
 

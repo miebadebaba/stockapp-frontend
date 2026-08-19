@@ -175,8 +175,17 @@ void main() {
     expect(find.byKey(const ValueKey('quant-ohlc-details')), findsNothing);
 
     final chart = find.byKey(const ValueKey('quant-price-chart-gesture'));
+    final chartTopBeforeSelection = tester.getTopLeft(chart).dy;
+
     await tester.tapAt(tester.getCenter(chart));
     await tester.pump();
+
+    expect(find.text('所选日期成交量'), findsOneWidget);
+    expect(find.text('所选日期RSI14'), findsOneWidget);
+    expect(find.text('所选日期DIF'), findsOneWidget);
+    expect(find.text('所选日期DEA'), findsOneWidget);
+    expect(find.text('所选日期MACD柱'), findsOneWidget);
+    expect(tester.getTopLeft(chart).dy, chartTopBeforeSelection);
 
     expect(find.byKey(const ValueKey('quant-ohlc-details')), findsOneWidget);
     expect(
@@ -192,6 +201,21 @@ void main() {
     expect(find.text('收盘价'), findsOneWidget);
     expect(find.text('成交量'), findsOneWidget);
     expect(find.text('+0.40  +3.77%'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('quant-clear-chart-selection')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('quant-clear-chart-selection')));
+    await tester.pump();
+
+    expect(find.text('最新成交量'), findsOneWidget);
+    expect(find.text('最新RSI14'), findsOneWidget);
+    expect(find.text('最新DIF'), findsOneWidget);
+    expect(find.text('最新DEA'), findsOneWidget);
+    expect(find.text('最新MACD柱'), findsOneWidget);
+
+    expect(find.byKey(const ValueKey('quant-ohlc-details')), findsNothing);
   });
 
   testWidgets('switches from line chart to candlestick chart', (tester) async {

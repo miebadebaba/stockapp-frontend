@@ -26,8 +26,10 @@ class QuantRsiChart extends StatelessWidget {
     final selectedIndex = selectedTradingDate == null
         ? -1
         : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
-    final selectedValue = selectedIndex >= 0 ? values[selectedIndex] : null;
-    final displayValue = selectedValue ?? _latestRsi(values);
+    final hasSelectedDate = selectedIndex >= 0;
+    final displayValue = hasSelectedDate
+        ? values[selectedIndex]
+        : _latestRsi(values);
     final firstAvailableIndex = values.indexWhere((value) => value != null);
     final chartValues = firstAvailableIndex < 0
         ? values
@@ -71,7 +73,7 @@ class QuantRsiChart extends StatelessWidget {
           children: [
             Expanded(
               child: _RsiMetric(
-                label: selectedValue == null ? '最新RSI14' : '所选日期RSI14',
+                label: hasSelectedDate ? '所选日期RSI14' : '最新RSI14',
                 value: displayValue?.toStringAsFixed(2) ?? '--',
               ),
             ),

@@ -5,10 +5,16 @@ import '../../core/theme/app_theme_palette.dart';
 import 'stock_daily_bar.dart';
 
 class QuantOhlcDetails extends StatelessWidget {
-  const QuantOhlcDetails({required this.bar, this.previousClose, super.key});
+  const QuantOhlcDetails({
+    required this.bar,
+    this.previousClose,
+    this.onClose,
+    super.key,
+  });
 
   final StockDailyBar bar;
   final double? previousClose;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +60,15 @@ class QuantOhlcDetails extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (onClose != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                IconButton(
+                  key: const ValueKey('quant-clear-chart-selection'),
+                  tooltip: '取消选择日期',
+                  icon: const Icon(Icons.close),
+                  onPressed: onClose,
+                ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
