@@ -338,22 +338,39 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _formatDate(visibleBars.first.tradingDate),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
-            ),
-            Text(
-              _formatDate(visibleBars.last.tradingDate),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.only(right: 52),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _formatDate(visibleBars.first.tradingDate),
+                  textAlign: TextAlign.left,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  _formatDate(visibleBars[visibleBars.length ~/ 2].tradingDate),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  _formatDate(visibleBars.last.tradingDate),
+                  textAlign: TextAlign.right,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.xxl),
         QuantVolumeChart(
