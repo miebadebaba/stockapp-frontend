@@ -66,7 +66,7 @@ class QuantVolumeChart extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         Container(
           height: 150,
-          padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+          padding: const EdgeInsets.fromLTRB(12, 16, 8, 10),
           decoration: BoxDecoration(
             color: palette.cardBackground,
             border: Border.all(color: palette.divider),
@@ -79,6 +79,7 @@ class QuantVolumeChart extends StatelessWidget {
               risingColor: const Color(0xFF16A085),
               fallingColor: const Color(0xFFE05A47),
               gridColor: palette.divider,
+              labelColor: palette.secondaryText,
             ),
             child: const SizedBox.expand(),
           ),
@@ -127,6 +128,7 @@ class _QuantVolumeChartPainter extends CustomPainter {
     required this.risingColor,
     required this.fallingColor,
     required this.gridColor,
+    required this.labelColor,
   });
 
   final List<StockDailyBar> bars;
@@ -134,6 +136,7 @@ class _QuantVolumeChartPainter extends CustomPainter {
   final Color risingColor;
   final Color fallingColor;
   final Color gridColor;
+  final Color labelColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -143,7 +146,9 @@ class _QuantVolumeChartPainter extends CustomPainter {
 
     final maximumVolume = bars.map((bar) => bar.volume).reduce(math.max);
     final scaleMaximum = math.max(maximumVolume, 1);
-    final slotWidth = size.width / bars.length;
+    const labelWidth = 66.0;
+    final plotWidth = math.max(0.0, size.width - labelWidth);
+    final slotWidth = plotWidth / bars.length;
     final barWidth = math.max(1.0, slotWidth * 0.62);
 
     final gridPaint = Paint()
@@ -152,7 +157,31 @@ class _QuantVolumeChartPainter extends CustomPainter {
 
     for (var index = 0; index <= 2; index++) {
       final y = size.height * index / 2;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      canvas.drawLine(Offset(0, y), Offset(plotWidth, y), gridPaint);
+    }
+    final scaleLabels = <String>[
+      _formatVolume(maximumVolume),
+      _formatVolume((maximumVolume / 2).round()),
+      '0',
+    ];
+
+    for (var index = 0; index < scaleLabels.length; index++) {
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: scaleLabels[index],
+          style: TextStyle(color: labelColor, fontSize: 10),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout(maxWidth: labelWidth - 4);
+
+      final y = size.height * index / 2;
+      final labelY = (y - textPainter.height / 2).clamp(
+        0.0,
+        size.height - textPainter.height,
+      );
+
+      textPainter.paint(canvas, Offset(plotWidth + 4, labelY));
     }
 
     for (var index = 0; index < bars.length; index++) {
@@ -198,6 +227,7 @@ class _QuantVolumeChartPainter extends CustomPainter {
         risingColor != oldDelegate.risingColor ||
         fallingColor != oldDelegate.fallingColor ||
         gridColor != oldDelegate.gridColor ||
+        labelColor != oldDelegate.labelColor ||
         bars.length != oldDelegate.bars.length) {
       return true;
     }
