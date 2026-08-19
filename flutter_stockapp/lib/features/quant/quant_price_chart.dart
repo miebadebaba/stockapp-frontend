@@ -215,11 +215,6 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             ),
           ],
         ),
-        if (selectedBar != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          QuantOhlcDetails(bar: selectedBar, previousClose: previousClose),
-          const SizedBox(height: AppSpacing.md),
-        ],
         const SizedBox(height: AppSpacing.lg),
         Container(
           height: 220,
@@ -372,6 +367,18 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
             ],
           ),
         ),
+        if (selectedBar != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          QuantOhlcDetails(
+            bar: selectedBar,
+            previousClose: previousClose,
+            onClose: () {
+              setState(() {
+                _selectedTradingDate = null;
+              });
+            },
+          ),
+        ],
         const SizedBox(height: AppSpacing.xxl),
         QuantVolumeChart(
           bars: visibleBars,

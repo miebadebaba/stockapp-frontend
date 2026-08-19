@@ -36,6 +36,9 @@ void main() {
     expect(find.text('0.20'), findsOneWidget);
     expect(find.byKey(const ValueKey('quant-macd-chart')), findsOneWidget);
     expect(find.text('前 1 个交易日用于指标预热，图表从首个有效 MACD 数据开始显示。'), findsOneWidget);
+    expect(find.text('最新DIF'), findsOneWidget);
+    expect(find.text('最新DEA'), findsOneWidget);
+    expect(find.text('最新MACD柱'), findsOneWidget);
   });
 
   testWidgets('displays dates for the effective MACD range', (tester) async {
@@ -98,6 +101,46 @@ void main() {
 
     expect(find.text('-0.30'), findsOneWidget);
     expect(find.text('-0.20'), findsNWidgets(2));
+    expect(find.text('所选日期DIF'), findsOneWidget);
+    expect(find.text('所选日期DEA'), findsOneWidget);
+    expect(find.text('所选日期MACD柱'), findsOneWidget);
+  });
+
+  testWidgets('shows unavailable values for a selected warm-up date', (
+    tester,
+  ) async {
+    final selectedDate = DateTime(2026, 7, 28);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: QuantMacdChart(
+            bars: [
+              _bar(selectedDate),
+              _bar(DateTime(2026, 7, 29)),
+              _bar(DateTime(2026, 7, 30)),
+            ],
+            values: const [
+              null,
+              MacdResult(dif: 0.12, dea: 0.08, histogram: 0.08),
+              MacdResult(dif: 0.25, dea: 0.15, histogram: 0.20),
+            ],
+            selectedTradingDate: selectedDate,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('所选日期DIF'), findsOneWidget);
+    expect(find.text('所选日期DEA'), findsOneWidget);
+    expect(find.text('所选日期MACD柱'), findsOneWidget);
+    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('0.25'), findsNothing);
+    expect(find.text('0.15'), findsNothing);
+    expect(find.text('0.20'), findsNothing);
   });
 
   testWidgets('renders nothing when bars are empty', (tester) async {

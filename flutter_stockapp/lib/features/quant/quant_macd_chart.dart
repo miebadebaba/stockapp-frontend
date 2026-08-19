@@ -29,8 +29,10 @@ class QuantMacdChart extends StatelessWidget {
     final selectedIndex = selectedTradingDate == null
         ? -1
         : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
-    final selectedValue = selectedIndex >= 0 ? values[selectedIndex] : null;
-    final displayValue = selectedValue ?? _latestMacd(values);
+    final hasSelectedDate = selectedIndex >= 0;
+    final displayValue = hasSelectedDate
+        ? values[selectedIndex]
+        : _latestMacd(values);
     final firstAvailableIndex = values.indexWhere((value) => value != null);
     final chartValues = firstAvailableIndex < 0
         ? values
@@ -78,21 +80,21 @@ class QuantMacdChart extends StatelessWidget {
           children: [
             Expanded(
               child: _MacdMetric(
-                label: 'DIF',
+                label: hasSelectedDate ? '所选日期DIF' : '最新DIF',
                 value: displayValue?.dif.toStringAsFixed(2) ?? '--',
                 color: const Color(0xFF2F6FED),
               ),
             ),
             Expanded(
               child: _MacdMetric(
-                label: 'DEA',
+                label: hasSelectedDate ? '所选日期DEA' : '最新DEA',
                 value: displayValue?.dea.toStringAsFixed(2) ?? '--',
                 color: const Color(0xFFF2A93B),
               ),
             ),
             Expanded(
               child: _MacdMetric(
-                label: 'MACD柱',
+                label: hasSelectedDate ? '所选日期MACD柱' : '最新MACD柱',
                 value: displayValue?.histogram.toStringAsFixed(2) ?? '--',
                 color: displayValue == null
                     ? palette.primaryText
