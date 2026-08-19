@@ -90,6 +90,35 @@ void main() {
     expect(find.text('低位区间'), findsOneWidget);
   });
 
+  testWidgets('reports the trading date tapped on the chart', (tester) async {
+    DateTime? selectedDate;
+    final middleDate = DateTime(2026, 7, 29);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: QuantRsiChart(
+              bars: [
+                _bar(DateTime(2026, 7, 28)),
+                _bar(middleDate),
+                _bar(DateTime(2026, 7, 30)),
+              ],
+              values: const [40, 50, 60],
+              onSelectedTradingDate: (date) => selectedDate = date,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('quant-rsi-chart-gesture')));
+
+    expect(selectedDate, middleDate);
+  });
+
   testWidgets('renders nothing when bars are empty', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

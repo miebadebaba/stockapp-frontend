@@ -118,6 +118,39 @@ void main() {
     expect(find.text('所选日期MACD柱'), findsOneWidget);
   });
 
+  testWidgets('reports the trading date tapped on the chart', (tester) async {
+    DateTime? selectedDate;
+    final middleDate = DateTime(2026, 7, 29);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: QuantMacdChart(
+              bars: [
+                _bar(DateTime(2026, 7, 28)),
+                _bar(middleDate),
+                _bar(DateTime(2026, 7, 30)),
+              ],
+              values: const [
+                MacdResult(dif: 0.10, dea: 0.08, histogram: 0.04),
+                MacdResult(dif: 0.15, dea: 0.10, histogram: 0.10),
+                MacdResult(dif: 0.20, dea: 0.12, histogram: 0.16),
+              ],
+              onSelectedTradingDate: (date) => selectedDate = date,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('quant-macd-chart-gesture')));
+
+    expect(selectedDate, middleDate);
+  });
+
   testWidgets('shows unavailable values for a selected warm-up date', (
     tester,
   ) async {

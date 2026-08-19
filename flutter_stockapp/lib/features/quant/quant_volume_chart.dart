@@ -11,11 +11,13 @@ class QuantVolumeChart extends StatelessWidget {
   const QuantVolumeChart({
     required this.bars,
     this.selectedTradingDate,
+    this.onSelectedTradingDate,
     super.key,
   });
 
   final List<StockDailyBar> bars;
   final DateTime? selectedTradingDate;
+  final ValueChanged<DateTime>? onSelectedTradingDate;
 
   @override
   Widget build(BuildContext context) {
@@ -80,16 +82,57 @@ class QuantVolumeChart extends StatelessWidget {
             border: Border.all(color: palette.divider),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: CustomPaint(
-            painter: _QuantVolumeChartPainter(
-              bars: bars,
-              selectedIndex: selectedIndex == -1 ? null : selectedIndex,
-              risingColor: const Color(0xFF16A085),
-              fallingColor: const Color(0xFFE05A47),
-              gridColor: palette.divider,
-              labelColor: palette.secondaryText,
-            ),
-            child: const SizedBox.expand(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final plotWidth = math.max(
+                0.0,
+                constraints.maxWidth - quantChartScaleWidth,
+              );
+
+              void selectAt(Offset position) {
+                if (position.dx < 0 || position.dx > plotWidth) {
+                  return;
+                }
+
+                final index = quantChartIndexForX(
+                  x: position.dx,
+                  itemCount: bars.length,
+                  width: plotWidth,
+                );
+                onSelectedTradingDate?.call(bars[index].tradingDate);
+              }
+
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  CustomPaint(
+                    painter: _QuantVolumeChartPainter(
+                      bars: bars,
+                      selectedIndex: selectedIndex == -1 ? null : selectedIndex,
+                      risingColor: const Color(0xFF16A085),
+                      fallingColor: const Color(0xFFE05A47),
+                      gridColor: palette.divider,
+                      labelColor: palette.secondaryText,
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: plotWidth,
+                    child: GestureDetector(
+                      key: const ValueKey('quant-volume-chart-gesture'),
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: (details) => selectAt(details.localPosition),
+                      onHorizontalDragStart: (details) =>
+                          selectAt(details.localPosition),
+                      onHorizontalDragUpdate: (details) =>
+                          selectAt(details.localPosition),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ],

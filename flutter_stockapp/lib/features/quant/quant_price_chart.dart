@@ -33,6 +33,12 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
   bool _showMa20 = true;
   DateTime? _selectedTradingDate;
 
+  void _selectTradingDate(DateTime tradingDate) {
+    setState(() {
+      _selectedTradingDate = tradingDate;
+    });
+  }
+
   void _selectBarAt(double dx, double width, List<StockDailyBar> bars) {
     if (bars.isEmpty || width <= 0) {
       return;
@@ -44,9 +50,7 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
       width: width,
     );
 
-    setState(() {
-      _selectedTradingDate = bars[index].tradingDate;
-    });
+    _selectTradingDate(bars[index].tradingDate);
   }
 
   @override
@@ -386,18 +390,21 @@ class _QuantPriceChartState extends State<QuantPriceChart> {
         QuantVolumeChart(
           bars: visibleBars,
           selectedTradingDate: _selectedTradingDate,
+          onSelectedTradingDate: _selectTradingDate,
         ),
         const SizedBox(height: AppSpacing.xxl),
         QuantRsiChart(
           bars: visibleBars,
           values: rsiSeries,
           selectedTradingDate: _selectedTradingDate,
+          onSelectedTradingDate: _selectTradingDate,
         ),
         const SizedBox(height: AppSpacing.xxl),
         QuantMacdChart(
           bars: visibleBars,
           values: macdSeries,
           selectedTradingDate: _selectedTradingDate,
+          onSelectedTradingDate: _selectTradingDate,
         ),
       ],
     );
