@@ -28,6 +28,13 @@ class QuantVolumeChart extends StatelessWidget {
     final selectedIndex = selectedTradingDate == null
         ? null
         : bars.indexWhere((bar) => bar.tradingDate == selectedTradingDate);
+    final hasSelection =
+        selectedIndex != null &&
+        selectedIndex >= 0 &&
+        selectedIndex < bars.length;
+    final displayVolume = hasSelection
+        ? bars[selectedIndex].volume
+        : latestVolume;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,8 +64,8 @@ class QuantVolumeChart extends StatelessWidget {
             ),
             Expanded(
               child: _VolumeMetric(
-                label: '最新成交量',
-                value: _formatVolume(latestVolume),
+                label: hasSelection ? '所选日期成交量' : '最新成交量',
+                value: _formatVolume(displayVolume),
               ),
             ),
           ],
