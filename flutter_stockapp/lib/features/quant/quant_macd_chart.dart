@@ -36,6 +36,10 @@ class QuantMacdChart extends StatelessWidget {
         ? values
         : values.sublist(firstAvailableIndex);
 
+    final chartBars = firstAvailableIndex < 0
+        ? const <StockDailyBar>[]
+        : bars.sublist(firstAvailableIndex);
+
     final chartSelectedIndex =
         firstAvailableIndex >= 0 && selectedIndex >= firstAvailableIndex
         ? selectedIndex - firstAvailableIndex
@@ -123,6 +127,41 @@ class QuantMacdChart extends StatelessWidget {
             child: const SizedBox.expand(),
           ),
         ),
+        if (chartBars.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 36),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _formatDate(chartBars.first.tradingDate),
+                    textAlign: TextAlign.left,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: palette.secondaryText,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    _formatDate(chartBars[chartBars.length ~/ 2].tradingDate),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: palette.secondaryText,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    _formatDate(chartBars.last.tradingDate),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: palette.secondaryText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: AppSpacing.sm),
         const Wrap(
           spacing: AppSpacing.lg,
@@ -439,4 +478,11 @@ MacdResult? _latestMacd(List<MacdResult?> values) {
   }
 
   return null;
+}
+
+String _formatDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+
+  return '${date.year}-$month-$day';
 }
