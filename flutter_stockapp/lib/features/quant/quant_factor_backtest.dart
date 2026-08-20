@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class QuantBacktestCostSettings {
   const QuantBacktestCostSettings({
     this.commissionRate = 0.0003,
@@ -24,6 +26,13 @@ class QuantBacktestCostSettings {
   double get stampDutyRate => sellTransactionCostRate;
 
   double get roundTripCommissionRate => commissionRate * 2;
+
+  /// 将买卖两侧费用和滑点合并为一笔完整交易的保守估算影响。
+  double get estimatedRoundTripImpact =>
+      commissionRate * 2 +
+      buyTransactionCostRate +
+      sellTransactionCostRate +
+      slippageRate * 2;
 }
 
 class QuantBacktestTrade {
@@ -177,12 +186,16 @@ enum QuantBacktestNoTradeReason {
 }
 
 class QuantFactorBacktestResult {
+  static const minimumProfessionalMetricSampleSize = 5;
+
   const QuantFactorBacktestResult({
     required this.trades,
     required this.signalThreshold,
     required this.holdingPeriod,
     required this.minimumLookback,
     this.costSettings = const QuantBacktestCostSettings(),
+    this.backtestStartDate,
+    this.backtestEndDate,
     this.equityCurve = const [],
     this.factorPerformances = const [],
     this.evaluatedSignalCount = 0,
@@ -195,6 +208,10 @@ class QuantFactorBacktestResult {
   final int holdingPeriod;
   final int minimumLookback;
   final QuantBacktestCostSettings costSettings;
+
+  /// 实际用于策略评估的行情区间，不包含最小观察窗口之前的数据。
+  final DateTime? backtestStartDate;
+  final DateTime? backtestEndDate;
 
   /// 策略净值与买入持有基准净值的对比数据。
   final List<QuantBacktestEquityPoint> equityCurve;
@@ -229,7 +246,13 @@ class QuantFactorBacktestResult {
 
   int get tradeCount => trades.length;
 
+  bool get hasSufficientProfessionalMetricSample =>
+      tradeCount >= minimumProfessionalMetricSampleSize;
+
   bool get hasEquityComparison => equityCurve.length >= 2;
+
+  bool get hasBacktestPeriod =>
+      backtestStartDate != null && backtestEndDate != null;
 
   double get winRate {
     if (trades.isEmpty) {
@@ -342,5 +365,121 @@ class QuantFactorBacktestResult {
     }
 
     return maximumDrawdown;
+  }
+
+  /// 盈利交易的平均净收益率。
+  double? get averageWinningReturn {
+    final winningTrades = trades.where((trade) => trade.netReturnRate > 0);
+    if (winningTrades.isEmpty) {
+      return null;
+    }
+
+    return winningTrades.fold<double>(
+          0,
+          (sum, trade) => sum + trade.netReturnRate,
+        ) /
+        winningTrades.length;
+  }
+
+  /// 亏损交易的平均净收益率，结果为负数。
+  double? get averageLosingReturn {
+    final losingTrades = trades.where((trade) => trade.netReturnRate < 0);
+    if (losingTrades.isEmpty) {
+      return null;
+    }
+
+    return losingTrades.fold<double>(
+          0,
+          (sum, trade) => sum + trade.netReturnRate,
+        ) /
+        losingTrades.length;
+  }
+
+  /// 平均盈利金额与平均亏损金额绝对值之比。
+  double? get profitLossRatio {
+    final averageWin = averageWinningReturn;
+    final averageLoss = averageLosingReturn;
+    if (averageWin == null || averageLoss == null || averageLoss == 0) {
+      return null;
+    }
+
+    return averageWin / averageLoss.abs();
+  }
+
+  /// 总盈利与总亏损绝对值之比。
+  double? get profitFactor {
+    final grossProfit = trades
+        .where((trade) => trade.netReturnRate > 0)
+        .fold<double>(0, (sum, trade) => sum + trade.netReturnRate);
+    final grossLoss = trades
+        .where((trade) => trade.netReturnRate < 0)
+        .fold<double>(0, (sum, trade) => sum + trade.netReturnRate.abs());
+
+    if (grossLoss == 0) {
+      return null;
+    }
+
+    return grossProfit / grossLoss;
+  }
+
+  /// 将回测期间的策略净值按实际天数折算为年化收益率。
+  double? get annualizedReturn {
+    if (!hasBacktestPeriod || equityCurve.length < 2) {
+      return null;
+    }
+
+    final firstValue = equityCurve.first.strategyValue;
+    final lastValue = equityCurve.last.strategyValue;
+    final elapsedDays = equityCurve.last.date
+        .difference(equityCurve.first.date)
+        .inDays;
+
+    if (firstValue <= 0 || lastValue <= 0 || elapsedDays <= 0) {
+      return null;
+    }
+
+    final annualized =
+        math.pow(lastValue / firstValue, 365.25 / elapsedDays).toDouble() - 1;
+    return annualized.isFinite ? annualized : null;
+  }
+
+  /// 基于策略每日净值变化计算的年化夏普比率，暂不扣除无风险利率。
+  double? get sharpeRatio {
+    if (equityCurve.length < 3) {
+      return null;
+    }
+
+    final dailyReturns = <double>[];
+    for (var index = 1; index < equityCurve.length; index++) {
+      final previous = equityCurve[index - 1].strategyValue;
+      final current = equityCurve[index].strategyValue;
+      if (previous <= 0 || current <= 0) {
+        return null;
+      }
+
+      dailyReturns.add(current / previous - 1);
+    }
+
+    if (dailyReturns.length < 2) {
+      return null;
+    }
+
+    final mean =
+        dailyReturns.reduce((left, right) => left + right) /
+        dailyReturns.length;
+    final squaredDeviation = dailyReturns.fold<double>(
+      0,
+      (sum, value) => sum + (value - mean) * (value - mean),
+    );
+    final standardDeviation = math.sqrt(
+      squaredDeviation / (dailyReturns.length - 1),
+    );
+
+    if (standardDeviation == 0) {
+      return null;
+    }
+
+    final sharpe = mean / standardDeviation * math.sqrt(252);
+    return sharpe.isFinite ? sharpe : null;
   }
 }

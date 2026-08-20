@@ -7,11 +7,19 @@ enum QuantFactorIcDashboardStatus {
   loadFailure,
 }
 
+class QuantFactorIcStockFailure {
+  const QuantFactorIcStockFailure({required this.symbol, required this.reason});
+
+  final String symbol;
+  final String reason;
+}
+
 class QuantFactorIcDashboardResult {
   const QuantFactorIcDashboardResult({
     required this.status,
     required this.realStockCount,
     this.factorResults = const {},
+    this.failedStocks = const [],
   });
 
   final QuantFactorIcDashboardStatus status;
@@ -21,6 +29,9 @@ class QuantFactorIcDashboardResult {
 
   /// key 为 trend、momentum 或 volume。
   final Map<String, QuantFactorIcResult> factorResults;
+
+  /// 请求成功但未能参与 IC 分析的股票及原因。
+  final List<QuantFactorIcStockFailure> failedStocks;
 
   bool get isAvailable {
     return status == QuantFactorIcDashboardStatus.available;

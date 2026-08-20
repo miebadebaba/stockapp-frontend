@@ -16,6 +16,17 @@ class QuantMarketBacktestCostProfile {
   final String sellCostLabel;
   final String description;
 
+  String get marketLabel => market.label;
+
+  String get rateSummary {
+    return '佣金双向 ${_percent(costSettings.commissionRate)} · '
+        '$buyCostLabel ${_percent(costSettings.buyTransactionCostRate)} · '
+        '$sellCostLabel ${_percent(costSettings.sellTransactionCostRate)} · '
+        '单边滑点 ${_percent(costSettings.slippageRate)}';
+  }
+
+  String get defaultAssumptionText => '$description 默认参数：$rateSummary';
+
   static QuantMarketBacktestCostProfile forMarket(QuantMarket market) {
     return switch (market) {
       QuantMarket.aShare => const QuantMarketBacktestCostProfile(
@@ -56,4 +67,9 @@ class QuantMarketBacktestCostProfile {
       ),
     };
   }
+}
+
+String _percent(double rate) {
+  final value = (rate * 100).toStringAsFixed(3);
+  return '${value.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')}%';
 }

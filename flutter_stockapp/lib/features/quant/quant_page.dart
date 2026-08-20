@@ -9,6 +9,7 @@ import 'technical_summary_section.dart';
 import 'quant_analysis_state_view.dart';
 import 'quant_analysis_status.dart';
 import 'quant_data_metadata.dart';
+import 'quant_data_metadata_section.dart';
 import '../../core/network/api_client.dart';
 import 'quant_stock_analysis.dart';
 import 'quant_stock_analysis_api.dart';
@@ -25,6 +26,8 @@ import 'quant_backtest_parameters_section.dart';
 import 'quant_backtest_comparison.dart';
 import 'quant_backtest_comparison_section.dart';
 import 'quant_factor_backtest_section.dart';
+import 'quant_backtest_robustness.dart';
+import 'quant_backtest_robustness_section.dart';
 import 'quant_factor_preset.dart';
 import 'quant_stock_ranking.dart';
 import 'quant_stock_ranking_calculator.dart';
@@ -522,11 +525,19 @@ class _SelectedStockState extends StatelessWidget {
         costSettings: backtestParameters.costSettings,
       ),
     );
+    final robustnessResult = calculateQuantBacktestRobustness(
+      symbol: analysis.symbol,
+      bars: analysis.bars,
+      parameters: backtestParameters,
+    );
     final metadata = quote == null
         ? null
-        : QuantDataMetadata(
+        : QuantDataMetadata.fromBars(
+            bars: analysis.bars,
             latestTradingDate: quote.tradingDate,
-            sourceName: analysis.isSimulated ? '内置模拟数据' : 'Market 行情服务',
+            sourceName: analysis.isSimulated
+                ? '内置模拟数据'
+                : analysis.dataSourceName,
             priceAdjustment: PriceAdjustment.unknown,
             isSimulated: analysis.isSimulated,
           );
@@ -723,6 +734,8 @@ class _SelectedStockState extends StatelessWidget {
             isSimulated: analysis.isSimulated,
           ),
           const SizedBox(height: AppSpacing.xxl),
+          QuantBacktestRobustnessSection(result: robustnessResult),
+          const SizedBox(height: AppSpacing.xxl),
           ExpansionTile(
             key: const ValueKey('quant-backtest-parameters'),
             initiallyExpanded: false,
@@ -757,6 +770,10 @@ class _SelectedStockState extends StatelessWidget {
           QuantBacktestComparisonSection(result: comparisonResult),
         ],
         if (selectedTab == QuantDetailTab.overview) ...[
+          if (metadata != null) ...[
+            QuantDataMetadataSection(metadata: metadata),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
           QuantOverviewSection(result: factorScore),
         ],
         if (selectedTab == QuantDetailTab.technical) ...[

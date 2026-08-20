@@ -179,6 +179,7 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     trades: trades,
     minimumLookback: effectiveMinimumLookback,
   );
+  final hasBacktestPeriod = orderedBars.length > effectiveMinimumLookback;
 
   return QuantFactorBacktestResult(
     evaluatedSignalCount: evaluatedSignalCount,
@@ -189,6 +190,10 @@ QuantFactorBacktestResult calculateQuantFactorBacktest({
     holdingPeriod: effectiveHoldingPeriod,
     minimumLookback: effectiveMinimumLookback,
     costSettings: effectiveCostSettings,
+    backtestStartDate: hasBacktestPeriod
+        ? orderedBars[effectiveMinimumLookback].tradingDate
+        : null,
+    backtestEndDate: hasBacktestPeriod ? orderedBars.last.tradingDate : null,
     equityCurve: List.unmodifiable(equityCurve),
     factorPerformances: List.unmodifiable([
       QuantFactorHistoricalPerformance(

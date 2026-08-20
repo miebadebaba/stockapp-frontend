@@ -138,6 +138,30 @@ class QuantFactorBacktestSection extends StatelessWidget {
             label: '策略最大回撤',
             value: _percent(result.maximumDrawdown),
           ),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            '专业回测指标',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '用于从收益质量、风险和稳定性三个角度补充观察。至少需要 '
+            '${QuantFactorBacktestResult.minimumProfessionalMetricSampleSize} 笔交易，'
+            '否则不做可靠性判断。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _ProfessionalMetricsGrid(result: result),
+          const SizedBox(height: AppSpacing.xxl),
+          _BacktestConclusion(result: result),
+          const SizedBox(height: AppSpacing.xxl),
+          _BacktestTradeDetails(trades: result.trades),
         ],
         if (result.hasEquityComparison) ...[
           const SizedBox(height: AppSpacing.xxl),
@@ -193,6 +217,8 @@ class QuantFactorBacktestSection extends StatelessWidget {
             ).textTheme.bodyMedium?.copyWith(color: palette.secondaryText),
           ),
           const SizedBox(height: AppSpacing.lg),
+          _FactorInsightCard(performances: result.factorPerformances),
+          const SizedBox(height: AppSpacing.lg),
           for (
             var index = 0;
             index < result.factorPerformances.length;
@@ -229,6 +255,122 @@ class QuantFactorBacktestSection extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _FactorInsightCard extends StatelessWidget {
+  const _FactorInsightCard({required this.performances});
+
+  final List<QuantFactorHistoricalPerformance> performances;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Semantics(
+      container: true,
+      label: '因子解读',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: palette.cardBackground,
+          border: Border.all(color: palette.divider),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '因子解读',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: palette.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              _factorInsight(performances),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: palette.primaryText,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '仅基于当前回测区间的历史信号，因子表现会随市场环境变化。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BacktestConclusion extends StatelessWidget {
+  const _BacktestConclusion({required this.result});
+
+  final QuantFactorBacktestResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Semantics(
+      container: true,
+      label: '回测结论',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: palette.cardBackground,
+          border: Border.all(color: palette.divider),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '回测结论',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: palette.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              _backtestConclusion(result),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: palette.primaryText,
+                height: 1.5,
+              ),
+            ),
+            if (result.hasBacktestPeriod) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '回测区间：${_formatDate(result.backtestStartDate!)} 至 '
+                '${_formatDate(result.backtestEndDate!)}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              _backtestRiskReminder(result),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -316,7 +458,238 @@ class _FactorPerformanceRow extends StatelessWidget {
             const Expanded(child: SizedBox()),
           ],
         ),
+        if (hasSignals) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            '逐笔信号明细',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (var index = 0; index < performance.trades.length; index++) ...[
+            _FactorTradeRow(trade: performance.trades[index], index: index + 1),
+            if (index < performance.trades.length - 1)
+              const Divider(height: AppSpacing.lg),
+          ],
+        ],
       ],
+    );
+  }
+}
+
+class _FactorTradeRow extends StatelessWidget {
+  const _FactorTradeRow({required this.trade, required this.index});
+
+  final QuantBacktestTrade trade;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final returnColor = trade.isWinning
+        ? const Color(0xFF16A085)
+        : const Color(0xFFE05A47);
+
+    return Semantics(
+      container: true,
+      label: '第 $index 笔因子信号',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '第 $index 笔信号',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: palette.primaryText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  _signedPercent(trade.netReturnRate),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: returnColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '买入 ${_formatDate(trade.entryDate)} · 卖出 ${_formatDate(trade.exitDate)}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '净收益',
+                    value: _signedPercent(trade.netReturnRate),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '成本影响',
+                    value: _percent(trade.estimatedCostRate),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '因子分',
+                    value: trade.signalScore.toStringAsFixed(0),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BacktestTradeDetails extends StatelessWidget {
+  const _BacktestTradeDetails({required this.trades});
+
+  final List<QuantBacktestTrade> trades;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return ExpansionTile(
+      key: const ValueKey('quant-backtest-trade-details'),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: AppSpacing.md),
+      title: Text(
+        '逐笔交易明细',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: palette.primaryText,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        '共 ${trades.length} 笔，按买入日期排序',
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+      ),
+      children: [
+        for (var index = 0; index < trades.length; index++) ...[
+          _BacktestTradeRow(trade: trades[index], index: index + 1),
+          if (index < trades.length - 1) const Divider(height: AppSpacing.lg),
+        ],
+      ],
+    );
+  }
+}
+
+class _BacktestTradeRow extends StatelessWidget {
+  const _BacktestTradeRow({required this.trade, required this.index});
+
+  final QuantBacktestTrade trade;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final isWinning = trade.isWinning;
+    final returnColor = isWinning
+        ? const Color(0xFF16A085)
+        : const Color(0xFFE05A47);
+
+    return Semantics(
+      container: true,
+      label: '第 $index 笔交易',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '第 $index 笔',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: palette.primaryText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  _signedPercent(trade.netReturnRate),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: returnColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '买入 ${_formatDate(trade.entryDate)} · 卖出 ${_formatDate(trade.exitDate)}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: palette.secondaryText),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '买入成交价',
+                    value: trade.executedEntryPrice.toStringAsFixed(2),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '卖出成交价',
+                    value: trade.executedExitPrice.toStringAsFixed(2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '毛收益',
+                    value: _signedPercent(trade.grossReturnRate),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '成本影响',
+                    value: _percent(trade.estimatedCostRate),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _BacktestMetric(
+                    label: '信号分',
+                    value: trade.signalScore.toStringAsFixed(0),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -353,6 +726,72 @@ class _BacktestMetric extends StatelessWidget {
   }
 }
 
+class _ProfessionalMetricsGrid extends StatelessWidget {
+  const _ProfessionalMetricsGrid({required this.result});
+
+  final QuantFactorBacktestResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasEnoughSamples = result.hasSufficientProfessionalMetricSample;
+    final sampleValue = hasEnoughSamples ? null : '样本不足';
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _BacktestMetric(
+                label: '盈亏比',
+                value: sampleValue ?? _ratio(result.profitLossRatio),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _BacktestMetric(
+                label: '盈利因子',
+                value: sampleValue ?? _ratio(result.profitFactor),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Expanded(
+              child: _BacktestMetric(
+                label: '年化收益率',
+                value:
+                    sampleValue ??
+                    _signedPercentOrUnavailable(result.annualizedReturn),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: _BacktestMetric(
+                label: '夏普比率',
+                value: sampleValue ?? _ratio(result.sharpeRatio),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          hasEnoughSamples
+              ? '盈亏比看平均一赢一亏的大小，盈利因子看总盈利能否覆盖总亏损；年化收益率统一不同区间的收益尺度，夏普比率同时考虑波动风险。'
+              : '当前只有 ${result.tradeCount} 笔交易，少于最低 ${QuantFactorBacktestResult.minimumProfessionalMetricSampleSize} 笔样本；这些指标暂不用于判断策略优劣。',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(
+              context,
+            ).extension<AppThemePalette>()!.secondaryText,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 String _noTradeMessage(QuantFactorBacktestResult result) {
   switch (result.noTradeReason) {
     case QuantBacktestNoTradeReason.insufficientHistory:
@@ -379,6 +818,79 @@ String _noTradeMessage(QuantFactorBacktestResult result) {
   }
 }
 
+String _backtestConclusion(QuantFactorBacktestResult result) {
+  final sampleNote = result.tradeCount < 5
+      ? '交易样本较少，结论仅作初步观察。'
+      : '样本覆盖 ${result.tradeCount} 笔交易，可结合更多历史区间继续验证。';
+
+  final comparisonNote = switch (result.hasEquityComparison) {
+    false => '未提供同期基准曲线，暂不比较超额收益。',
+    true when result.excessReturn > 0 =>
+      '策略在该历史区间跑赢买入持有基准 ${_signedPercent(result.excessReturn)}。',
+    true when result.excessReturn < 0 =>
+      '策略在该历史区间落后买入持有基准 ${_percent(-result.excessReturn)}。',
+    true => '策略与买入持有基准表现持平。',
+  };
+
+  return '本次回测共完成 ${result.tradeCount} 笔交易，'
+      '净胜率 ${_percent(result.winRate)}。'
+      '$sampleNote'
+      '$comparisonNote';
+}
+
+String _factorInsight(List<QuantFactorHistoricalPerformance> performances) {
+  const minimumSampleSize = 5;
+  final referenceable = performances
+      .where((performance) => performance.signalCount >= minimumSampleSize)
+      .toList();
+  final insufficient = performances
+      .where((performance) => performance.signalCount < minimumSampleSize)
+      .toList();
+
+  if (referenceable.isEmpty) {
+    final labels = insufficient
+        .map((performance) => performance.label)
+        .join('、');
+    return '$labels的历史信号均少于 $minimumSampleSize 次，样本不足，暂不比较因子强弱。';
+  }
+
+  referenceable.sort(
+    (left, right) => right.averageReturn.compareTo(left.averageReturn),
+  );
+  final strongest = referenceable.first;
+  final positive = strongest.averageReturn > 0;
+  final strongestNote = positive
+      ? '${strongest.label}在样本充足的因子中平均净收益最高'
+            '（${_signedPercent(strongest.averageReturn)}），可作为初步参考。'
+      : '${strongest.label}在样本充足的因子中平均净收益最高，'
+            '但仍为${_signedPercent(strongest.averageReturn)}，暂未显示正向历史表现。';
+
+  final weaker = referenceable
+      .where((performance) => performance.averageReturn <= 0)
+      .map((performance) => performance.label)
+      .toList();
+  final weakerNote = weaker.isEmpty
+      ? ''
+      : '${weaker.join('、')}平均净收益未为正，使用时需要更谨慎。';
+  final insufficientNote = insufficient.isEmpty
+      ? ''
+      : '${insufficient.map((performance) => performance.label).join('、')}信号少于 '
+            '$minimumSampleSize 次，暂不作强弱判断。';
+
+  return '$strongestNote$weakerNote$insufficientNote';
+}
+
+String _backtestRiskReminder(QuantFactorBacktestResult result) {
+  final drawdown = _percent(result.maximumDrawdown);
+  final drawdownNote = switch (result.maximumDrawdown) {
+    >= 0.10 => '策略最大回撤为 $drawdown，历史回撤压力较大。',
+    >= 0.05 => '策略最大回撤为 $drawdown，需要留意回撤风险。',
+    _ => '策略最大回撤为 $drawdown，历史回撤相对较小。',
+  };
+
+  return '$drawdownNote 历史回测不能推断未来表现。';
+}
+
 String _percent(double value) {
   return '${(value * 100).toStringAsFixed(2)}%';
 }
@@ -386,4 +898,18 @@ String _percent(double value) {
 String _signedPercent(double value) {
   final sign = value > 0 ? '+' : '';
   return '$sign${(value * 100).toStringAsFixed(2)}%';
+}
+
+String _signedPercentOrUnavailable(double? value) {
+  return value == null ? '暂无' : _signedPercent(value);
+}
+
+String _ratio(double? value) {
+  return value == null ? '暂无' : value.toStringAsFixed(2);
+}
+
+String _formatDate(DateTime date) {
+  return '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }

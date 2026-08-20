@@ -35,4 +35,18 @@ void main() {
     expect(profile.costSettings.sellTransactionCostRate, 0.0000278);
     expect(profile.costSettings.slippageRate, 0.0003);
   });
+
+  test('成本配置提供市场名称、费率摘要和默认说明', () {
+    final profile = QuantMarketBacktestCostProfile.forMarket(
+      QuantMarket.aShare,
+    );
+
+    expect(profile.marketLabel, 'A股');
+    expect(
+      profile.rateSummary,
+      '佣金双向 0.03% · 买入税费 0% · 卖出印花税 0.05% · 单边滑点 0.05%',
+    );
+    expect(profile.defaultAssumptionText, contains('A股估算'));
+    expect(profile.defaultAssumptionText, contains(profile.rateSummary));
+  });
 }

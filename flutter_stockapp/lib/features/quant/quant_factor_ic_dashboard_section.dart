@@ -63,21 +63,33 @@ class QuantFactorIcDashboardSection extends StatelessWidget {
 
     switch (currentResult.status) {
       case QuantFactorIcDashboardStatus.insufficientRealStocks:
-        return _StatusMessage(
-          icon: Icons.groups_outlined,
-          title: '真实股票样本不足',
-          message:
-              '当前只有 ${currentResult.realStockCount} 只真实数据股票，'
-              '至少需要 3 只才能计算 IC。',
+        return Column(
+          children: [
+            _StatusMessage(
+              icon: Icons.groups_outlined,
+              title: '真实股票样本不足',
+              message:
+                  '当前只有 ${currentResult.realStockCount} 只真实数据股票，'
+                  '至少需要 3 只才能计算 IC。',
+            ),
+            if (currentResult.failedStocks.isNotEmpty)
+              _SkippedStocksNotice(failures: currentResult.failedStocks),
+          ],
         );
 
       case QuantFactorIcDashboardStatus.insufficientHistory:
-        return _StatusMessage(
-          icon: Icons.history_rounded,
-          title: '历史数据不足',
-          message:
-              '已有 ${currentResult.realStockCount} 只真实数据股票，'
-              '但尚未形成足够的历史因子与未来收益样本。',
+        return Column(
+          children: [
+            _StatusMessage(
+              icon: Icons.history_rounded,
+              title: '历史数据不足',
+              message:
+                  '已有 ${currentResult.realStockCount} 只真实数据股票，'
+                  '但尚未形成足够的历史因子与未来收益样本。',
+            ),
+            if (currentResult.failedStocks.isNotEmpty)
+              _SkippedStocksNotice(failures: currentResult.failedStocks),
+          ],
         );
 
       case QuantFactorIcDashboardStatus.loadFailure:
@@ -89,12 +101,63 @@ class QuantFactorIcDashboardSection extends StatelessWidget {
       case QuantFactorIcDashboardStatus.available:
         return Column(
           children: [
+            if (currentResult.failedStocks.isNotEmpty)
+              _SkippedStocksNotice(failures: currentResult.failedStocks),
             for (final factorId in const ['trend', 'momentum', 'volume'])
               if (currentResult.resultFor(factorId) case final factorResult?)
                 _FactorIcRow(result: factorResult),
           ],
         );
     }
+  }
+}
+
+class _SkippedStocksNotice extends StatelessWidget {
+  const _SkippedStocksNotice({required this.failures});
+
+  final List<QuantFactorIcStockFailure> failures;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+    final grouped = <String, List<String>>{};
+
+    for (final failure in failures) {
+      grouped.putIfAbsent(failure.reason, () => []).add(failure.symbol);
+    }
+
+    return Container(
+      key: const ValueKey('quant-ic-skipped-stocks'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: palette.cardBackground,
+        border: Border.all(color: palette.divider),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '部分股票未参与分析',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: palette.primaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          for (final entry in grouped.entries)
+            Text(
+              '${entry.value.join('、')}：${_failureReasonLabel(entry.key)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                height: 1.5,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -273,6 +336,14 @@ String _reliabilityLabel(QuantFactorIcReliability reliability) {
     QuantFactorIcReliability.insufficient => '样本不足',
     QuantFactorIcReliability.limited => '样本有限',
     QuantFactorIcReliability.adequate => '样本充分',
+  };
+}
+
+String _failureReasonLabel(String reason) {
+  return switch (reason) {
+    'market_data_not_found' => '暂无可用历史行情',
+    'invalid_market_data' => '历史行情格式异常',
+    _ => '行情服务暂时不可用',
   };
 }
 

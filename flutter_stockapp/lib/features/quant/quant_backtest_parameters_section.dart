@@ -152,6 +152,11 @@ class _QuantBacktestParametersSectionState
       return;
     }
 
+    final estimatedRoundTripImpact =
+        commissionRate * 2 +
+        buyTransactionCostRate +
+        sellTransactionCostRate +
+        slippageRate * 2;
     final parameters = QuantBacktestParameters(
       signalThreshold: _signalThreshold,
       holdingPeriod: _holdingPeriod,
@@ -166,9 +171,16 @@ class _QuantBacktestParametersSectionState
 
     widget.onChanged(parameters);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('回测参数已应用')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          estimatedRoundTripImpact >= 5
+              ? '回测参数已应用。当前单笔往返成本和滑点估算约为 '
+                    '${estimatedRoundTripImpact.toStringAsFixed(2)}%，成本假设偏高，请谨慎解读收益。'
+              : '回测参数已应用',
+        ),
+      ),
+    );
   }
 
   void _showValidationMessage(String message) {
@@ -201,6 +213,71 @@ class _QuantBacktestParametersSectionState
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
+        Semantics(
+          container: true,
+          label: '参数说明',
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: palette.cardBackground,
+              border: Border.all(color: palette.divider),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '参数说明',
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: palette.primaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _ParameterHint(
+                  icon: Icons.filter_alt_outlined,
+                  text: '提高信号阈值：交易通常更少，筛选条件更严格；降低阈值则会增加信号覆盖。',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _ParameterHint(
+                  icon: Icons.schedule_outlined,
+                  text: '延长持有周期：单笔持仓时间更长，可能减少交易频率，也会承受更长时间的价格波动。',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _ParameterHint(
+                  icon: Icons.receipt_long_outlined,
+                  text: '提高交易成本假设：会直接降低回测净收益，更接近实际成交时的保守估计。',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          '当前市场：${costProfile.marketLabel}',
+          style: textTheme.bodyLarge?.copyWith(
+            color: palette.primaryText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          costProfile.defaultAssumptionText,
+          style: textTheme.bodySmall?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          '默认值仅用于回测估算，实际费率可能因券商、账户和成交金额不同而变化。',
+          style: textTheme.bodySmall?.copyWith(
+            color: palette.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
         Text(
           '信号阈值：${_signalThreshold.toStringAsFixed(0)} 分',
           style: textTheme.bodyLarge?.copyWith(
@@ -269,6 +346,22 @@ class _QuantBacktestParametersSectionState
           ),
           children: [
             const SizedBox(height: AppSpacing.sm),
+            Text(
+              '当前默认假设',
+              style: textTheme.bodyMedium?.copyWith(
+                color: palette.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              costProfile.rateSummary,
+              style: textTheme.bodySmall?.copyWith(
+                color: palette.secondaryText,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
             _RateInput(
               controller: _commissionController,
               label: '佣金',
@@ -314,6 +407,35 @@ class _QuantBacktestParametersSectionState
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ParameterHint extends StatelessWidget {
+  const _ParameterHint({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AppThemePalette>()!;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: palette.secondaryText),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: palette.secondaryText,
+              height: 1.5,
+            ),
+          ),
         ),
       ],
     );

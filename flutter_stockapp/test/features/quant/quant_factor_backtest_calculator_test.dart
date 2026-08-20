@@ -136,6 +136,9 @@ void main() {
       );
 
       expect(result.hasEquityComparison, isTrue);
+      expect(result.hasBacktestPeriod, isTrue);
+      expect(result.backtestStartDate, bars[35].tradingDate);
+      expect(result.backtestEndDate, bars[49].tradingDate);
       expect(result.equityCurve.length, 15);
 
       final firstPoint = result.equityCurve.first;
@@ -173,6 +176,7 @@ void main() {
 
       expect(result.tradeCount, 0);
       expect(result.hasEquityComparison, isTrue);
+      expect(result.hasBacktestPeriod, isTrue);
 
       for (final point in result.equityCurve) {
         expect(point.strategyValue, closeTo(1, 0.000001));
@@ -192,6 +196,7 @@ void main() {
       );
 
       expect(result.tradeCount, 0);
+      expect(result.hasBacktestPeriod, isTrue);
       expect(result.evaluatedSignalCount, greaterThan(0));
       expect(result.highestSignalScore, isNotNull);
       expect(
@@ -226,6 +231,9 @@ void main() {
       );
       expect(result.equityCurve, isEmpty);
       expect(result.hasEquityComparison, isFalse);
+      expect(result.hasBacktestPeriod, isFalse);
+      expect(result.backtestStartDate, isNull);
+      expect(result.backtestEndDate, isNull);
       expect(result.benchmarkReturn, 0);
       expect(result.excessReturn, 0);
     });
@@ -356,6 +364,72 @@ void main() {
   });
 
   group('QuantFactorBacktestResult', () {
+    test('计算专业回测指标并在区间不足时返回不可用', () {
+      const zeroCosts = QuantBacktestCostSettings(
+        commissionRate: 0,
+        stampDutyRate: 0,
+        slippageRate: 0,
+      );
+      final trades = [
+        _buildTrade(110, costs: zeroCosts),
+        _buildTrade(110, costs: zeroCosts),
+        _buildTrade(95, costs: zeroCosts),
+        _buildTrade(95, costs: zeroCosts),
+        _buildTrade(110, costs: zeroCosts),
+      ];
+      final result = QuantFactorBacktestResult(
+        trades: trades,
+        signalThreshold: 60,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+        costSettings: zeroCosts,
+        backtestStartDate: DateTime(2025, 1, 1),
+        backtestEndDate: DateTime(2025, 1, 10),
+        equityCurve: [
+          QuantBacktestEquityPoint(
+            date: DateTime(2025, 1, 1),
+            strategyValue: 1,
+            benchmarkValue: 1,
+          ),
+          QuantBacktestEquityPoint(
+            date: DateTime(2025, 1, 2),
+            strategyValue: 1.01,
+            benchmarkValue: 1.01,
+          ),
+          QuantBacktestEquityPoint(
+            date: DateTime(2025, 1, 3),
+            strategyValue: 1.02,
+            benchmarkValue: 1.02,
+          ),
+          QuantBacktestEquityPoint(
+            date: DateTime(2025, 1, 4),
+            strategyValue: 1,
+            benchmarkValue: 1.03,
+          ),
+        ],
+      );
+
+      expect(result.hasSufficientProfessionalMetricSample, isTrue);
+      expect(result.averageWinningReturn, closeTo(0.1, 0.000001));
+      expect(result.averageLosingReturn, closeTo(-0.05, 0.000001));
+      expect(result.profitLossRatio, closeTo(2, 0.000001));
+      expect(result.profitFactor, closeTo(3, 0.000001));
+      expect(result.annualizedReturn, closeTo(0, 0.000001));
+      expect(result.sharpeRatio, isNotNull);
+
+      final insufficient = QuantFactorBacktestResult(
+        trades: trades.take(2).toList(),
+        signalThreshold: 60,
+        holdingPeriod: 5,
+        minimumLookback: 35,
+      );
+      expect(insufficient.hasSufficientProfessionalMetricSample, isFalse);
+      expect(insufficient.profitLossRatio, isNull);
+      expect(insufficient.profitFactor, isNull);
+      expect(insufficient.annualizedReturn, isNull);
+      expect(insufficient.sharpeRatio, isNull);
+    });
+
     test('零成本时保持原有收益统计结果', () {
       const zeroCosts = QuantBacktestCostSettings(
         commissionRate: 0,
@@ -455,6 +529,20 @@ void main() {
       expect(result.excessReturn, closeTo(-0.12, 0.000001));
     });
   });
+}
+
+QuantBacktestTrade _buildTrade(
+  double exitPrice, {
+  QuantBacktestCostSettings costs = const QuantBacktestCostSettings(),
+}) {
+  return QuantBacktestTrade(
+    entryDate: DateTime(2026, 1, 1),
+    exitDate: DateTime(2026, 1, 5),
+    entryPrice: 100,
+    exitPrice: exitPrice,
+    signalScore: 70,
+    costSettings: costs,
+  );
 }
 
 List<StockDailyBar> _buildBars(int count) {
