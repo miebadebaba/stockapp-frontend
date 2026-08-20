@@ -16,7 +16,7 @@ class QuantStockAnalysis {
     required this.rsi14,
     required this.volume,
     required this.technicalSummary,
-    this.dataSourceName = 'Market service',
+    this.dataSourceName = 'Market 行情服务',
     this.isSimulated = false,
   });
 

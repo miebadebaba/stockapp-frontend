@@ -42,10 +42,18 @@ class QuantBacktestComparisonItem {
 class QuantBacktestComparisonResult {
   const QuantBacktestComparisonResult({required this.items});
 
+  static const minimumReferenceTradeCount = 5;
+
   final List<QuantBacktestComparisonItem> items;
 
+  List<QuantBacktestComparisonItem> get referenceableItems {
+    return items
+        .where((item) => item.tradeCount >= minimumReferenceTradeCount)
+        .toList();
+  }
+
   QuantBacktestComparisonItem? get bestReturnItem {
-    final comparableItems = items.where((item) => item.tradeCount > 0).toList();
+    final comparableItems = referenceableItems;
 
     if (comparableItems.isEmpty) {
       return null;
@@ -58,7 +66,7 @@ class QuantBacktestComparisonResult {
   }
 
   QuantBacktestComparisonItem? get lowestDrawdownItem {
-    final comparableItems = items.where((item) => item.tradeCount > 0).toList();
+    final comparableItems = referenceableItems;
 
     if (comparableItems.isEmpty) {
       return null;
@@ -68,6 +76,70 @@ class QuantBacktestComparisonResult {
       (current, next) =>
           next.maximumDrawdown < current.maximumDrawdown ? next : current,
     );
+  }
+
+  /// 根据收益、回撤和交易覆盖度选出相对均衡的历史组合。
+  QuantBacktestComparisonItem? get balancedItem {
+    final comparableItems = referenceableItems;
+
+    if (comparableItems.length < 2) {
+      return null;
+    }
+
+    final maxReturn = comparableItems
+        .map((item) => item.cumulativeReturn)
+        .reduce((left, right) => left > right ? left : right);
+    final minReturn = comparableItems
+        .map((item) => item.cumulativeReturn)
+        .reduce((left, right) => left < right ? left : right);
+    final maxDrawdown = comparableItems
+        .map((item) => item.maximumDrawdown)
+        .reduce((left, right) => left > right ? left : right);
+    final minDrawdown = comparableItems
+        .map((item) => item.maximumDrawdown)
+        .reduce((left, right) => left < right ? left : right);
+    final maxTrades = comparableItems
+        .map((item) => item.tradeCount)
+        .reduce((left, right) => left > right ? left : right);
+    final minTrades = comparableItems
+        .map((item) => item.tradeCount)
+        .reduce((left, right) => left < right ? left : right);
+
+    double normalizeHigher(double value, double minimum, double maximum) {
+      if (maximum == minimum) {
+        return 1;
+      }
+
+      return (value - minimum) / (maximum - minimum);
+    }
+
+    double normalizeLower(double value, double minimum, double maximum) {
+      return 1 - normalizeHigher(value, minimum, maximum);
+    }
+
+    return comparableItems.reduce((current, next) {
+      double score(QuantBacktestComparisonItem item) {
+        final returnScore = normalizeHigher(
+          item.cumulativeReturn,
+          minReturn,
+          maxReturn,
+        );
+        final drawdownScore = normalizeLower(
+          item.maximumDrawdown,
+          minDrawdown,
+          maxDrawdown,
+        );
+        final coverageScore = normalizeHigher(
+          item.tradeCount.toDouble(),
+          minTrades.toDouble(),
+          maxTrades.toDouble(),
+        );
+
+        return returnScore * 0.5 + drawdownScore * 0.3 + coverageScore * 0.2;
+      }
+
+      return score(next) > score(current) ? next : current;
+    });
   }
 }
 

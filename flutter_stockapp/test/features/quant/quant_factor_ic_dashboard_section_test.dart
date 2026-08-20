@@ -51,6 +51,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('shows skipped stocks when remaining history is insufficient', (
+    tester,
+  ) async {
+    await _pumpSection(
+      tester,
+      result: const QuantFactorIcDashboardResult(
+        status: QuantFactorIcDashboardStatus.insufficientHistory,
+        realStockCount: 3,
+        failedStocks: [
+          QuantFactorIcStockFailure(
+            symbol: 'TSLA',
+            reason: 'market_data_unavailable',
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('历史数据不足'), findsOneWidget);
+    expect(find.text('部分股票未参与分析'), findsOneWidget);
+    expect(find.text('TSLA：行情服务暂时不可用'), findsOneWidget);
+  });
+
   testWidgets('shows backend load failure state', (tester) async {
     await _pumpSection(
       tester,
@@ -108,6 +130,40 @@ void main() {
 
     expect(find.textContaining('有效 2 期'), findsNWidgets(3));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows skipped stocks while preserving available IC metrics', (
+    tester,
+  ) async {
+    final result = QuantFactorIcDashboardResult(
+      status: QuantFactorIcDashboardStatus.available,
+      realStockCount: 3,
+      failedStocks: const [
+        QuantFactorIcStockFailure(
+          symbol: 'TSLA',
+          reason: 'market_data_unavailable',
+        ),
+        QuantFactorIcStockFailure(
+          symbol: 'META',
+          reason: 'market_data_not_found',
+        ),
+      ],
+      factorResults: {
+        'trend': _factorResult(
+          factorId: 'trend',
+          firstIc: 0.20,
+          secondIc: 0.40,
+        ),
+      },
+    );
+
+    await _pumpSection(tester, result: result);
+
+    expect(find.text('部分股票未参与分析'), findsOneWidget);
+    expect(find.text('TSLA：行情服务暂时不可用'), findsOneWidget);
+    expect(find.text('META：暂无可用历史行情'), findsOneWidget);
+    expect(find.text('趋势因子'), findsOneWidget);
+    expect(find.text('Rank IC'), findsOneWidget);
   });
 }
 

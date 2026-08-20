@@ -6,7 +6,11 @@ void main() {
   test('maps backend IC response to dashboard result', () {
     final result = mapQuantFactorIcAnalysisResponse({
       'market': 'united_states',
-      'symbols': ['AAPL', 'MSFT', 'NVDA'],
+      'symbols': ['AAPL', 'MSFT', 'NVDA', 'TSLA'],
+      'successful_symbols': ['AAPL', 'MSFT', 'NVDA'],
+      'failed_stocks': [
+        {'symbol': 'TSLA', 'reason': 'market_data_unavailable'},
+      ],
       'history_limit': 120,
       'holding_period': 5,
       'minimum_lookback': 35,
@@ -43,6 +47,9 @@ void main() {
 
     expect(result.status, QuantFactorIcDashboardStatus.available);
     expect(result.realStockCount, 3);
+    expect(result.failedStocks, hasLength(1));
+    expect(result.failedStocks.first.symbol, 'TSLA');
+    expect(result.failedStocks.first.reason, 'market_data_unavailable');
 
     final trend = result.resultFor('trend');
 
@@ -53,6 +60,17 @@ void main() {
     expect(trend.averageInformationCoefficient, closeTo(0.3, 0.000001));
     expect(trend.averageRankInformationCoefficient, closeTo(0.4, 0.000001));
     expect(trend.positiveInformationCoefficientRate, 1.0);
+  });
+
+  test('keeps compatibility with responses without partial-load fields', () {
+    final result = mapQuantFactorIcAnalysisResponse({
+      'symbols': ['AAPL', 'MSFT', 'NVDA'],
+      'factor_results': const [],
+    });
+
+    expect(result.realStockCount, 3);
+    expect(result.failedStocks, isEmpty);
+    expect(result.status, QuantFactorIcDashboardStatus.insufficientHistory);
   });
 
   test('rejects malformed factor periods', () {

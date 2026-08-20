@@ -5,6 +5,19 @@ QuantFactorIcDashboardResult mapQuantFactorIcAnalysisResponse(
   Map<String, dynamic> json,
 ) {
   final symbols = _readList(json, 'symbols');
+  final successfulSymbols = json.containsKey('successful_symbols')
+      ? _readList(json, 'successful_symbols')
+      : symbols;
+  final failedStocks = json.containsKey('failed_stocks')
+      ? _readMapList(json, 'failed_stocks')
+            .map(
+              (failure) => QuantFactorIcStockFailure(
+                symbol: _readString(failure, 'symbol'),
+                reason: _readString(failure, 'reason'),
+              ),
+            )
+            .toList(growable: false)
+      : const <QuantFactorIcStockFailure>[];
   final factorResultsJson = _readMapList(json, 'factor_results');
 
   final factorResults = <String, QuantFactorIcResult>{};
@@ -18,7 +31,7 @@ QuantFactorIcDashboardResult mapQuantFactorIcAnalysisResponse(
     (result) => result.availablePeriodCount > 0,
   );
 
-  final realStockCount = symbols.length;
+  final realStockCount = successfulSymbols.length;
 
   return QuantFactorIcDashboardResult(
     status: realStockCount < 3
@@ -28,6 +41,7 @@ QuantFactorIcDashboardResult mapQuantFactorIcAnalysisResponse(
         : QuantFactorIcDashboardStatus.insufficientHistory,
     realStockCount: realStockCount,
     factorResults: Map.unmodifiable(factorResults),
+    failedStocks: List.unmodifiable(failedStocks),
   );
 }
 
